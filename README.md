@@ -39,3 +39,5 @@ require 'nrepl'.config{
 - [ ] Evaluate multiple lines
 - [ ] Change buffer/window/tab context
 - [ ] Per instance script context for vim script
+- [X] `[[`, `]]`, `[]`, `][` key bindings
+- [ ] Key binding or text object for selecting last output
