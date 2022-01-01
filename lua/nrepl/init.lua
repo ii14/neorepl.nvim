@@ -76,7 +76,7 @@ local default_config = {
 --- Set default configuration
 ---@param config? nreplConfig
 function M.config(config)
-  M.default_config = normalize_config(config)
+  default_config = normalize_config(config)
 end
 
 --- Create a new REPL instance
