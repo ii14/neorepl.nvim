@@ -36,6 +36,7 @@ require 'nrepl'.config{
 ### TODO
 
 - [ ] Completion
+- [ ] History
 - [ ] Evaluate multiple lines
 - [ ] Change buffer/window/tab context
 - [ ] Per instance script context for vim script
