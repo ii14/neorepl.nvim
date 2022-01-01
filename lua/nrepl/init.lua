@@ -20,9 +20,8 @@ local MSG_HELP = {
   '/vim         - enter vimscript mode',
   '/clear       - clear buffer',
   '/quit        - close repl instance',
-  '/buffer      - not implemented: change buffer context',
-  '/window      - not implemented: change window context',
-  '/tabpage     - not implemented: change tabpage context',
+  '/buffer B    - change buffer context, 0 to disable',
+  '/window N    - not implemented: change window context',
   '/indent N    - set indentation or print current value',
 }
 
@@ -104,6 +103,8 @@ function M.new(config)
   if indent and indent > 0 then
     indentstr = string.rep(' ', indent)
   end
+  local buffer = 0
+
   local this = { bufnr = bufnr }
 
   --- Append lines to the buffer
@@ -164,9 +165,23 @@ function M.new(config)
       setfenv(res, env)
 
       -- temporarily replace print
-      _G.print = env.print
-      ok, res, n = pcall_res(pcall(res))
-      _G.print = prev_print
+      if buffer > 0 then
+        if not api.nvim_buf_is_valid(buffer) then
+          buffer = 0
+          put({'invalid buffer, setting it back to 0'}, 'nreplError')
+          return
+        end
+
+        api.nvim_buf_call(buffer, function()
+          _G.print = env.print
+          ok, res, n = pcall_res(pcall(res))
+          _G.print = prev_print
+        end)
+      else
+        _G.print = env.print
+        ok, res, n = pcall_res(pcall(res))
+        _G.print = prev_print
+      end
 
       if not ok then
         local msg = res:gsub([[^%[string "nrepl"%]:%d+:%s*]], '', 1)
@@ -191,7 +206,22 @@ function M.new(config)
     -- call execute() from a vim script file to have script local variables.
     -- context is shared between repl instances. a potential solution is to
     -- create a temporary script for each instance.
-    local ok, res = pcall(fn['nrepl#__evaluate__'], prg)
+    local ok, res
+
+    if buffer > 0 then
+      if not api.nvim_buf_is_valid(buffer) then
+        buffer = 0
+        put({'invalid buffer, setting it back to 0'}, 'nreplError')
+        return
+      end
+
+      api.nvim_buf_call(buffer, function()
+        ok, res = pcall(fn['nrepl#__evaluate__'], prg)
+      end)
+    else
+      ok, res = pcall(fn['nrepl#__evaluate__'], prg)
+    end
+
     if ok then
       put(vim.split(res, '\n', { plain = true, trimempty = true }), 'nreplOutput')
     else
@@ -241,6 +271,23 @@ function M.new(config)
         else
           vim_mode = true
           put(MSG_VIM, 'nreplInfo')
+        end
+      elseif fn.match(cmd, [=[\v\C^b%[uffer]$]=]) >= 0 then
+        if args then
+          local num = args:match('^%d+$')
+          if num then args = tonumber(num) end
+          if args == 0 then
+            buffer = 0
+          else
+            local value = fn.bufnr(args)
+            if value >= 0 then
+              buffer = value
+            else
+              put({'invalid buffer'}, 'ErrorMsg')
+            end
+          end
+        else
+          put({'buffer='..buffer}, 'nreplInfo')
         end
       elseif fn.match(cmd, [=[\v\C^i%[ndent]$]=]) >= 0 then
         if args then
