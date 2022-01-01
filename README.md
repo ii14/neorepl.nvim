@@ -36,10 +36,14 @@ require 'nrepl'.config{
 ### TODO
 
 - [ ] Completion
+  - [X] Vim script
+  - [ ] Lua
+  - [ ] REPL commands
 - [ ] History
 - [ ] Evaluate multiple lines
-- [X] Change buffer context
-- [ ] Change window context
+- [ ] Context change
+  - [X] Buffer
+  - [ ] Window
 - [ ] Per instance script context for vim script
 - [X] `[[`, `]]`, `[]`, `][` key bindings
 - [ ] Key binding or text object for selecting last output
