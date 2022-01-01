@@ -14,14 +14,16 @@ local MSG_VIM = {'-- vimscript --'}
 local MSG_LUA = {'-- lua --'}
 local MSG_INVALID_COMMAND = {'invalid command'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
+local MSG_INVALID_ARGS = {'invalid argument'}
 local MSG_HELP = {
-  '/lua     - enter lua mode',
-  '/vim     - enter vimscript mode',
-  '/clear   - clear buffer',
-  '/quit    - close repl instance',
-  '/buffer  - not implemented: change buffer context',
-  '/window  - not implemented: change window context',
-  '/tabpage - not implemented: change tabpage context',
+  '/lua         - enter lua mode',
+  '/vim         - enter vimscript mode',
+  '/clear       - clear buffer',
+  '/quit        - close repl instance',
+  '/buffer      - not implemented: change buffer context',
+  '/window      - not implemented: change window context',
+  '/tabpage     - not implemented: change tabpage context',
+  '/indent N    - set indentation or print current value',
 }
 
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
@@ -97,9 +99,10 @@ function M.new(config)
 
   local mark_id = 1
   local vim_mode = config.lang == 'vim'
-  local indent
-  if config.indent and config.indent > 0 then
-    indent = string.rep(' ', config.indent)
+  local indentstr
+  local indent = config.indent or 0
+  if indent and indent > 0 then
+    indentstr = string.rep(' ', indent)
   end
   local this = { bufnr = bufnr }
 
@@ -108,10 +111,10 @@ function M.new(config)
   ---@param hlgroup string
   local function put(lines, hlgroup)
     local s = fn.line('$')
-    if indent then
+    if indentstr then
       local t = {}
       for i, line in ipairs(lines) do
-        t[i] = indent..line
+        t[i] = indentstr..line
       end
       lines = t
     end
@@ -238,6 +241,26 @@ function M.new(config)
         else
           vim_mode = true
           put(MSG_VIM, 'nreplInfo')
+        end
+      elseif fn.match(cmd, [=[\v\C^i%[ndent]$]=]) >= 0 then
+        if args then
+          local value = args:match('^%d+$')
+          if value then
+            value = tonumber(value)
+            if value < 0 or value > 32 then
+              put(MSG_INVALID_ARGS, 'ErrorMsg')
+            elseif value == 0 then
+              indent = 0
+              indentstr = nil
+            else
+              indent = value
+              indentstr = string.rep(' ', value)
+            end
+          else
+            put(MSG_INVALID_ARGS, 'ErrorMsg')
+          end
+        else
+          put({'indent='..indent}, 'nreplInfo')
         end
       else
         put(MSG_INVALID_COMMAND, 'ErrorMsg')
