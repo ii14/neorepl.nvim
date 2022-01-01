@@ -36,6 +36,7 @@ end
 ---@class nreplConfig
 ---@field lang? 'lua'|'vim'
 ---@field on_init? function(bufnr: number)
+---@field startinsert? boolean
 
 --- Normalize configuration
 ---@param config? nreplConfig
@@ -49,6 +50,9 @@ local function normalize_config(config)
   end
   if c.on_init ~= nil and type(c.on_init) ~= 'function' then
     error('invalid on_init value, expected function or nil')
+  end
+  if c.startinsert ~= nil and type(c.startinsert) ~= 'boolean' then
+    error('invalid startinsert value, expected boolean or nil')
   end
   return c
 end
@@ -217,6 +221,9 @@ function M.new(config)
   M[bufnr] = this
   if config.on_init then
     config.on_init(bufnr)
+  end
+  if config.startinsert then
+    vim.cmd('startinsert')
   end
 end
 
