@@ -10,7 +10,11 @@ local prev_print = _G.print
 
 local M = {}
 
-local HELP = {
+local MSG_VIM = {'-- vimscript --'}
+local MSG_LUA = {'-- lua --'}
+local MSG_INVALID_COMMAND = {'invalid command'}
+local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
+local MSG_HELP = {
   '/lua     - enter lua mode',
   '/vim     - enter vimscript mode',
   '/clear   - clear buffer',
@@ -195,25 +199,48 @@ function M.new(config)
   --- Evaluate current line
   function this.eval_line()
     local line = api.nvim_get_current_line()
-    local cmd = line:match('^/(.*)%s*$')
+    local cmd, args = line:match('^/%s*(%S*)%s*(.-)%s*$')
     if cmd then
+      if args == '' then
+        args = nil
+      end
       if fn.match(cmd, [=[\v\C^q%[uit]$]=]) >= 0 then
-        M.close(bufnr)
-        return
+        if args then
+          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+        else
+          M.close(bufnr)
+          return
+        end
       elseif fn.match(cmd, [=[\v\C^c%[lear]$]=]) >= 0 then
-        api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-        api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
-        return
+        if args then
+          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+        else
+          api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+          api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+          return
+        end
       elseif fn.match(cmd, [=[\v\C^h%[elp]$]=]) >= 0 then
-        put(HELP, 'nreplInfo')
+        if args then
+          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+        else
+          put(MSG_HELP, 'nreplInfo')
+        end
       elseif fn.match(cmd, [=[\v\C^l%[ua]$]=]) >= 0 then
-        vim_mode = false
-        put({'-- lua --'}, 'nreplInfo')
+        if args then
+          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+        else
+          vim_mode = false
+          put(MSG_LUA, 'nreplInfo')
+        end
       elseif fn.match(cmd, [=[\v\C^v%[im]$]=]) >= 0 then
-        vim_mode = true
-        put({'-- vimscript --'}, 'nreplInfo')
+        if args then
+          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+        else
+          vim_mode = true
+          put(MSG_VIM, 'nreplInfo')
+        end
       else
-        put({'invalid command'}, 'ErrorMsg')
+        put(MSG_INVALID_COMMAND, 'ErrorMsg')
       end
     else
       if vim_mode then
