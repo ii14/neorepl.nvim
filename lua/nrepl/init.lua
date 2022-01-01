@@ -114,10 +114,10 @@ function M.new(config)
   if indent and indent > 0 then
     indentstr = string.rep(' ', indent)
   end
-  local buffer = 0
 
   local this = {
     bufnr = bufnr,
+    buffer = 0,
     vim_mode = config.lang == 'vim',
   }
 
@@ -179,14 +179,14 @@ function M.new(config)
       setfenv(res, env)
 
       -- temporarily replace print
-      if buffer > 0 then
-        if not api.nvim_buf_is_valid(buffer) then
-          buffer = 0
+      if this.buffer > 0 then
+        if not api.nvim_buf_is_valid(this.buffer) then
+          this.buffer = 0
           put({'invalid buffer, setting it back to 0'}, 'nreplError')
           return
         end
 
-        api.nvim_buf_call(buffer, function()
+        api.nvim_buf_call(this.buffer, function()
           _G.print = env.print
           ok, res, n = pcall_res(pcall(res))
           _G.print = prev_print
@@ -223,14 +223,14 @@ function M.new(config)
     -- create a temporary script for each instance.
     local ok, res
 
-    if buffer > 0 then
-      if not api.nvim_buf_is_valid(buffer) then
-        buffer = 0
+    if this.buffer > 0 then
+      if not api.nvim_buf_is_valid(this.buffer) then
+        this.buffer = 0
         put({'invalid buffer, setting it back to 0'}, 'nreplError')
         return
       end
 
-      api.nvim_buf_call(buffer, function()
+      api.nvim_buf_call(this.buffer, function()
         ok, res = pcall(fn['nrepl#__evaluate__'], prg)
         vim.cmd('redraw') -- TODO: make this optional
       end)
@@ -293,31 +293,31 @@ function M.new(config)
           local num = args:match('^%d+$')
           if num then args = tonumber(num) end
           if args == 0 then
-            buffer = 0
+            this.buffer = 0
             put({'buffer: none'}, 'nreplInfo')
           else
             local value = fn.bufnr(args)
             if value >= 0 then
-              buffer = value
-              local bufname = fn.bufname(buffer)
+              this.buffer = value
+              local bufname = fn.bufname(this.buffer)
               if bufname == '' then
                 bufname = BUF_EMPTY
               end
-              put({'buffer: '..buffer..' '..bufname}, 'nreplInfo')
+              put({'buffer: '..this.buffer..' '..bufname}, 'nreplInfo')
             else
               put(MSG_INVALID_BUF, 'nreplError')
             end
           end
         else
-          if buffer > 0 then
-            if fn.bufnr(buffer) >= 0 then
-              local bufname = fn.bufname(buffer)
+          if this.buffer > 0 then
+            if fn.bufnr(this.buffer) >= 0 then
+              local bufname = fn.bufname(this.buffer)
               if bufname == '' then
                 bufname = BUF_EMPTY
               end
-              put({'buffer: '..buffer..' '..bufname}, 'nreplInfo')
+              put({'buffer: '..this.buffer..' '..bufname}, 'nreplInfo')
             else
-              put({'buffer: '..buffer..' [invalid]'}, 'nreplInfo')
+              put({'buffer: '..this.buffer..' [invalid]'}, 'nreplInfo')
             end
           else
             put({'buffer: none'}, 'nreplInfo')
@@ -483,8 +483,16 @@ function M.get_completion()
   local pos = api.nvim_win_get_cursor(0)[2]
   line = line:sub(1, pos)
   local start = line:find('%S*$')
-  local completions = fn.getcompletion(line, 'cmdline', 1)
-  if #completions > 0 then
+  local completions
+  if repl.buffer > 0 then
+    -- TODO: check if buffer is valid
+    api.nvim_buf_call(repl.buffer, function()
+      completions = fn.getcompletion(line, 'cmdline', 1)
+    end)
+  else
+    completions = fn.getcompletion(line, 'cmdline', 1)
+  end
+  if completions and #completions > 0 then
     fn.complete(start, completions)
   end
 end
