@@ -16,12 +16,12 @@ local MSG_INVALID_COMMAND = {'invalid command'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
 local MSG_INVALID_ARGS = {'invalid argument'}
 local MSG_HELP = {
-  '/lua         - enter lua mode',
-  '/vim         - enter vimscript mode',
+  '/lua EXPR    - switch to lua or evaluate expression',
+  '/vim EXPR    - switch to vimscript or evaluate expression',
   '/clear       - clear buffer',
   '/quit        - close repl instance',
-  '/buffer B    - change buffer context, 0 to disable',
-  '/window N    - not implemented: change window context',
+  '/buffer B    - change buffer context (0 to disable) or print current value',
+  '/window N    - NOT IMPLEMENTED: change window context',
   '/indent N    - set indentation or print current value',
 }
 
@@ -260,14 +260,14 @@ function M.new(config)
         end
       elseif fn.match(cmd, [=[\v\C^l%[ua]$]=]) >= 0 then
         if args then
-          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+          lua_eval(args)
         else
           vim_mode = false
           put(MSG_LUA, 'nreplInfo')
         end
       elseif fn.match(cmd, [=[\v\C^v%[im]$]=]) >= 0 then
         if args then
-          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+          vim_eval(args)
         else
           vim_mode = true
           put(MSG_VIM, 'nreplInfo')
