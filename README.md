@@ -5,7 +5,7 @@ Neovim REPL for lua and vim script
 ---
 
 ```
-:Nrepl
+:Repl
 ```
 
 In insert mode type `/h` and enter to see available commands.
