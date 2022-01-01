@@ -19,11 +19,11 @@ local MSG_INVALID_BUF = {'invalid buffer'}
 local MSG_HELP = {
   '/lua EXPR    - switch to lua or evaluate expression',
   '/vim EXPR    - switch to vimscript or evaluate expression',
-  '/clear       - clear buffer',
-  '/quit        - close repl instance',
   '/buffer B    - change buffer context (0 to disable) or print current value',
   '/window N    - NOT IMPLEMENTED: change window context',
   '/indent N    - set indentation or print current value',
+  '/clear       - clear buffer',
+  '/quit        - close repl instance',
 }
 
 local BUF_EMPTY = '[No Name]'
@@ -69,7 +69,9 @@ local function normalize_config(config)
 end
 
 ---@type nreplConfig Default configuration
-local default_config = {}
+local default_config = {
+  indent = 4,
+}
 
 --- Set default configuration
 ---@param config? nreplConfig
@@ -89,17 +91,24 @@ function M.new(config)
   api.nvim_buf_set_name(bufnr, 'nrepl('..bufnr..')')
   vim.cmd(string.format([=[
     inoremap <silent><buffer> <CR> <cmd>lua require'nrepl'.eval_line()<CR>
+
+    setlocal completeopt=menu
+    inoremap <silent><buffer><expr> <Tab>
+      \ pumvisible() ? '<C-N>' : '<cmd>lua require"nrepl".get_completion()<CR>'
+    iunmap <C-E>
+    iunmap <C-Y>
+
     nnoremap <silent><buffer> [[ <cmd>lua require'nrepl'.goto_prev()<CR>
     nnoremap <silent><buffer> [] <cmd>lua require'nrepl'.goto_prev(true)<CR>
     nnoremap <silent><buffer> ]] <cmd>lua require'nrepl'.goto_next()<CR>
     nnoremap <silent><buffer> ][ <cmd>lua require'nrepl'.goto_next(true)<CR>
+
     augroup nrepl
       autocmd BufDelete <buffer> lua require'nrepl'[%d] = nil
     augroup end
   ]=], bufnr))
 
   local mark_id = 1
-  local vim_mode = config.lang == 'vim'
   local indentstr
   local indent = config.indent or 0
   if indent and indent > 0 then
@@ -107,7 +116,10 @@ function M.new(config)
   end
   local buffer = 0
 
-  local this = { bufnr = bufnr }
+  local this = {
+    bufnr = bufnr,
+    vim_mode = config.lang == 'vim',
+  }
 
   --- Append lines to the buffer
   ---@param lines string[]
@@ -178,6 +190,7 @@ function M.new(config)
           _G.print = env.print
           ok, res, n = pcall_res(pcall(res))
           _G.print = prev_print
+          vim.cmd('redraw') -- TODO: make this optional
         end)
       else
         _G.print = env.print
@@ -219,6 +232,7 @@ function M.new(config)
 
       api.nvim_buf_call(buffer, function()
         ok, res = pcall(fn['nrepl#__evaluate__'], prg)
+        vim.cmd('redraw') -- TODO: make this optional
       end)
     else
       ok, res = pcall(fn['nrepl#__evaluate__'], prg)
@@ -264,14 +278,14 @@ function M.new(config)
         if args then
           lua_eval(args)
         else
-          vim_mode = false
+          this.vim_mode = false
           put(MSG_LUA, 'nreplInfo')
         end
       elseif fn.match(cmd, [=[\v\C^v%[im]$]=]) >= 0 then
         if args then
           vim_eval(args)
         else
-          vim_mode = true
+          this.vim_mode = true
           put(MSG_VIM, 'nreplInfo')
         end
       elseif fn.match(cmd, [=[\v\C^b%[uffer]$]=]) >= 0 then
@@ -335,7 +349,7 @@ function M.new(config)
         put(MSG_INVALID_COMMAND, 'nreplError')
       end
     else
-      if vim_mode then
+      if this.vim_mode then
         vim_eval(line)
       else
         lua_eval(line)
@@ -448,6 +462,31 @@ function M.goto_next(to_end)
   local bufnr = api.nvim_get_current_buf()
   if M[bufnr] == nil then error('invalid buffer: '..bufnr) end
   goto_output(bufnr, false, to_end)
+end
+
+function M.get_completion()
+  local bufnr = api.nvim_get_current_buf()
+  local repl = M[bufnr]
+  if repl == nil then error('invalid buffer: '..bufnr) end
+
+  -- TODO: handle lua
+  if not repl.vim_mode then
+    return
+  end
+
+  local line = api.nvim_get_current_line()
+  -- TODO: handle repl commands
+  if line:sub(1,1) == '/' then
+    return
+  end
+
+  local pos = api.nvim_win_get_cursor(0)[2]
+  line = line:sub(1, pos)
+  local start = line:find('%S*$')
+  local completions = fn.getcompletion(line, 'cmdline', 1)
+  if #completions > 0 then
+    fn.complete(start, completions)
+  end
 end
 
 vim.cmd([[
