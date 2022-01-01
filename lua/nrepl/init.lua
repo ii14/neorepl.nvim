@@ -127,9 +127,7 @@ function M.new(config)
   ---@param lines string[]
   ---@param hlgroup string
   local function put(lines, hlgroup)
-    -- TODO: do something about these fn.line etc. calls.
-    --       it breaks when buffer is changed during evaluation
-    local s = fn.line('$')
+    local s = api.nvim_buf_line_count(bufnr)
     if indentstr then
       local t = {}
       for i, line in ipairs(lines) do
@@ -138,7 +136,7 @@ function M.new(config)
       lines = t
     end
     api.nvim_buf_set_lines(bufnr, -1, -1, false, lines)
-    local e = fn.line('$')
+    local e = api.nvim_buf_line_count(bufnr)
     if s ~= e then
       mark_id = mark_id + 1
       api.nvim_buf_set_extmark(bufnr, ns, s, 0, {
@@ -361,7 +359,7 @@ function M.new(config)
     end
 
     api.nvim_buf_set_lines(bufnr, -1, -1, false, {''})
-    vim.cmd('$')
+    vim.cmd('$') -- TODO: don't use things like this, buffer can change during evaluation
 
     -- break undo sequence
     local mode = api.nvim_get_mode().mode
@@ -422,7 +420,7 @@ local function goto_output(bufnr, backward, to_end)
       end
     end
     -- insert last range
-    local last = fn.line('$')
+    local last = api.nvim_buf_line_count(bufnr)
     if last >= lnum then
       table.insert(ranges, { lnum, last })
     end
