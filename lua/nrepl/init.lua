@@ -105,9 +105,11 @@ function M.new(config)
   local function put(lines, hlgroup)
     local s = fn.line('$')
     if indent then
+      local t = {}
       for i, line in ipairs(lines) do
-        lines[i] = indent..line
+        t[i] = indent..line
       end
+      lines = t
     end
     api.nvim_buf_set_lines(bufnr, -1, -1, false, lines)
     local e = fn.line('$')
