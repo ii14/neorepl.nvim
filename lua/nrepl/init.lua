@@ -15,6 +15,7 @@ local MSG_LUA = {'-- lua --'}
 local MSG_INVALID_COMMAND = {'invalid command'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
 local MSG_INVALID_ARGS = {'invalid argument'}
+local MSG_INVALID_BUF = {'invalid buffer'}
 local MSG_HELP = {
   '/lua EXPR    - switch to lua or evaluate expression',
   '/vim EXPR    - switch to vimscript or evaluate expression',
@@ -25,6 +26,7 @@ local MSG_HELP = {
   '/indent N    - set indentation or print current value',
 }
 
+local BUF_EMPTY = '[No Name]'
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
 --- Gather results from pcall
@@ -278,16 +280,34 @@ function M.new(config)
           if num then args = tonumber(num) end
           if args == 0 then
             buffer = 0
+            put({'buffer: none'}, 'nreplInfo')
           else
             local value = fn.bufnr(args)
             if value >= 0 then
               buffer = value
+              local bufname = fn.bufname(buffer)
+              if bufname == '' then
+                bufname = BUF_EMPTY
+              end
+              put({'buffer: '..buffer..' '..bufname}, 'nreplInfo')
             else
-              put({'invalid buffer'}, 'nreplError')
+              put(MSG_INVALID_BUF, 'nreplError')
             end
           end
         else
-          put({'buffer='..buffer}, 'nreplInfo')
+          if buffer > 0 then
+            if fn.bufnr(buffer) >= 0 then
+              local bufname = fn.bufname(buffer)
+              if bufname == '' then
+                bufname = BUF_EMPTY
+              end
+              put({'buffer: '..buffer..' '..bufname}, 'nreplInfo')
+            else
+              put({'buffer: '..buffer..' [invalid]'}, 'nreplInfo')
+            end
+          else
+            put({'buffer: none'}, 'nreplInfo')
+          end
         end
       elseif fn.match(cmd, [=[\v\C^i%[ndent]$]=]) >= 0 then
         if args then
@@ -299,15 +319,17 @@ function M.new(config)
             elseif value == 0 then
               indent = 0
               indentstr = nil
+              put({'indent: '..indent}, 'nreplInfo')
             else
               indent = value
               indentstr = string.rep(' ', value)
+              put({'indent: '..indent}, 'nreplInfo')
             end
           else
             put(MSG_INVALID_ARGS, 'nreplError')
           end
         else
-          put({'indent='..indent}, 'nreplInfo')
+          put({'indent: '..indent}, 'nreplInfo')
         end
       else
         put(MSG_INVALID_COMMAND, 'nreplError')
