@@ -10,8 +10,8 @@ local prev_print = _G.print
 
 local M = {}
 
-local MSG_VIM = {'-- vimscript --'}
-local MSG_LUA = {'-- lua --'}
+local MSG_VIM = {'-- VIMSCRIPT --'}
+local MSG_LUA = {'-- LUA --'}
 local MSG_INVALID_COMMAND = {'invalid command'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
 local MSG_INVALID_ARGS = {'invalid argument'}
@@ -127,6 +127,8 @@ function M.new(config)
   ---@param lines string[]
   ---@param hlgroup string
   local function put(lines, hlgroup)
+    -- TODO: do something about these fn.line etc. calls.
+    --       it breaks when buffer is changed during evaluation
     local s = fn.line('$')
     if indentstr then
       local t = {}
