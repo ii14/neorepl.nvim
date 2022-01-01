@@ -37,6 +37,7 @@ end
 ---@field lang? 'lua'|'vim'
 ---@field on_init? function(bufnr: number)
 ---@field startinsert? boolean
+---@field indent? number
 
 --- Normalize configuration
 ---@param config? nreplConfig
@@ -53,6 +54,9 @@ local function normalize_config(config)
   end
   if c.startinsert ~= nil and type(c.startinsert) ~= 'boolean' then
     error('invalid startinsert value, expected boolean or nil')
+  end
+  if c.indent ~= nil and (type(c.indent) ~= 'number' or c.indent < 0 or c.indent > 32) then
+    error('invalid indent value, expected positive number, max 32 or nil')
   end
   return c
 end
@@ -89,6 +93,10 @@ function M.new(config)
 
   local mark_id = 1
   local vim_mode = config.lang == 'vim'
+  local indent
+  if config.indent and config.indent > 0 then
+    indent = string.rep(' ', config.indent)
+  end
   local this = { bufnr = bufnr }
 
   --- Append lines to the buffer
@@ -96,6 +104,11 @@ function M.new(config)
   ---@param hlgroup string
   local function put(lines, hlgroup)
     local s = fn.line('$')
+    if indent then
+      for i, line in ipairs(lines) do
+        lines[i] = indent..line
+      end
+    end
     api.nvim_buf_set_lines(bufnr, -1, -1, false, lines)
     local e = fn.line('$')
     if s ~= e then
