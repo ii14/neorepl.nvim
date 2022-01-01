@@ -37,7 +37,7 @@ require 'nrepl'.config{
 
 - [ ] Completion
   - [X] Vim script
-  - [ ] Lua
+  - [ ] Lua (works, but completes with the global, not REPL, environment)
   - [ ] REPL commands
 - [ ] History
 - [ ] Evaluate multiple lines
