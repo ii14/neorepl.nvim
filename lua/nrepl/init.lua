@@ -95,8 +95,10 @@ function M.new(config)
     setlocal completeopt=menu
     inoremap <silent><buffer><expr> <Tab>
       \ pumvisible() ? '<C-N>' : '<cmd>lua require"nrepl".get_completion()<CR>'
-    iunmap <C-E>
-    iunmap <C-Y>
+    inoremap <buffer> <C-E> <C-E>
+    inoremap <buffer> <C-Y> <C-Y>
+    inoremap <buffer> <C-N> <C-N>
+    inoremap <buffer> <C-P> <C-P>
 
     nnoremap <silent><buffer> [[ <cmd>lua require'nrepl'.goto_prev()<CR>
     nnoremap <silent><buffer> [] <cmd>lua require'nrepl'.goto_prev(true)<CR>
