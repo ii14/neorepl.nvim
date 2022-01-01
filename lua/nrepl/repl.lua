@@ -54,6 +54,7 @@ function M.new(config)
   vim.cmd(string.format([=[
     inoremap <silent><buffer> <CR> <cmd>lua require'nrepl'.eval_line()<CR>
 
+    setlocal backspace=indent,start
     setlocal completeopt=menu
     inoremap <silent><buffer><expr> <Tab>
       \ pumvisible() ? '<C-N>' : '<cmd>lua require"nrepl".get_completion()<CR>'
