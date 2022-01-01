@@ -239,14 +239,14 @@ function M.new(config)
       end
       if fn.match(cmd, [=[\v\C^q%[uit]$]=]) >= 0 then
         if args then
-          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+          put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
         else
           M.close(bufnr)
           return
         end
       elseif fn.match(cmd, [=[\v\C^c%[lear]$]=]) >= 0 then
         if args then
-          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+          put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
         else
           api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
           api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
@@ -254,7 +254,7 @@ function M.new(config)
         end
       elseif fn.match(cmd, [=[\v\C^h%[elp]$]=]) >= 0 then
         if args then
-          put(MSG_ARGS_NOT_ALLOWED, 'ErrorMsg')
+          put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
         else
           put(MSG_HELP, 'nreplInfo')
         end
@@ -283,7 +283,7 @@ function M.new(config)
             if value >= 0 then
               buffer = value
             else
-              put({'invalid buffer'}, 'ErrorMsg')
+              put({'invalid buffer'}, 'nreplError')
             end
           end
         else
@@ -295,7 +295,7 @@ function M.new(config)
           if value then
             value = tonumber(value)
             if value < 0 or value > 32 then
-              put(MSG_INVALID_ARGS, 'ErrorMsg')
+              put(MSG_INVALID_ARGS, 'nreplError')
             elseif value == 0 then
               indent = 0
               indentstr = nil
@@ -304,13 +304,13 @@ function M.new(config)
               indentstr = string.rep(' ', value)
             end
           else
-            put(MSG_INVALID_ARGS, 'ErrorMsg')
+            put(MSG_INVALID_ARGS, 'nreplError')
           end
         else
           put({'indent='..indent}, 'nreplInfo')
         end
       else
-        put(MSG_INVALID_COMMAND, 'ErrorMsg')
+        put(MSG_INVALID_COMMAND, 'nreplError')
       end
     else
       if vim_mode then
