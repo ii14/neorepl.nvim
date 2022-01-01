@@ -44,8 +44,6 @@ end
 --- Create a new REPL instance
 ---@param config? nreplConfig
 function M.new(config)
-  config = nrepl._normalize_config(vim.tbl_extend('force', nrepl._default_config, config or {}))
-
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
   api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')

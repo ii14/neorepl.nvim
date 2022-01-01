@@ -13,7 +13,7 @@ local M = {}
 
 --- Normalize configuration
 ---@param config? nreplConfig
-function M._normalize_config(config)
+local function normalize_config(config)
   local c = config and vim.deepcopy(config) or {}
   if c.lang == '' then
     c.lang = nil
@@ -34,19 +34,20 @@ function M._normalize_config(config)
 end
 
 ---@type nreplConfig Default configuration
-M._default_config = {
+local default_config = {
   indent = 4,
 }
 
 --- Set default configuration
 ---@param config? nreplConfig
 function M.config(config)
-  M._default_config = M._normalize_config(config)
+  default_config = normalize_config(config)
 end
 
 --- Create a new REPL instance
 ---@param config? nreplConfig
 function M.new(config)
+  config = normalize_config(vim.tbl_extend('force', default_config, config or {}))
   require('nrepl.repl').new(config)
 end
 
