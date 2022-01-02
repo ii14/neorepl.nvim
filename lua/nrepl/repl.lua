@@ -372,7 +372,10 @@ end
 ---@param prg string
 function M:eval_vim(prg)
   -- print variables
-  if prg:match('^%s*[bgstvw%(]:') or prg:match('^%s*%(') then
+  if prg:match('^%s*[bgstvw%(]:%s*$') then
+    -- use let for plain g:, b:, w:, ...
+    prg = 'let '..prg
+  elseif prg:match('^%s*[bgstvw%(]:') or prg:match('^%s*%(') then
     prg = 'echo '..prg
   end
 
