@@ -16,6 +16,7 @@ local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 ---@class nreplRepl
 ---@field bufnr       number    repl buffer
 ---@field buffer      number    buffer context
+---@field window      number    window context
 ---@field vim_mode    boolean   vim mode
 ---@field mark_id     number    current mark id counter
 ---@field inspect     boolean   inspect variables
@@ -63,6 +64,7 @@ function M.new(config)
   local this = setmetatable({
     bufnr = bufnr,
     buffer = 0,
+    window = 0,
     vim_mode = config.lang == 'vim',
     mark_id = 1,
     inspect = config.inspect or false,
@@ -235,24 +237,14 @@ function M:eval_lua(prg)
   if res then
     setfenv(res, self.env)
 
-    -- temporarily replace print
-    if self.buffer > 0 then
-      if not api.nvim_buf_is_valid(self.buffer) then
-        self.buffer = 0
-        self:put({'invalid buffer, setting it back to 0'}, 'nreplError')
-        return
-      end
-
-      api.nvim_buf_call(self.buffer, function()
-        _G.print = self.print
-        ok, res, n = pcall_res(pcall(res))
-        _G.print = prev_print
-        vim.cmd('redraw') -- TODO: make this optional
-      end)
-    else
+    if not self:exec_context(function()
+      -- temporarily replace print
       _G.print = self.print
       ok, res, n = pcall_res(pcall(res))
       _G.print = prev_print
+      vim.cmd('redraw') -- TODO: make this optional
+    end) then
+      return
     end
 
     if not ok then
@@ -285,24 +277,50 @@ function M:eval_vim(prg)
   -- context is shared between repl instances. a potential solution is to
   -- create a temporary script for each instance.
   local ok, res
-
-  if self.buffer > 0 then
-    if not api.nvim_buf_is_valid(self.buffer) then
-      self.buffer = 0
-      self:put({'invalid buffer, setting it back to 0'}, 'nreplError')
-      return
-    end
-
-    api.nvim_buf_call(self.buffer, function()
-      ok, res = pcall(fn['nrepl#__evaluate__'], prg)
-      vim.cmd('redraw') -- TODO: make this optional
-    end)
-  else
+  if not self:exec_context(function()
     ok, res = pcall(fn['nrepl#__evaluate__'], prg)
+    vim.cmd('redraw') -- TODO: make this optional
+  end) then
+    return
   end
 
   local hlgroup = ok and 'nreplOutput' or 'nreplError'
   self:put(vim.split(res, '\n', { plain = true, trimempty = true }), hlgroup)
+end
+
+--- Execute function in current buffer/window context
+function M:exec_context(f)
+  -- validate buffer and window
+  local buf_valid = self.buffer == 0 or api.nvim_buf_is_valid(self.buffer)
+  local win_valid = self.window == 0 or api.nvim_win_is_valid(self.window)
+  if not buf_valid or not win_valid then
+    if not buf_valid then
+      self.buffer = 0
+      self:put({'buffer no longer valid, setting it back to 0'}, 'nreplError')
+    end
+    if not win_valid then
+      self.window = 0
+      self:put({'window no longer valid, setting it back to 0'}, 'nreplError')
+    end
+    self:put({'operation cancelled'}, 'nreplError')
+    return false
+  end
+
+  if self.window > 0 then
+    if self.buffer > 0 then
+      -- can buffer change here? maybe it's going to be easier to pcall all of this
+      api.nvim_win_call(self.window, function()
+        api.nvim_buf_call(self.buffer, f)
+      end)
+    else
+      api.nvim_win_call(self.window, f)
+    end
+  elseif self.buffer > 0 then
+    api.nvim_buf_call(self.buffer, f)
+  else
+    f()
+  end
+  return true
 end
 
 function M:complete()
@@ -338,15 +356,10 @@ function M:complete()
     comptype = 'lua'
   end
 
-  if self.buffer > 0 then
-    if not api.nvim_buf_is_valid(self.buffer) then
-      return
-    end
-    api.nvim_buf_call(self.buffer, function()
-      completions = fn.getcompletion(line, comptype, 1)
-    end)
-  else
+  if not M:exec_context(function()
     completions = fn.getcompletion(line, comptype, 1)
+  end) then
+    return
   end
 
   if completions and #completions > 0 then

@@ -7,7 +7,8 @@ local MSG_VIM = {'-- VIMSCRIPT --'}
 local MSG_LUA = {'-- LUA --'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
 local MSG_INVALID_BUF = {'invalid buffer'}
-local MSG_NOT_IMPLEMENTED = {'not implemented'}
+local MSG_INVALID_WIN = {'invalid window'}
+-- local MSG_NOT_IMPLEMENTED = {'not implemented'}
 
 local BUF_EMPTY = '[No Name]'
 
@@ -94,10 +95,47 @@ table.insert(COMMANDS, {
 
 table.insert(COMMANDS, {
   command = 'window',
-  description = 'NOT IMPLEMENTED: change window context',
+  description = 'change window context (0 to disable) or print current value',
+  ---@param args string
   ---@param repl nreplRepl
-  run = function(_, repl)
-    repl:put(MSG_NOT_IMPLEMENTED, 'nreplError')
+  run = function(args, repl)
+    if args then
+      local winid = args:match('^%d+$')
+      if not winid then
+        repl:put({'invalid argument, expected positive number'}, 'nreplError')
+        return
+      end
+      winid = tonumber(winid)
+
+      if winid == 0 then
+        repl.window = 0
+        repl:put({'window: none'}, 'nreplInfo')
+        return
+      elseif winid > 0 and winid < 1000 then
+        winid = fn.win_getid(winid)
+        if winid == 0 then
+          repl:put(MSG_INVALID_WIN, 'nreplError')
+          return
+        end
+      end
+
+      if api.nvim_win_is_valid(winid) then
+        repl.window = winid
+        repl:put({'window: '..repl.window}, 'nreplInfo')
+      else
+        repl:put(MSG_INVALID_WIN, 'nreplError')
+      end
+    else
+      if repl.window > 0 then
+        if api.nvim_win_is_valid(repl.window) then
+          repl:put({'window: '..repl.window}, 'nreplInfo')
+        else
+          repl:put({'window: '..repl.window..' [invalid]'}, 'nreplInfo')
+        end
+      else
+        repl:put({'window: none'}, 'nreplInfo')
+      end
+    end
   end,
 })
 

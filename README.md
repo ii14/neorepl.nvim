@@ -43,9 +43,9 @@ require 'nrepl'.config{
 - [ ] Evaluate multiple lines
   - [X] Break line with NL/CTRL-J
   - [ ] Evaluate visual selection
-- [ ] Context change
+- [X] Context change
   - [X] Buffer
-  - [ ] Window
+  - [X] Window
 - [ ] Per instance script context for vim script
 - [X] `[[`, `]]`, `[]`, `][` key bindings
 - [ ] Key binding or text object for selecting last output
