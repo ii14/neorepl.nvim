@@ -18,7 +18,7 @@ KEY BINDINGS
 <Tab>
     Completes word under cursor.
 
-<C-N>, <C-P>, <Up>, <Down>
+<C-N>, <C-P>
     Move through command history.
 
 |]]|, |][|, |[[|, |[]|

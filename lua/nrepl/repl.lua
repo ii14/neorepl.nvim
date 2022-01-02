@@ -26,20 +26,20 @@ local function get_opt(v, default)
 end
 
 ---@class nreplRepl
----@field bufnr       number      repl buffer
----@field buffer      number      buffer context
----@field window      number      window context
----@field vim_mode    boolean     vim mode
----@field mark_id     number      current mark id counter
----@field redraw      boolean     redraw after evaluation
----@field inspect     boolean     inspect variables
----@field indent      number      indent level
----@field indentstr?  string      indent string
----@field history     string[]    command history
----@field histpos     number      position in history
----@field histcur     string|nil  line before moving through history
----@field env         table       lua environment
----@field print       function    print function override
+---@field bufnr       number        repl buffer
+---@field buffer      number        buffer context
+---@field window      number        window context
+---@field vim_mode    boolean       vim mode
+---@field mark_id     number        current mark id counter
+---@field redraw      boolean       redraw after evaluation
+---@field inspect     boolean       inspect variables
+---@field indent      number        indent level
+---@field indentstr?  string        indent string
+---@field history     string[][]    command history
+---@field histpos     number        position in history
+---@field histcur     string[]|nil  line before moving through history
+---@field env         table         lua environment
+---@field print       function      print function override
 local M = {}
 M.__index = M
 
@@ -73,8 +73,6 @@ function M.new(config)
     imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
     imap <silent><buffer><expr> <C-P> pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)'
     imap <silent><buffer><expr> <C-N> pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)'
-    imap <silent><buffer> <Up>   <Plug>(nrepl-hist-prev)
-    imap <silent><buffer> <Down> <Plug>(nrepl-hist-next)
     inoremap <buffer> <C-E> <C-E>
     inoremap <buffer> <C-Y> <C-Y>
 
@@ -179,25 +177,95 @@ function M:new_line()
   end
 end
 
+--- Get lines under cursor
+--- Returns nil on illegal line break
+---@return string[]|nil
+function M:get_line()
+  local line = api.nvim_get_current_line()
+  local lnum = api.nvim_win_get_cursor(0)[1]
+  local s, e = lnum, lnum
+  local lines = {line}
+
+  if line:sub(1,1) == '\\' then
+    for i = lnum - 1, 1, -1 do
+      line = api.nvim_buf_get_lines(self.bufnr, i - 1, i, true)[1]
+      table.insert(lines, 1, line)
+      if line:sub(1,1) ~= '\\' then
+        s = i
+        break
+      end
+    end
+    if lines[1]:sub(1,1) == '\\' then
+      return nil -- illegal line break
+    end
+  end
+
+  local max = api.nvim_buf_line_count(self.bufnr)
+  while e < max do
+    e = e + 1
+    line = api.nvim_buf_get_lines(self.bufnr, e - 1, e, true)[1]
+    if line:sub(1,1) == '\\' then
+      table.insert(lines, line)
+    else
+      break
+    end
+  end
+
+  return lines, s, e
+end
+
+local function tbl_equal(a, b)
+  if #a ~= #b then
+    return false
+  end
+  for i = 1, #a do
+    if a[i] ~= b[i] then
+      return false
+    end
+  end
+  return true
+end
+
 --- Evaluate current line
 function M:eval_line()
-  local line = api.nvim_get_current_line()
-  if line:match('^%s*$') then
+  local lines = self:get_line()
+  if lines == nil then
+    self:put({'illegal line break'}, 'nreplError')
     return self:new_line()
   end
 
-  self.histpos = 0
-  -- remove duplicate entries
+  -- ignore if it's only whitespace
+  do
+    local ws = true
+    for _, line in ipairs(lines) do
+      if not line:match('^%s$') then
+        ws = false
+        break
+      end
+    end
+    if ws then
+      return self:new_line()
+    end
+  end
+
+  -- remove duplicate entries in history
   for i = #self.history, 1, -1 do
-    if self.history[i] == line then
+    if tbl_equal(self.history[i], lines) then
       table.remove(self.history, i)
     end
   end
-  -- TODO: save multiple lines
-  table.insert(self.history, line)
+  -- save lines to history
+  table.insert(self.history, lines)
+  self.histpos = 0
 
   -- repl command
+  local line = lines[1]
   if line:sub(1,1) == '/' then
+    if #lines > 1 then
+      self:put({'line breaks not implemented for repl commands'}, 'nreplError')
+      return self:new_line()
+    end
+
     local cmd, args = line:match('^/(%a*)%s*(.-)%s*$')
     if not cmd then
       self:put(MSG_INVALID_COMMAND, 'nreplError')
@@ -227,44 +295,17 @@ function M:eval_line()
     return self:new_line()
   end
 
-  -- line breaks
-  if line:match('^\\') then
-    -- TODO: look ahead for line breaks too?
-    -- the problem with that is that the evaluation
-    -- output could potentially contain backslashes.
-    local lnum = api.nvim_win_get_cursor(0)[1]
-    local prg = { line:sub(2) }
-    while true do
-      lnum = lnum - 1
-      if lnum <= 0 then
-        self:put({'invalid line break'}, 'nreplError')
-        return self:new_line()
-      end
-
-      line = api.nvim_buf_get_lines(self.bufnr, lnum - 1, lnum, true)[1]
-      if not line:match('^\\') then
-        if line:match('^/') then
-          self:put({'line breaks not implemented for repl commands'}, 'nreplError')
-          return self:new_line()
-        end
-
-        table.insert(prg, 1, line)
-        if self.vim_mode then
-          self:eval_vim(table.concat(prg, '\n'):gsub('\n%s*\\', ' '))
-        else
-          self:eval_lua(table.concat(prg, '\n'))
-        end
-        return self:new_line()
-      else
-        table.insert(prg, 1, line:sub(2))
-      end
-    end
+  -- strip leading backslashes
+  local prg = {}
+  prg[1] = lines[1]
+  for i = 2, #lines do
+    prg[i] = lines[i]:sub(2)
   end
 
   if self.vim_mode then
-    self:eval_vim(line)
+    self:eval_vim(table.concat(prg, '\n'):gsub('\n%s*\\', ' '))
   else
-    self:eval_lua(line)
+    self:eval_lua(table.concat(prg, '\n'))
   end
   return self:new_line()
 end
@@ -388,36 +429,43 @@ function M:exec_context(f)
 end
 
 function M:hist_prev()
-  if #self.history == 0 then
-    return
-  elseif self.histpos == 0 then
-    self.histcur = api.nvim_get_current_line()
+  if #self.history == 0 then return end
+  local lines, s, e = self:get_line()
+  if lines == nil then return end
+  if self.histpos == 0 then
+    self.histcur = lines
   end
   self.histpos = self.histpos + 1
+  local nlines
   if self.histpos > #self.history then
     self.histpos = 0
-    api.nvim_set_current_line(self.histcur)
+    nlines = self.histcur
   else
-    api.nvim_set_current_line(self.history[#self.history - self.histpos + 1])
+    nlines = self.history[#self.history - self.histpos + 1]
   end
+  api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
+  api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
 
 function M:hist_next()
-  if #self.history == 0 then
-    return
-  elseif self.histpos == 0 then
-    self.histcur = api.nvim_get_current_line()
+  if #self.history == 0 then return end
+  local lines, s, e = self:get_line()
+  if lines == nil then return end
+  if self.histpos == 0 then
+    self.histcur = lines
   end
   self.histpos = self.histpos - 1
+  local nlines
   if self.histpos == 0 then
-    api.nvim_set_current_line(self.histcur)
+    nlines = self.histcur
   elseif self.histpos < 0 then
     self.histpos = #self.history
-    print(1)
-    api.nvim_set_current_line(self.history[1])
+    nlines = self.history[1]
   else
-    api.nvim_set_current_line(self.history[#self.history - self.histpos + 1])
+    nlines = self.history[#self.history - self.histpos + 1]
   end
+  api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
+  api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
 
 function M:complete()

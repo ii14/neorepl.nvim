@@ -41,7 +41,7 @@ require 'nrepl'.config{
   - [ ] REPL commands (works for commands names only, no arguments yet)
 - [X] History
   - [X] Save and recall single lines
-  - [ ] Make history work with multiple lines
+  - [X] Make history work with multiple lines
   - [ ] Save context, was it lua or vimscript
 - [X] Evaluate multiple lines
   - [X] Break line with NL/CTRL-J
