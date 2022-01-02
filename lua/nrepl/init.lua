@@ -56,7 +56,7 @@ function M.eval_line()
   local bufnr = api.nvim_get_current_buf()
   local repl = M[bufnr]
   if repl == nil then error('invalid buffer: '..bufnr) end
-  repl.eval_line()
+  repl:eval_line()
 end
 
 --- Close REPL instance
