@@ -38,6 +38,30 @@ require 'nrepl'.config{
 }
 ```
 
+A new REPL instance can be also spawned with `require'nrepl'.new{}`. Example
+function that works similarly to vim's cmdwin or exmode (it's included,
+although it probably will get removed):
+```vim
+function! s:cmdwin() abort
+  " get current buffer and window
+  let l:bufnr = bufnr()
+  let l:winid = win_getid()
+  " create a new split
+  split
+  " spawn repl and set the context to our buffer
+  call luaeval('require"nrepl".new{lang="vim",buffer=_A[1],window=_A[2]}',
+    \ [l:bufnr, l:winid])
+  " resize repl window and make it fixed height
+  resize 10
+  setlocal winfixheight
+endfunction
+
+" map it to g:
+nnoremap <silent> g: <cmd>call <SID>cmdwin()<CR>
+```
+
+For the list of available options see `:h nrepl-config`.
+
 ---
 
 ### TODO
