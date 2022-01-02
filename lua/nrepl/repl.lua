@@ -131,10 +131,10 @@ function M.new(config)
 end
 
 --- Append lines to the buffer
----@param lines string[]
----@param hlgroup string
+---@param lines string[]  lines
+---@param hlgroup string  highlight group
 function M:put(lines, hlgroup)
-  local s = api.nvim_buf_line_count(self.bufnr)
+  -- indent lines
   if self.indentstr then
     local t = {}
     for i, line in ipairs(lines) do
@@ -142,8 +142,12 @@ function M:put(lines, hlgroup)
     end
     lines = t
   end
+
+  local s = api.nvim_buf_line_count(self.bufnr)
   api.nvim_buf_set_lines(self.bufnr, -1, -1, false, lines)
   local e = api.nvim_buf_line_count(self.bufnr)
+
+  -- highlight
   if s ~= e then
     self.mark_id = self.mark_id + 1
     api.nvim_buf_set_extmark(self.bufnr, ns, s, 0, {
@@ -332,15 +336,17 @@ function M:exec_context(f)
   local buf_valid = buf == 0 or api.nvim_buf_is_valid(buf)
   local win_valid = win == 0 or api.nvim_win_is_valid(win)
   if not buf_valid or not win_valid then
+    local lines = {}
     if not buf_valid then
       self.buffer = 0
-      self:put({'buffer no longer valid, setting it back to 0'}, 'nreplError')
+      table.insert(lines, 'buffer no longer valid, setting it back to 0')
     end
     if not win_valid then
       self.window = 0
-      self:put({'window no longer valid, setting it back to 0'}, 'nreplError')
+      table.insert(lines, 'window no longer valid, setting it back to 0')
     end
-    self:put({'operation cancelled'}, 'nreplError')
+    table.insert(lines, 'operation cancelled')
+    self:put(lines, 'nreplError')
     return false
   end
 
