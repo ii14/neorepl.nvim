@@ -8,6 +8,7 @@ already taken.
 
 ---
 
+Start a new instance with:
 ```
 :Repl
 ```
@@ -18,29 +19,22 @@ In insert mode type `/h` and enter to see available commands.
 
 ---
 
-Plugin ships with its own completion, a half-assed one at the moment, but
-still, so it's best to disable other completion plugins for the `nrepl`
-filetype. Also highlighting can be kinda buggy with indent-blankline.nvim
-plugin, so it's good to disable that too.
+Starts in lua mode by default. You can switch modes with `/vim` (short version:
+`/v`) for vim script and `/lua` (short version: `/l`) for lua. You can also run
+one-off commands with them, like for example `/v ls` to list buffers.
 
-It can be done by creating `ftplugin/nrepl.vim` file, for example:
-```viml
-let g:indent_blankline_enabled = v:false
-call compe#setup({'enabled': v:false}, 0)
-```
+Lua has its own environment, variables from the REPL won't leak to the global
+environment. If by any chance you do want to add something to the global
+environment, it's referenced in `global` variable. In vim script you can use
+the `s:` scope, but it's shared between instances right now.
 
-Or by setting `on_init` function in a default config:
-```lua
-require 'nrepl'.config{
-  on_init = function(bufnr)
-    -- ...
-  end,
-}
-```
+You can switch buffer and window context with `/b` and `/w` commands, so things
+like `vim.api.nvim_set_current_line()` or `:s/foo/bar/g` will run on the other
+buffer.
 
 A new REPL instance can be also spawned with `require'nrepl'.new{}`. Example
-function that works similarly to vim's cmdwin or exmode (it's included,
-although it probably will get removed):
+function that mimics vim's cmdwin or exmode (this mapping is included, although
+it probably will get removed):
 ```vim
 function! s:cmdwin() abort
   " get current buffer and window
@@ -61,6 +55,26 @@ nnoremap <silent> g: <cmd>call <SID>cmdwin()<CR>
 ```
 
 For the list of available options see `:h nrepl-config`.
+
+Plugin ships with its own completion, a half-assed one at the moment, but
+still, so it's best to disable other completion plugins for the `nrepl`
+filetype. Also highlighting can be kinda buggy with indent-blankline.nvim
+plugin, so it's good to disable that too.
+
+It can be done by creating `ftplugin/nrepl.vim` file, for example:
+```viml
+let g:indent_blankline_enabled = v:false
+call compe#setup({'enabled': v:false}, 0)
+```
+
+Or by setting `on_init` function in a default config:
+```lua
+require 'nrepl'.config{
+  on_init = function(bufnr)
+    -- ...
+  end,
+}
+```
 
 ---
 
