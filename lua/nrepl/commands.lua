@@ -101,11 +101,17 @@ table.insert(COMMANDS, {
   run = function(args, repl)
     if args then
       local winid = args:match('^%d+$')
-      if not winid then
-        repl:put({'invalid argument, expected positive number'}, 'nreplError')
-        return
+      if winid then
+        winid = tonumber(winid)
+      else
+        local ok
+        -- try to winnr string, to match #, $ etc.
+        ok, winid = pcall(fn.winnr, args)
+        if not ok then
+          repl:put({'invalid argument, expected positive number'}, 'nreplError')
+          return
+        end
       end
-      winid = tonumber(winid)
 
       if winid == 0 then
         repl.window = 0
