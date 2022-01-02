@@ -431,8 +431,9 @@ function M:exec_context(f)
   return true
 end
 
---- Previous entry in the history
-function M:hist_prev()
+--- Move between entries in history
+---@param prev boolean previous entry if true, next entry if false
+function M:hist_move(prev)
   if #self.history == 0 then return end
   local lines, s, e = self:get_line()
   if lines == nil then return end
@@ -440,37 +441,25 @@ function M:hist_prev()
     self.histcur = lines
   end
 
-  self.histpos = self.histpos + 1
   local nlines
-  if self.histpos > #self.history then
-    self.histpos = 0
-    nlines = self.histcur
+  if prev then
+    self.histpos = self.histpos + 1
+    if self.histpos > #self.history then
+      self.histpos = 0
+      nlines = self.histcur
+    else
+      nlines = self.history[#self.history - self.histpos + 1]
+    end
   else
-    nlines = self.history[#self.history - self.histpos + 1]
-  end
-
-  api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
-  api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
-end
-
---- Next entry in the history
-function M:hist_next()
-  if #self.history == 0 then return end
-  local lines, s, e = self:get_line()
-  if lines == nil then return end
-  if self.histpos == 0 then
-    self.histcur = lines
-  end
-
-  self.histpos = self.histpos - 1
-  local nlines
-  if self.histpos == 0 then
-    nlines = self.histcur
-  elseif self.histpos < 0 then
-    self.histpos = #self.history
-    nlines = self.history[1]
-  else
-    nlines = self.history[#self.history - self.histpos + 1]
+    self.histpos = self.histpos - 1
+    if self.histpos == 0 then
+      nlines = self.histcur
+    elseif self.histpos < 0 then
+      self.histpos = #self.history
+      nlines = self.history[1]
+    else
+      nlines = self.history[#self.history - self.histpos + 1]
+    end
   end
 
   api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)

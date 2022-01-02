@@ -102,12 +102,12 @@ end
 
 --- Get previous line from the history
 function M.hist_prev()
-  get():hist_prev()
+  get():hist_move(true)
 end
 
 --- Get next line from the history
 function M.hist_next()
-  get():hist_next()
+  get():hist_move(false)
 end
 
 --- Complete current line
