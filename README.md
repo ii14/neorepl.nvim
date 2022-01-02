@@ -2,6 +2,10 @@
 
 Neovim REPL for lua and vim script
 
+Although already usable, it's work in progress, things can change at any time.
+The name of the plugin will probably change too, since this name is apparently
+already taken.
+
 ---
 
 ```
@@ -34,18 +38,20 @@ require 'nrepl'.config{
 }
 ```
 
+---
+
 ### TODO
 
 - [X] Completion
-  - [X] Vim script (needs some tweaking)
-  - [X] Lua
-  - [ ] REPL commands (works for commands names only, no arguments yet)
+  - [X] Vim script (should be the same as on the command line)
+  - [X] Lua (not perfect, I hope to either find something that works or to roll out my own)
+  - [X] REPL commands (works for commands names only, no arguments yet)
 - [X] History
   - [X] Save and recall single lines
   - [X] Make history work with multiple lines
-  - [ ] Save context, was it lua or vimscript
+  - [ ] Save and recall context, was it lua or vimscript
 - [X] Evaluate multiple lines
-  - [X] Break line with NL/CTRL-J
+  - [X] Break line with `NL` (`CTRL-J`)
   - [ ] Evaluate visual selection
 - [X] Context change
   - [X] Buffer
