@@ -99,4 +99,20 @@ function M.lines_empty(lines)
   return true
 end
 
+--- Check if lines are equal
+---@param a string[]
+---@param b string[]
+---@return boolean
+function M.lines_equal(a, b)
+  if #a ~= #b then
+    return false
+  end
+  for i = 1, #a do
+    if a[i] ~= b[i] then
+      return false
+    end
+  end
+  return true
+end
+
 return M
