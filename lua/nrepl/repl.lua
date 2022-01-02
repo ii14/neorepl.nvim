@@ -482,7 +482,7 @@ function M:complete()
   local line = api.nvim_get_current_line()
   local pos = api.nvim_win_get_cursor(0)[2]
   line = line:sub(1, pos)
-  local completions, start, comptype
+  local completions, start
 
   if line:sub(1,1) == '/' then
     -- TODO: complete command arguments too
@@ -503,14 +503,13 @@ function M:complete()
     end
     return
   elseif self.vim_mode then
-    start = line:find('%S+$')
-    comptype = 'cmdline'
+    start = line:find('[^%s%(%)=%-%+%*|/~%.,]*$')
     if line:match('^%s*[bgstvw]:') or line:match('^%s*%(') then
       line = 'echo '..line
     end
 
     if not self:exec_context(function()
-      completions = fn.getcompletion(line, comptype, 1)
+      completions = fn.getcompletion(line, 'cmdline', 1)
     end) then
       return
     end
