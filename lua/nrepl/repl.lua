@@ -68,7 +68,6 @@ function M.new(config)
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
   api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
-  api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
   api.nvim_buf_set_name(bufnr, 'nrepl('..bufnr..')')
   vim.cmd(string.format([=[
     imap <silent><buffer> <CR> <Plug>(nrepl-eval-line)
@@ -86,9 +85,11 @@ function M.new(config)
     nmap <silent><buffer> [] <Plug>(nrepl-[])
     nmap <silent><buffer> ]] <Plug>(nrepl-]])
     nmap <silent><buffer> ][ <Plug>(nrepl-][)
-
+  ]=]))
+  -- set filetype after mappings and settings to allow overriding in ftplugin
+  api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
+  vim.cmd(string.format([=[
     syn match nreplLinebreak "^\\"
-
     augroup nrepl
       autocmd BufDelete <buffer> lua require'nrepl'[%d] = nil
     augroup end
