@@ -177,8 +177,13 @@ function M:eval_line()
   local line = api.nvim_get_current_line()
 
   -- repl command
-  local cmd, args = line:match('^/%s*(%S*)%s*(.-)%s*$')
-  if cmd then
+  if line:sub(1,1) == '/' then
+    local cmd, args = line:match('^/(%a*)%s*(.-)%s*$')
+    if not cmd then
+      self:put(MSG_INVALID_COMMAND, 'nreplError')
+      return self:new_line()
+    end
+
     if args == '' then
       args = nil
     end
