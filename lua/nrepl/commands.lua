@@ -6,6 +6,7 @@ local ns = api.nvim_create_namespace('nrepl')
 local MSG_VIM = {'-- VIMSCRIPT --'}
 local MSG_LUA = {'-- LUA --'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
+local MSG_INVALID_ARGS = {'invalid arguments'}
 local MSG_INVALID_BUF = {'invalid buffer'}
 local MSG_NOT_IMPLEMENTED = {'not implemented'}
 
@@ -108,10 +109,25 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      repl:eval_vim(args)
+      local value = args:match('^%d+$')
+      if value then
+        value = tonumber(value)
+        if value < 0 or value > 32 then
+          repl:put(MSG_INVALID_ARGS, 'nreplError')
+        elseif value == 0 then
+          repl.indent = 0
+          repl.indentstr = nil
+          repl:put({'indent: '..repl.indent}, 'nreplInfo')
+        else
+          repl.indent = value
+          repl.indentstr = string.rep(' ', value)
+          repl:put({'indent: '..repl.indent}, 'nreplInfo')
+        end
+      else
+        repl:put(MSG_INVALID_ARGS, 'nreplError')
+      end
     else
-      repl.vim_mode = true
-      repl:put(MSG_VIM, 'nreplInfo')
+      repl:put({'indent: '..repl.indent}, 'nreplInfo')
     end
   end,
 })
