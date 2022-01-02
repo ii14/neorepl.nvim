@@ -62,6 +62,7 @@ function M.close(bufnr)
 end
 
 --- Get current REPL
+---@return nreplRepl
 local function get()
   local bufnr = api.nvim_get_current_buf()
   local repl = M[bufnr]
@@ -86,6 +87,7 @@ function M.goto_next(to_end)
   get():goto_output(false, to_end)
 end
 
+--- Complete current line
 function M.complete()
   get():complete()
 end

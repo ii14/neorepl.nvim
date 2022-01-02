@@ -9,25 +9,19 @@ local global = _G
 --- Reference to global print function
 local prev_print = _G.print
 
-local MSG_VIM = {'-- VIMSCRIPT --'}
-local MSG_LUA = {'-- LUA --'}
 local MSG_INVALID_COMMAND = {'invalid command'}
-local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
-local MSG_INVALID_ARGS = {'invalid argument'}
-local MSG_INVALID_BUF = {'invalid buffer'}
-local MSG_HELP = {
-  '/lua EXPR    - switch to lua or evaluate expression',
-  '/vim EXPR    - switch to vimscript or evaluate expression',
-  '/buffer B    - change buffer context (0 to disable) or print current value',
-  '/window N    - NOT IMPLEMENTED: change window context',
-  '/indent N    - set indentation or print current value',
-  '/clear       - clear buffer',
-  '/quit        - close repl instance',
-}
 
-local BUF_EMPTY = '[No Name]'
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
+---@class nreplRepl
+---@field bufnr       number    repl buffer
+---@field buffer      number    buffer context
+---@field vim_mode    boolean   vim mode
+---@field mark_id     number    current mark id counter
+---@field indent      number    indent level
+---@field indentstr?  string    indent string
+---@field env         table     lua environment
+---@field print       function  print function override
 local M = {}
 M.__index = M
 
@@ -61,6 +55,7 @@ function M.new(config)
     augroup end
   ]=], bufnr))
 
+  ---@type nreplRepl
   local this = setmetatable({
     bufnr = bufnr,
     buffer = 0,
@@ -127,6 +122,8 @@ function M:put(lines, hlgroup)
   end
 end
 
+local COMMANDS = nil
+
 --- Evaluate current line
 function M:eval_line()
   local line = api.nvim_get_current_line()
@@ -135,100 +132,26 @@ function M:eval_line()
     if args == '' then
       args = nil
     end
-    if fn.match(cmd, [=[\v\C^q%[uit]$]=]) >= 0 then
-      if args then
-        self:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
-      else
-        nrepl.close(self.bufnr)
-        return
+
+    local got_command = false
+
+    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+      if c.pattern == nil then
+        local name = c.command
+        c.pattern = '\\v\\C^'..name:sub(1,1)..'%['..name:sub(2)..']$'
       end
-    elseif fn.match(cmd, [=[\v\C^c%[lear]$]=]) >= 0 then
-      if args then
-        self:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
-      else
-        self.mark_id = 1
-        api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)
-        api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
-        return
-      end
-    elseif fn.match(cmd, [=[\v\C^h%[elp]$]=]) >= 0 then
-      if args then
-        self:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
-      else
-        self:put(MSG_HELP, 'nreplInfo')
-      end
-    elseif fn.match(cmd, [=[\v\C^l%[ua]$]=]) >= 0 then
-      if args then
-        self:eval_lua(args)
-      else
-        self.vim_mode = false
-        self:put(MSG_LUA, 'nreplInfo')
-      end
-    elseif fn.match(cmd, [=[\v\C^v%[im]$]=]) >= 0 then
-      if args then
-        self:eval_vim(args)
-      else
-        self.vim_mode = true
-        self:put(MSG_VIM, 'nreplInfo')
-      end
-    elseif fn.match(cmd, [=[\v\C^b%[uffer]$]=]) >= 0 then
-      if args then
-        local num = args:match('^%d+$')
-        if num then args = tonumber(num) end
-        if args == 0 then
-          self.buffer = 0
-          self:put({'buffer: none'}, 'nreplInfo')
-        else
-          local value = fn.bufnr(args)
-          if value >= 0 then
-            self.buffer = value
-            local bufname = fn.bufname(self.buffer)
-            if bufname == '' then
-              bufname = BUF_EMPTY
-            end
-            self:put({'buffer: '..self.buffer..' '..bufname}, 'nreplInfo')
-          else
-            self:put(MSG_INVALID_BUF, 'nreplError')
-          end
+
+      if fn.match(cmd, c.pattern) >= 0 then
+        got_command = true
+        -- don't append new line when command returns false
+        if c.run(args, self) == false then
+          return
         end
-      else
-        if self.buffer > 0 then
-          if fn.bufnr(self.buffer) >= 0 then
-            local bufname = fn.bufname(self.buffer)
-            if bufname == '' then
-              bufname = BUF_EMPTY
-            end
-            self:put({'buffer: '..self.buffer..' '..bufname}, 'nreplInfo')
-          else
-            self:put({'buffer: '..self.buffer..' [invalid]'}, 'nreplInfo')
-          end
-        else
-          self:put({'buffer: none'}, 'nreplInfo')
-        end
+        break
       end
-    elseif fn.match(cmd, [=[\v\C^i%[ndent]$]=]) >= 0 then
-      if args then
-        local value = args:match('^%d+$')
-        if value then
-          value = tonumber(value)
-          if value < 0 or value > 32 then
-            self:put(MSG_INVALID_ARGS, 'nreplError')
-          elseif value == 0 then
-            self.indent = 0
-            self.indentstr = nil
-            self:put({'indent: '..self.indent}, 'nreplInfo')
-          else
-            self.indent = value
-            self.indentstr = string.rep(' ', value)
-            self:put({'indent: '..self.indent}, 'nreplInfo')
-          end
-        else
-          self:put(MSG_INVALID_ARGS, 'nreplError')
-        end
-      else
-        self:put({'indent: '..self.indent}, 'nreplInfo')
-      end
-    else
+    end
+
+    if not got_command then
       self:put(MSG_INVALID_COMMAND, 'nreplError')
     end
   else
