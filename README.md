@@ -60,7 +60,8 @@ Multiple lines can get evaluated when line continuations start with `\` as the
 very first character in the line. If you need to evaluate a line that starts
 with `/` or `\`, add a space before. Note that vim script has line escaping that
 works just like this. So to break lines in a single expression with vim script,
-there has to be two backslashes.
+there has to be two backslashes. By default you can break line in insert mode
+with `CTRL-J`.
 
 Plugin ships with its own completion, a half-assed one at the moment, but
 still, so it's best to disable other completion plugins for the `nrepl`
