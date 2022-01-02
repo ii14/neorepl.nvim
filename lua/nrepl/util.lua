@@ -87,4 +87,16 @@ function M.parse_window(win, zero_is_current)
   end
 end
 
+--- Check if lines are empty
+---@param lines string[]
+---@return boolean
+function M.lines_empty(lines)
+  for _, line in ipairs(lines) do
+    if not line:match('^%s*$') then
+      return false
+    end
+  end
+  return true
+end
+
 return M

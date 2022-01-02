@@ -1,6 +1,7 @@
 local api = vim.api
 local fn = vim.fn
 local nrepl = require('nrepl')
+local util = require('nrepl.util')
 
 local ns = api.nvim_create_namespace('nrepl')
 
@@ -50,13 +51,13 @@ M.__index = M
 ---@param config? nreplConfig
 function M.new(config)
   if config.buffer then
-    config.buffer = require('nrepl.util').parse_buffer(config.buffer, true)
+    config.buffer = util.parse_buffer(config.buffer, true)
     if not config.buffer then
       error('invalid buffer')
     end
   end
   if config.window then
-    config.window = require('nrepl.util').parse_window(config.window, true)
+    config.window = util.parse_window(config.window, true)
     if not config.window then
       error('invalid window')
     end
@@ -239,17 +240,8 @@ function M:eval_line()
   end
 
   -- ignore if it's only whitespace
-  do
-    local ws = true
-    for _, line in ipairs(lines) do
-      if not line:match('^%s*$') then
-        ws = false
-        break
-      end
-    end
-    if ws then
-      return self:new_line()
-    end
+  if util.lines_empty(lines) then
+    return self:new_line()
   end
 
   -- remove duplicate entries in history
@@ -276,21 +268,11 @@ function M:eval_line()
       args[i] = lines[i]:sub(2)
     end
 
-    do
-      -- check if it's only whitespace
-      local ws = true
-      for _, aline in ipairs(args) do
-        if not aline:match('^%s*$') then
-          ws = false
-          break
-        end
-      end
-      if ws then
-        args = nil
-      elseif #args == 1 then
-        -- trim trailing whitespace
-        args[1] = args[1]:match('^(.-)%s*$')
-      end
+    if util.lines_empty(args) then
+      args = nil
+    elseif #args == 1 then
+      -- trim trailing whitespace
+      args[1] = args[1]:match('^(.-)%s*$')
     end
 
     for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
