@@ -290,9 +290,12 @@ end
 
 --- Execute function in current buffer/window context
 function M:exec_context(f)
+  local buf = self.buffer
+  local win = self.window
+
   -- validate buffer and window
-  local buf_valid = self.buffer == 0 or api.nvim_buf_is_valid(self.buffer)
-  local win_valid = self.window == 0 or api.nvim_win_is_valid(self.window)
+  local buf_valid = buf == 0 or api.nvim_buf_is_valid(buf)
+  local win_valid = win == 0 or api.nvim_win_is_valid(win)
   if not buf_valid or not win_valid then
     if not buf_valid then
       self.buffer = 0
@@ -306,17 +309,17 @@ function M:exec_context(f)
     return false
   end
 
-  if self.window > 0 then
-    if self.buffer > 0 then
+  if win > 0 then
+    if buf > 0 then
       -- can buffer change here? maybe it's going to be easier to pcall all of this
-      api.nvim_win_call(self.window, function()
-        api.nvim_buf_call(self.buffer, f)
+      api.nvim_win_call(win, function()
+        api.nvim_buf_call(buf, f)
       end)
     else
-      api.nvim_win_call(self.window, f)
+      api.nvim_win_call(win, f)
     end
-  elseif self.buffer > 0 then
-    api.nvim_buf_call(self.buffer, f)
+  elseif buf > 0 then
+    api.nvim_buf_call(buf, f)
   else
     f()
   end
