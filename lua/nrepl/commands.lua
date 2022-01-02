@@ -70,7 +70,7 @@ table.insert(COMMANDS, {
           if bufname == '' then
             bufname = BUF_EMPTY
           end
-          repl:put({'buffer: '..repl.buffer..' '..bufname}, 'nreplInfo')
+          repl:put({'buffer: '..repl.buffer..' ('..bufname..')'}, 'nreplInfo')
         else
           repl:put(MSG_INVALID_BUF, 'nreplError')
         end
@@ -82,7 +82,7 @@ table.insert(COMMANDS, {
           if bufname == '' then
             bufname = BUF_EMPTY
           end
-          repl:put({'buffer: '..repl.buffer..' '..bufname}, 'nreplInfo')
+          repl:put({'buffer: '..repl.buffer..' ('..bufname..')'}, 'nreplInfo')
         else
           repl:put({'buffer: '..repl.buffer..' [invalid]'}, 'nreplInfo')
         end
