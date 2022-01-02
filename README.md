@@ -38,7 +38,7 @@ require 'nrepl'.config{
 - [ ] Completion
   - [X] Vim script
   - [ ] Lua (works, but completes with the global, not REPL, environment)
-  - [ ] REPL commands
+  - [ ] REPL commands (works for commands names only, no arguments yet)
 - [ ] History
 - [ ] Evaluate multiple lines
   - [X] Break line with NL/CTRL-J
