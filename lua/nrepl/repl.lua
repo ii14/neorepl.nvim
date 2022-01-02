@@ -168,6 +168,12 @@ function M:put(lines, hlgroup)
   end
 end
 
+function M:clear()
+  self.mark_id = 1
+  api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)
+  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
+end
+
 --- Append empty line
 function M:new_line()
   api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {''})

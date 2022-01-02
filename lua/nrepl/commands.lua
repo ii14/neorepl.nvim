@@ -1,7 +1,6 @@
 local api = vim.api
 local fn = vim.fn
 local nrepl = require('nrepl')
-local ns = api.nvim_create_namespace('nrepl')
 
 local MSG_VIM = {'-- VIMSCRIPT --'}
 local MSG_LUA = {'-- LUA --'}
@@ -228,9 +227,7 @@ table.insert(COMMANDS, {
     if args then
       repl:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
     else
-      repl.mark_id = 1
-      api.nvim_buf_clear_namespace(repl.bufnr, ns, 0, -1)
-      api.nvim_buf_set_lines(repl.bufnr, 0, -1, false, {})
+      repl:clear()
       return false
     end
   end,
