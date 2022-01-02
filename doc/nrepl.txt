@@ -10,23 +10,23 @@ KEY BINDINGS
 *nrepl-keys*
 
 <Plug>(nrepl-eval-line)                             *<Plug>(nrepl-eval-line)*
-    Evaluate current line, for insert mode.
+    Evaluate line(s) under cursor.
     Default mapping: <CR>
 
 <Plug>(nrepl-break-line)                            *<Plug>(nrepl-break-line)*
-    Break line, for insert mode.
+    Break line at cursor. For insert mode only.
     Default mapping: <NL> (<C-J>)
 
 <Plug>(nrepl-hist-prev)                             *<Plug>(nrepl-hist-prev)*
-    Previous entry in the history, for insert mode.
+    Previous entry in the history.
     Default mapping: <C-P>
 
 <Plug>(nrepl-hist-next)                             *<Plug>(nrepl-hist-next)*
-    Next entry in the history, for insert mode.
+    Next entry in the history.
     Default mapping: <C-N>
 
 <Plug>(nrepl-complete)                              *<Plug>(nrepl-complete)*
-    Trigger completion, for insert mode.
+    Trigger completion. For insert mode only.
     Default mapping: <Tab>
 
 <Plug>(nrepl-]])                                    *<Plug>(nrepl-]])*

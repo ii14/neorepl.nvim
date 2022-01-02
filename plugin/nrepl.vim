@@ -4,16 +4,23 @@ endfunction
 command! -bar -nargs=? -complete=customlist,s:comp Repl
   \ call luaeval('require"nrepl".new{lang=_A[1]}', [<q-args>])
 
+noremap  <Plug>(nrepl-eval-line)  <cmd>lua require'nrepl'.eval_line()<CR>
 inoremap <Plug>(nrepl-eval-line)  <cmd>lua require'nrepl'.eval_line()<CR>
 inoremap <Plug>(nrepl-break-line) <CR><C-U>\
+noremap  <Plug>(nrepl-hist-prev)  <cmd>lua require'nrepl'.hist_prev()<CR>
 inoremap <Plug>(nrepl-hist-prev)  <cmd>lua require'nrepl'.hist_prev()<CR>
+noremap  <Plug>(nrepl-hist-next)  <cmd>lua require'nrepl'.hist_next()<CR>
 inoremap <Plug>(nrepl-hist-next)  <cmd>lua require'nrepl'.hist_next()<CR>
 inoremap <Plug>(nrepl-complete)   <cmd>lua require'nrepl'.complete()<CR>
 
-noremap <Plug>(nrepl-[[) <cmd>lua require'nrepl'.goto_prev()<CR>
-noremap <Plug>(nrepl-[]) <cmd>lua require'nrepl'.goto_prev(true)<CR>
-noremap <Plug>(nrepl-]]) <cmd>lua require'nrepl'.goto_next()<CR>
-noremap <Plug>(nrepl-][) <cmd>lua require'nrepl'.goto_next(true)<CR>
+noremap  <Plug>(nrepl-[[) <cmd>lua require'nrepl'.goto_prev()<CR>
+inoremap <Plug>(nrepl-[[) <cmd>lua require'nrepl'.goto_prev()<CR>
+noremap  <Plug>(nrepl-[]) <cmd>lua require'nrepl'.goto_prev(true)<CR>
+inoremap <Plug>(nrepl-[]) <cmd>lua require'nrepl'.goto_prev(true)<CR>
+noremap  <Plug>(nrepl-]]) <cmd>lua require'nrepl'.goto_next()<CR>
+inoremap <Plug>(nrepl-]]) <cmd>lua require'nrepl'.goto_next()<CR>
+noremap  <Plug>(nrepl-][) <cmd>lua require'nrepl'.goto_next(true)<CR>
+inoremap <Plug>(nrepl-][) <cmd>lua require'nrepl'.goto_next(true)<CR>
 
 function! s:cmdwin() abort
   let l:bufnr = bufnr()
