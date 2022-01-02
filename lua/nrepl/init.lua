@@ -7,6 +7,7 @@ local M = {}
 ---@field on_init? function(bufnr: number)
 ---@field startinsert? boolean
 ---@field indent? number
+---@field inspect? boolean
 
 --- Normalize configuration
 ---@param config? nreplConfig
@@ -26,6 +27,9 @@ local function normalize_config(config)
   end
   if c.indent ~= nil and (type(c.indent) ~= 'number' or c.indent < 0 or c.indent > 32) then
     error('invalid indent value, expected positive number, max 32 or nil')
+  end
+  if c.inspect ~= nil and type(c.inspect) ~= 'boolean' then
+    error('invalid inspect value, expected boolean or nil')
   end
   return c
 end

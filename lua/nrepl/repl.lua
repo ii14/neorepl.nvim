@@ -18,6 +18,7 @@ local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 ---@field buffer      number    buffer context
 ---@field vim_mode    boolean   vim mode
 ---@field mark_id     number    current mark id counter
+---@field inspect     boolean   inspect variables
 ---@field indent      number    indent level
 ---@field indentstr?  string    indent string
 ---@field env         table     lua environment
@@ -61,6 +62,7 @@ function M.new(config)
     buffer = 0,
     vim_mode = config.lang == 'vim',
     mark_id = 1,
+    inspect = config.inspect or false,
     indent = config.indent or 0,
   }, M)
 
@@ -219,8 +221,14 @@ function M:eval_lua(prg)
       local msg = res:gsub([[^%[string "nrepl"%]:%d+:%s*]], '', 1)
       self:put({msg}, 'nreplError')
     else
-      for i = 1, n do
-        res[i] = tostring(res[i])
+      if self.inspect then
+        for i = 1, n do
+          res[i] = vim.inspect(res[i])
+        end
+      else
+        for i = 1, n do
+          res[i] = tostring(res[i])
+        end
       end
       if #res > 0 then
         self:put(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'nreplValue')

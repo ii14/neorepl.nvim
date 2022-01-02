@@ -6,7 +6,6 @@ local ns = api.nvim_create_namespace('nrepl')
 local MSG_VIM = {'-- VIMSCRIPT --'}
 local MSG_LUA = {'-- LUA --'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
-local MSG_INVALID_ARGS = {'invalid arguments'}
 local MSG_INVALID_BUF = {'invalid buffer'}
 local MSG_NOT_IMPLEMENTED = {'not implemented'}
 
@@ -103,6 +102,26 @@ table.insert(COMMANDS, {
 })
 
 table.insert(COMMANDS, {
+  command = 'inspect',
+  description = 'inspect returned lua values or print current value',
+  ---@param args string
+  ---@param repl nreplRepl
+  run = function(args, repl)
+    if args == 't' or args == 'true' then
+      repl.inspect = true
+      repl:put({'inspect: '..tostring(repl.inspect)}, 'nreplInfo')
+    elseif args == 'f' or args == 'false' then
+      repl.inspect = false
+      repl:put({'inspect: '..tostring(repl.inspect)}, 'nreplInfo')
+    elseif args == nil then
+      repl:put({'inspect: '..tostring(repl.inspect)}, 'nreplInfo')
+    else
+      repl:put({'invalid argument, expected t/f/true/false'}, 'nreplError')
+    end
+  end,
+})
+
+table.insert(COMMANDS, {
   command = 'indent',
   description = 'set indentation or print current value',
   ---@param args string
@@ -113,7 +132,7 @@ table.insert(COMMANDS, {
       if value then
         value = tonumber(value)
         if value < 0 or value > 32 then
-          repl:put(MSG_INVALID_ARGS, 'nreplError')
+          repl:put({'invalid argument, expected number in range 0 to 32'}, 'nreplError')
         elseif value == 0 then
           repl.indent = 0
           repl.indentstr = nil
@@ -124,7 +143,7 @@ table.insert(COMMANDS, {
           repl:put({'indent: '..repl.indent}, 'nreplInfo')
         end
       else
-        repl:put(MSG_INVALID_ARGS, 'nreplError')
+        repl:put({'invalid argument, expected number in range 0 to 32'}, 'nreplError')
       end
     else
       repl:put({'indent: '..repl.indent}, 'nreplInfo')
