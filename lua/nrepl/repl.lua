@@ -14,6 +14,8 @@ local MSG_INVALID_COMMAND = {'invalid command'}
 
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
+local luacomplete = nil
+
 ---@type nreplCommand[]
 local COMMANDS = nil
 
@@ -503,16 +505,30 @@ function M:complete()
     if line:match('^%s*[bgstvw]:') or line:match('^%s*%(') then
       line = 'echo '..line
     end
-  else
-    -- TODO: completes with the global lua environment, instead of repl env
-    start = line:find('[%a_][%w_]*$')
-    comptype = 'lua'
-  end
 
-  if not self:exec_context(function()
-    completions = fn.getcompletion(line, comptype, 1)
-  end) then
-    return
+    if not self:exec_context(function()
+      completions = fn.getcompletion(line, comptype, 1)
+    end) then
+      return
+    end
+  else
+    if luacomplete == nil then
+      luacomplete = require('nrepl.luacomplete')
+    end
+
+    -- merge envs on the fly, just to get it working
+    -- without modifying the completion code too much
+    local env = {}
+    for k, v in pairs(global) do
+      env[k] = v
+    end
+    for k, v in pairs(self.luaenv) do
+      env[k] = v
+    end
+
+    local prefix
+    prefix, completions = luacomplete(line, env)
+    start = #prefix + 1
   end
 
   if completions and #completions > 0 then

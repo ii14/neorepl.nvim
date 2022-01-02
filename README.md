@@ -37,8 +37,8 @@ require 'nrepl'.config{
 ### TODO
 
 - [X] Completion
-  - [X] Vim script
-  - [ ] Lua (works, but completes with the global, not REPL, environment)
+  - [X] Vim script (needs some tweaking)
+  - [X] Lua
   - [ ] REPL commands (works for commands names only, no arguments yet)
 - [X] History
   - [X] Save and recall single lines
