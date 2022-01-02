@@ -544,7 +544,12 @@ end
 --- Go to previous/next output implementation
 ---@param backward boolean
 ---@param to_end? boolean
-function M:goto_output(backward, to_end)
+function M:goto_output(backward, to_end, count)
+  count = count or 1
+  if backward then
+    count = -count
+  end
+
   local ranges = {}
   do
     local lnum = 1
@@ -576,11 +581,13 @@ function M:goto_output(backward, to_end)
       elseif not backward and to_end and lnum < range[2] then
         api.nvim_win_set_cursor(0, { range[2], 0 })
       else
-        if backward then
-          range = ranges[i - 1]
-        else
-          range = ranges[i + 1]
+        local idx = i + count
+        if idx > #ranges then
+          idx = #ranges
+        elseif idx < 1 then
+          idx = 1
         end
+        range = ranges[idx]
         if range then
           api.nvim_win_set_cursor(0, { (to_end and range[2] or range[1]), 0 })
         end

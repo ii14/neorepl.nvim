@@ -122,13 +122,13 @@ end
 --- Go to previous output
 ---@param to_end? boolean
 function M.goto_prev(to_end)
-  get():goto_output(true, to_end)
+  get():goto_output(true, to_end, vim.v.count1)
 end
 
 --- Go to next output
 ---@param to_end? boolean
 function M.goto_next(to_end)
-  get():goto_output(false, to_end)
+  get():goto_output(false, to_end, vim.v.count1)
 end
 
 return M
