@@ -1,0 +1,133 @@
+*nrepl.txt* - Neovim REPL for lua and vimscript
+==============================================================================
+
+:Repl [{lang}]                                      *:Repl* *nrepl*
+    Starts a new REPL instance.
+    {lang} can be "lua" or "vim".
+
+------------------------------------------------------------------------------
+KEY BINDINGS
+*nrepl-keys*
+
+<CR>
+    Evaluates current line.
+
+<NL>, <C-J>
+    Breaks current line.
+
+<Tab>
+    Completes word under cursor.
+
+<C-N>, <C-P>, <Up>, <Down>
+    Move through command history.
+
+|]]|, |][|, |[[|, |[]|
+    Jump between outputs.
+
+------------------------------------------------------------------------------
+COMMANDS
+*nrepl-commands*
+
+/v[im] [{line}]
+    Switch language to vimscript. With {line} a vimscript expression is
+    evaluated once, without changing the language for the REPL.
+
+/l[ua] [{line}]
+    Switch language to lua. With {line} a lua expression is evaluated once,
+    without changing the language for the REPL.
+
+/b[uffer] [{buffer}]
+    Switch buffer context. Accepts values supported by |bufnr()|. 0 to disable.
+    Without arguments prints the current buffer.
+
+/w[indow] [{window}]
+    Switch window context. Accepts |window-ID|s and values supported by
+    |winnr()|. 0 to disable. Without arguments prints the current window.
+
+/i[nspect] [{bool}]
+    Enable or disable using |vim.inspect()| for printing returned lua values.
+    Without arguments prints the current value.
+
+/ind[ent] [{num}]
+    Change output indentation. Without arguments prints the current value.
+
+/r[edraw] [{bool}]
+    Enable or disable redrawing after evaluation. Without arguments prints
+    the current value.
+
+/h[elp]
+    Print help.
+
+/c[lear]
+    Clear buffer.
+
+/q[uit]
+    Close REPL instance.
+
+------------------------------------------------------------------------------
+LUA API
+*nrepl-api*
+
+nrepl.new([{config}])                               *nrepl.new()*
+    Starts a new REPL instance.
+    See |nrepl-config| for the list of available options.
+>
+        require('nrepl').new({...})
+<
+nrepl.config([{config}])                            *nrepl.config()*
+    Sets the default config.
+    See |nrepl-config| for the list of available options.
+>
+        require('nrepl').config({...})
+<
+------------------------------------------------------------------------------
+CONFIGURATION
+*nrepl-config*
+
+lang ~
+    Start REPL in either lua or vimscript mode.
+        Type: "lua" | "vim"
+        Default: "lua"
+
+inspect ~
+    Use |vim.inspect()| for printing returned lua values.
+        Type: boolean
+        Default: false
+
+indent ~
+    Indent output.
+        Type: number
+        Default: 4
+
+startinsert ~
+    Start REPL in insert mode.
+        Type: boolean
+        Default: true
+
+redraw ~
+    Redraw screen after evaluating lines. Useful when the context is changed
+    to other buffer or window, and changes made from the REPL don't update
+    the other window.
+        Typle: boolean
+        Default: true
+
+on_init ~
+    Run custom function after starting REPL. REPL buffer is passed as the
+    first argument.
+        Type: fun(bufnr: number)
+        Default: nil
+
+buffer ~
+    Start REPL attached to the buffer. Accepts values supported by |bufnr()|.
+    0 for the current buffer.
+        Type: number | string
+        Default: nil
+
+window ~
+    Start REPL attached to the window. Accepts |window-ID|s and values
+    supported by |winnr()|. 0 for the current window.
+        Type: number | string
+        Default: nil
+
+==============================================================================
+vim: ft=help sw=4 sts=4 et tw=78
