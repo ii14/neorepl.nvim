@@ -9,20 +9,41 @@
 KEY BINDINGS
 *nrepl-keys*
 
-<CR>
-    Evaluates current line.
+<Plug>(nrepl-eval-line)                             *<Plug>(nrepl-eval-line)*
+    Evaluate current line, for insert mode.
+    Default mapping: <CR>
 
-<NL>, <C-J>
-    Breaks current line.
+<Plug>(nrepl-break-line)                            *<Plug>(nrepl-break-line)*
+    Break line, for insert mode.
+    Default mapping: <NL> (<C-J>)
 
-<Tab>
-    Completes word under cursor.
+<Plug>(nrepl-hist-prev)                             *<Plug>(nrepl-hist-prev)*
+    Previous entry in the history, for insert mode.
+    Default mapping: <C-P>
 
-<C-N>, <C-P>
-    Move through command history.
+<Plug>(nrepl-hist-next)                             *<Plug>(nrepl-hist-next)*
+    Next entry in the history, for insert mode.
+    Default mapping: <C-N>
 
-|]]|, |][|, |[[|, |[]|
-    Jump between outputs.
+<Plug>(nrepl-complete)                              *<Plug>(nrepl-complete)*
+    Trigger completion, for insert mode.
+    Default mapping: <Tab>
+
+<Plug>(nrepl-]])                                    *<Plug>(nrepl-]])*
+    Go one output section forward, to the first line. |]]|
+    Default mapping: ]]
+
+<Plug>(nrepl-][)                                    *<Plug>(nrepl-][)*
+    Go one output section forward, to the last line. |][|
+    Default mapping: ][
+
+<Plug>(nrepl-[[)                                    *<Plug>(nrepl-[[)*
+    Go one output section backward, to the first line. |[[|
+    Default mapping: [[
+
+<Plug>(nrepl-[])                                    *<Plug>(nrepl-[])*
+    Go one output section backward, to the last line. |[]|
+    Default mapping: []
 
 ------------------------------------------------------------------------------
 COMMANDS
