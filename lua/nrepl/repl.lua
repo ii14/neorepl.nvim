@@ -528,6 +528,9 @@ function M:complete()
 
     local prefix
     prefix, completions = luacomplete(line, env)
+    if prefix == nil or completions == nil then
+      return
+    end
     start = #prefix + 1
   end
 
