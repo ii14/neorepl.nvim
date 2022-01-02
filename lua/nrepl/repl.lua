@@ -302,11 +302,14 @@ function M:eval_line()
   end
 
   if self.vim_mode then
-    self:eval_vim(prg)
+    if self:eval_vim(prg) ~= false then
+      return self:new_line()
+    end
   else
-    self:eval_lua(prg)
+    if self:eval_lua(prg) ~= false then
+      return self:new_line()
+    end
   end
-  return self:new_line()
 end
 
 --- Gather results from pcall
@@ -372,6 +375,11 @@ function M:eval_lua(prg)
         self:put(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'nreplValue')
       end
     end
+  elseif err:match("'<eof>'$") then
+    -- more input expected, add line break
+    api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {'\\'})
+    vim.cmd('$')
+    return false
   else
     self:put({err}, 'nreplError')
   end
