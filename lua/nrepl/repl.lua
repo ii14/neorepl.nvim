@@ -46,15 +46,15 @@ M.__index = M
 --- Create a new REPL instance
 ---@param config? nreplConfig
 function M.new(config)
-  if config.bufnr then
-    config.bufnr = require('nrepl.util').parse_buffer(config.bufnr, true)
-    if not config.bufnr then
+  if config.buffer then
+    config.buffer = require('nrepl.util').parse_buffer(config.buffer, true)
+    if not config.buffer then
       error('invalid buffer')
     end
   end
-  if config.winid then
-    config.winid = require('nrepl.util').parse_window(config.winid, true)
-    if not config.winid then
+  if config.window then
+    config.window = require('nrepl.util').parse_window(config.window, true)
+    if not config.window then
       error('invalid window')
     end
   end
@@ -93,8 +93,8 @@ function M.new(config)
   ---@type nreplRepl
   local this = setmetatable({
     bufnr = bufnr,
-    buffer = config.bufnr or 0,
-    window = config.winid or 0,
+    buffer = config.buffer or 0,
+    window = config.window or 0,
     vim_mode = config.lang == 'vim',
     redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, false),

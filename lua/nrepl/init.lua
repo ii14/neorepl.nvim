@@ -8,9 +8,9 @@ local M = {}
 ---@field indent? number
 ---@field inspect? boolean
 ---@field redraw? boolean
----@field bufnr? number|string
----@field winid? number|string
----@field on_init? function(bufnr: number)
+---@field buffer? number|string
+---@field window? number|string
+---@field on_init? fun(bufnr: number)
 
 --- Normalize configuration
 ---@param config? nreplConfig
@@ -37,11 +37,11 @@ local function validate(config)
   if c.on_init ~= nil and type(c.on_init) ~= 'function' then
     error('invalid on_init value, expected function or nil')
   end
-  if c.bufnr ~= nil and type(c.bufnr) ~= 'number' and type(c.bufnr) ~= 'string' then
-    error('invalid bufnr value, expected boolean or nil')
+  if c.buffer ~= nil and type(c.buffer) ~= 'number' and type(c.buffer) ~= 'string' then
+    error('invalid buffer value, expected boolean or nil')
   end
-  if c.winid ~= nil and type(c.winid) ~= 'number' and type(c.winid) ~= 'string' then
-    error('invalid winid value, expected boolean or nil')
+  if c.window ~= nil and type(c.window) ~= 'number' and type(c.window) ~= 'string' then
+    error('invalid window value, expected boolean or nil')
   end
   return c
 end
@@ -54,8 +54,8 @@ local default_config = {
   inspect = false,
   redraw = true,
   on_init = nil,
-  bufnr = nil,
-  winid = nil,
+  buffer = nil,
+  window = nil,
 }
 
 --- Set default configuration
