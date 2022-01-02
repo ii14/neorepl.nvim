@@ -95,22 +95,27 @@ table.insert(COMMANDS, {
         local bufname = fn.bufname(repl.buffer)
         if bufname == '' then
           bufname = BUF_EMPTY
+        else
+          bufname = '('..bufname..')'
         end
-        repl:put({'buffer: '..repl.buffer..' ('..bufname..')'}, 'nreplInfo')
+        repl:put({'buffer: '..repl.buffer..' '..bufname}, 'nreplInfo')
       else
         repl:put(MSG_INVALID_BUF, 'nreplError')
       end
     else
       if repl.buffer > 0 then
+        local bufname
         if fn.bufnr(repl.buffer) >= 0 then
-          local bufname = fn.bufname(repl.buffer)
+          bufname = fn.bufname(repl.buffer)
           if bufname == '' then
             bufname = BUF_EMPTY
+          else
+            bufname = '('..bufname..')'
           end
-          repl:put({'buffer: '..repl.buffer..' ('..bufname..')'}, 'nreplInfo')
         else
-          repl:put({'buffer: '..repl.buffer..' [invalid]'}, 'nreplInfo')
+          bufname = '[invalid]'
         end
+        repl:put({'buffer: '..repl.buffer..' '..bufname}, 'nreplInfo')
       else
         repl:put({'buffer: none'}, 'nreplInfo')
       end
