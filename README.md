@@ -41,6 +41,8 @@ require 'nrepl'.config{
   - [ ] REPL commands
 - [ ] History
 - [ ] Evaluate multiple lines
+  - [X] Break line with NL/CTRL-J
+  - [ ] Evaluate visual selection
 - [ ] Context change
   - [X] Buffer
   - [ ] Window

@@ -36,6 +36,7 @@ function M.new(config)
   api.nvim_buf_set_name(bufnr, 'nrepl('..bufnr..')')
   vim.cmd(string.format([=[
     inoremap <silent><buffer> <CR> <cmd>lua require'nrepl'.eval_line()<CR>
+    inoremap <silent><buffer> <NL> <CR><C-U>\
 
     setlocal backspace=indent,start
     setlocal completeopt=menu
@@ -50,6 +51,8 @@ function M.new(config)
     nnoremap <silent><buffer> [] <cmd>lua require'nrepl'.goto_prev(true)<CR>
     nnoremap <silent><buffer> ]] <cmd>lua require'nrepl'.goto_next()<CR>
     nnoremap <silent><buffer> ][ <cmd>lua require'nrepl'.goto_next(true)<CR>
+
+    syn match nreplLinebreak "^\\"
 
     augroup nrepl
       autocmd BufDelete <buffer> lua require'nrepl'[%d] = nil
@@ -155,6 +158,32 @@ function M:eval_line()
 
     if not got_command then
       self:put(MSG_INVALID_COMMAND, 'nreplError')
+    end
+  elseif line:match('^\\') then
+    local lnum = api.nvim_win_get_cursor(0)[1]
+    local prg = { line:sub(2) }
+    while true do
+      lnum = lnum - 1
+      if lnum <= 0 then
+        self:put({'invalid line break'}, 'nreplError')
+        break
+      else
+        line = api.nvim_buf_get_lines(self.bufnr, lnum - 1, lnum, true)[1]
+        if not line:match('^\\') then
+          if line:match('^/') then
+            self:put({'line breaks not implemented for repl commands'}, 'nreplError')
+          else
+            table.insert(prg, 1, line)
+            if self.vim_mode then
+              self:eval_vim(table.concat(prg, '\n'):gsub('\n%s*\\', ' '))
+            else
+              self:eval_lua(table.concat(prg, '\n'))
+            end
+          end
+          break
+        end
+        table.insert(prg, 1, line:sub(2))
+      end
     end
   else
     if self.vim_mode then
@@ -263,11 +292,8 @@ function M:eval_vim(prg)
     ok, res = pcall(fn['nrepl#__evaluate__'], prg)
   end
 
-  if ok then
-    self:put(vim.split(res, '\n', { plain = true, trimempty = true }), 'nreplOutput')
-  else
-    self:put({res}, 'nreplError')
-  end
+  local hlgroup = ok and 'nreplOutput' or 'nreplError'
+  self:put(vim.split(res, '\n', { plain = true, trimempty = true }), hlgroup)
 end
 
 function M:complete()
@@ -369,10 +395,11 @@ function M:goto_output(backward, to_end)
 end
 
 vim.cmd([[
-  hi link nreplError  ErrorMsg
-  hi link nreplOutput String
-  hi link nreplValue  Number
-  hi link nreplInfo   Function
+  hi link nreplError      ErrorMsg
+  hi link nreplOutput     String
+  hi link nreplValue      Number
+  hi link nreplInfo       Function
+  hi link nreplLinebreak  Function
 ]])
 
 return M
