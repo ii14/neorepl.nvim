@@ -168,6 +168,7 @@ function M:put(lines, hlgroup)
   end
 end
 
+--- Append empty line
 function M:new_line()
   api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {''})
   vim.cmd('$') -- TODO: don't use things like this, buffer can change during evaluation
@@ -435,6 +436,7 @@ function M:exec_context(f)
   return true
 end
 
+--- Previous entry in the history
 function M:hist_prev()
   if #self.history == 0 then return end
   local lines, s, e = self:get_line()
@@ -442,6 +444,7 @@ function M:hist_prev()
   if self.histpos == 0 then
     self.histcur = lines
   end
+
   self.histpos = self.histpos + 1
   local nlines
   if self.histpos > #self.history then
@@ -450,10 +453,12 @@ function M:hist_prev()
   else
     nlines = self.history[#self.history - self.histpos + 1]
   end
+
   api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
   api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
 
+--- Next entry in the history
 function M:hist_next()
   if #self.history == 0 then return end
   local lines, s, e = self:get_line()
@@ -461,6 +466,7 @@ function M:hist_next()
   if self.histpos == 0 then
     self.histcur = lines
   end
+
   self.histpos = self.histpos - 1
   local nlines
   if self.histpos == 0 then
@@ -471,10 +477,12 @@ function M:hist_next()
   else
     nlines = self.history[#self.history - self.histpos + 1]
   end
+
   api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
   api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
 
+--- Complete word under cursor
 function M:complete()
   local line = api.nvim_get_current_line()
   local pos = api.nvim_win_get_cursor(0)[2]
