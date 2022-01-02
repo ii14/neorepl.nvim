@@ -272,16 +272,29 @@ end
 
 function M:complete()
   local line = api.nvim_get_current_line()
-  -- TODO: handle repl commands
-  if line:sub(1,1) == '/' then
-    return
-  end
-
   local pos = api.nvim_win_get_cursor(0)[2]
   line = line:sub(1, pos)
   local completions, start, comptype
 
-  if self.vim_mode then
+  if line:sub(1,1) == '/' then
+    -- TODO: complete command arguments too
+    if not line:match('^/%S*$') then
+      return
+    end
+
+    local candidates = {}
+    local word = line:sub(2)
+    local size = #word
+    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+      if word == c.command:sub(1, size) then
+        table.insert(candidates, c.command)
+      end
+    end
+    if #candidates > 0 then
+      fn.complete(2, candidates)
+    end
+    return
+  elseif self.vim_mode then
     start = line:find('%S+$')
     comptype = 'cmdline'
   else
