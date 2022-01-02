@@ -54,14 +54,16 @@ local default_config = {
   inspect = false,
   redraw = true,
   on_init = nil,
-  buffer = nil,
-  window = nil,
 }
 
 --- Set default configuration
 ---@param config? nreplConfig
 function M.config(config)
-  default_config = validate(config)
+  config = validate(config)
+  if config.buffer ~= nil or config.window ~= nil then
+    error('buffer and window cannot be set on a default configuration')
+  end
+  default_config = config
 end
 
 --- Create a new REPL instance
