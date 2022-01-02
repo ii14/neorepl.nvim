@@ -51,7 +51,7 @@ local default_config = {
   lang = 'lua',
   startinsert = false,
   indent = 4,
-  inspect = false,
+  inspect = true,
   redraw = true,
   on_init = nil,
 }

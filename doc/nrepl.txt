@@ -92,10 +92,10 @@ lang ~
 inspect ~
     Use |vim.inspect()| for printing returned lua values.
         Type: boolean
-        Default: false
+        Default: true
 
 indent ~
-    Indent output.
+    Output indentation level.
         Type: number
         Default: 4
 

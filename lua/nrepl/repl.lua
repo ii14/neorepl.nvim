@@ -99,7 +99,7 @@ function M.new(config)
     window = config.window or 0,
     vim_mode = config.lang == 'vim',
     redraw = get_opt(config.redraw, true),
-    inspect = get_opt(config.inspect, false),
+    inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
     history = {},
     histpos = 0,
