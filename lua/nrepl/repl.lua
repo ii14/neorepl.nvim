@@ -343,14 +343,9 @@ function M:eval_lua(prg)
       local msg = res:gsub([[^%[string "nrepl"%]:%d+:%s*]], '', 1)
       self:put({msg}, 'nreplError')
     else
-      if self.inspect then
-        for i = 1, n do
-          res[i] = vim.inspect(res[i])
-        end
-      else
-        for i = 1, n do
-          res[i] = tostring(res[i])
-        end
+      local stringify = self.inspect and vim.inspect or tostring
+      for i = 1, n do
+        res[i] = stringify(res[i])
       end
       if #res > 0 then
         self:put(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'nreplValue')
