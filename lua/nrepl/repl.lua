@@ -44,18 +44,14 @@ M.__index = M
 ---@param config? nreplConfig
 function M.new(config)
   if config.bufnr then
-    if config.bufnr == 0 then
-      config.bufnr = api.nvim_get_current_buf()
-    end
-    if not api.nvim_buf_is_valid(config.bufnr) then
+    config.bufnr = require('nrepl.util').parse_buffer(config.bufnr, true)
+    if not config.bufnr then
       error('invalid buffer')
     end
   end
   if config.winid then
-    if config.winid == 0 then
-      config.winid = api.nvim_get_current_win()
-    end
-    if not api.nvim_win_is_valid(config.winid) then
+    config.winid = require('nrepl.util').parse_window(config.winid, true)
+    if not config.winid then
       error('invalid window')
     end
   end

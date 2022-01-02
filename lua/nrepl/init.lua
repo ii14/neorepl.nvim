@@ -8,8 +8,8 @@ local M = {}
 ---@field indent? number
 ---@field inspect? boolean
 ---@field redraw? boolean
----@field bufnr? number
----@field winid? number
+---@field bufnr? number|string
+---@field winid? number|string
 ---@field on_init? function(bufnr: number)
 
 --- Normalize configuration
@@ -37,10 +37,10 @@ local function validate(config)
   if c.on_init ~= nil and type(c.on_init) ~= 'function' then
     error('invalid on_init value, expected function or nil')
   end
-  if c.bufnr ~= nil and type(c.bufnr) ~= 'number' then
+  if c.bufnr ~= nil and type(c.bufnr) ~= 'number' and type(c.bufnr) ~= 'string' then
     error('invalid bufnr value, expected boolean or nil')
   end
-  if c.winid ~= nil and type(c.winid) ~= 'number' then
+  if c.winid ~= nil and type(c.winid) ~= 'number' and type(c.winid) ~= 'string' then
     error('invalid winid value, expected boolean or nil')
   end
   return c

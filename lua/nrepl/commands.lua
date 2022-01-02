@@ -57,23 +57,19 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      local num = args:match('^%d+$')
-      if num then args = tonumber(num) end
-      if args == 0 then
+      local bufnr = require('nrepl.util').parse_buffer(args)
+      if bufnr == 0 then
         repl.buffer = 0
         repl:put({'buffer: none'}, 'nreplInfo')
-      else
-        local value = fn.bufnr(args)
-        if value >= 0 then
-          repl.buffer = value
-          local bufname = fn.bufname(repl.buffer)
-          if bufname == '' then
-            bufname = BUF_EMPTY
-          end
-          repl:put({'buffer: '..repl.buffer..' ('..bufname..')'}, 'nreplInfo')
-        else
-          repl:put(MSG_INVALID_BUF, 'nreplError')
+      elseif bufnr then
+        repl.buffer = bufnr
+        local bufname = fn.bufname(repl.buffer)
+        if bufname == '' then
+          bufname = BUF_EMPTY
         end
+        repl:put({'buffer: '..repl.buffer..' ('..bufname..')'}, 'nreplInfo')
+      else
+        repl:put(MSG_INVALID_BUF, 'nreplError')
       end
     else
       if repl.buffer > 0 then
@@ -100,32 +96,11 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      local winid = args:match('^%d+$')
-      if winid then
-        winid = tonumber(winid)
-      else
-        local ok
-        -- try to winnr string, to match #, $ etc.
-        ok, winid = pcall(fn.winnr, args)
-        if not ok then
-          repl:put({'invalid argument, expected positive number'}, 'nreplError')
-          return
-        end
-      end
-
+      local winid = require('nrepl.util').parse_window(args)
       if winid == 0 then
         repl.window = 0
         repl:put({'window: none'}, 'nreplInfo')
-        return
-      elseif winid > 0 and winid < 1000 then
-        winid = fn.win_getid(winid)
-        if winid == 0 then
-          repl:put(MSG_INVALID_WIN, 'nreplError')
-          return
-        end
-      end
-
-      if api.nvim_win_is_valid(winid) then
+      elseif winid then
         repl.window = winid
         repl:put({'window: '..repl.window}, 'nreplInfo')
       else
