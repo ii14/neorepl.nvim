@@ -371,6 +371,11 @@ end
 --- Evaluate vim script and append output to the buffer
 ---@param prg string
 function M:eval_vim(prg)
+  -- print variables
+  if prg:match('^%s*[bgstvw%(]:') or prg:match('^%s*%(') then
+    prg = 'echo '..prg
+  end
+
   -- call execute() from a vim script file to have script local variables.
   -- context is shared between repl instances. a potential solution is to
   -- create a temporary script for each instance.
@@ -495,6 +500,9 @@ function M:complete()
   elseif self.vim_mode then
     start = line:find('%S+$')
     comptype = 'cmdline'
+    if line:match('^%s*[bgstvw]:') or line:match('^%s*%(') then
+      line = 'echo '..line
+    end
   else
     -- TODO: completes with the global lua environment, instead of repl env
     start = line:find('[%a_][%w_]*$')
