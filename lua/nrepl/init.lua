@@ -1,7 +1,4 @@
 local api = vim.api
-local fn = vim.fn
-
-local ns = api.nvim_create_namespace('nrepl')
 
 local M = {}
 
@@ -51,12 +48,17 @@ function M.new(config)
   require('nrepl.repl').new(config)
 end
 
---- Evaluate current line
-function M.eval_line()
+--- Get current REPL
+local function get()
   local bufnr = api.nvim_get_current_buf()
   local repl = M[bufnr]
   if repl == nil then error('invalid buffer: '..bufnr) end
-  repl:eval_line()
+  return repl
+end
+
+--- Evaluate current line
+function M.eval_line()
+  get():eval_line()
 end
 
 --- Close REPL instance
@@ -72,79 +74,20 @@ function M.close(bufnr)
   M[bufnr] = nil
 end
 
---- Go to previous/next output implementation
----@param bufnr string
----@param backward boolean
----@param to_end? boolean
-local function goto_output(bufnr, backward, to_end)
-  local ranges = {}
-  do
-    local lnum = 1
-    -- TODO: do I have to sort them?
-    for _, m in ipairs(api.nvim_buf_get_extmarks(bufnr, ns, 0, -1, { details = true })) do
-      local s = m[2] + 1
-      local e = m[4].end_row
-      if e >= s then
-        -- insert ranges between extmarks
-        if s > lnum then
-          table.insert(ranges, { lnum, s - 1 })
-        end
-        table.insert(ranges, { s, e })
-        lnum = e + 1
-      end
-    end
-    -- insert last range
-    local last = api.nvim_buf_line_count(bufnr)
-    if last >= lnum then
-      table.insert(ranges, { lnum, last })
-    end
-  end
-
-  local lnum = api.nvim_win_get_cursor(0)[1]
-  for i, range in ipairs(ranges) do
-    if lnum >= range[1] and lnum <= range[2] then
-      if backward and not to_end and lnum > range[1] then
-        api.nvim_win_set_cursor(0, { range[1], 0 })
-      elseif not backward and to_end and lnum < range[2] then
-        api.nvim_win_set_cursor(0, { range[2], 0 })
-      else
-        if backward then
-          range = ranges[i - 1]
-        else
-          range = ranges[i + 1]
-        end
-        if range then
-          api.nvim_win_set_cursor(0, { (to_end and range[2] or range[1]), 0 })
-        end
-      end
-      return
-    end
-  end
-end
-
 --- Go to previous output
 ---@param to_end? boolean
 function M.goto_prev(to_end)
-  vim.validate { to_end = { to_end, 'boolean', true } }
-  local bufnr = api.nvim_get_current_buf()
-  if M[bufnr] == nil then error('invalid buffer: '..bufnr) end
-  goto_output(bufnr, true, to_end)
+  get():goto_output(true, to_end)
 end
 
 --- Go to next output
 ---@param to_end? boolean
 function M.goto_next(to_end)
-  vim.validate { to_end = { to_end, 'boolean', true } }
-  local bufnr = api.nvim_get_current_buf()
-  if M[bufnr] == nil then error('invalid buffer: '..bufnr) end
-  goto_output(bufnr, false, to_end)
+  get():goto_output(false, to_end)
 end
 
 function M.complete()
-  local bufnr = api.nvim_get_current_buf()
-  local repl = M[bufnr]
-  if repl == nil then error('invalid buffer: '..bufnr) end
-  repl:complete()
+  get():complete()
 end
 
 return M

@@ -375,6 +375,55 @@ function M:complete()
   end
 end
 
+--- Go to previous/next output implementation
+---@param backward boolean
+---@param to_end? boolean
+function M:goto_output(backward, to_end)
+  local ranges = {}
+  do
+    local lnum = 1
+    -- TODO: do I have to sort them?
+    for _, m in ipairs(api.nvim_buf_get_extmarks(self.bufnr, ns, 0, -1, { details = true })) do
+      local s = m[2] + 1
+      local e = m[4].end_row
+      if e >= s then
+        -- insert ranges between extmarks
+        if s > lnum then
+          table.insert(ranges, { lnum, s - 1 })
+        end
+        table.insert(ranges, { s, e })
+        lnum = e + 1
+      end
+    end
+    -- insert last range
+    local last = api.nvim_buf_line_count(self.bufnr)
+    if last >= lnum then
+      table.insert(ranges, { lnum, last })
+    end
+  end
+
+  local lnum = api.nvim_win_get_cursor(0)[1]
+  for i, range in ipairs(ranges) do
+    if lnum >= range[1] and lnum <= range[2] then
+      if backward and not to_end and lnum > range[1] then
+        api.nvim_win_set_cursor(0, { range[1], 0 })
+      elseif not backward and to_end and lnum < range[2] then
+        api.nvim_win_set_cursor(0, { range[2], 0 })
+      else
+        if backward then
+          range = ranges[i - 1]
+        else
+          range = ranges[i + 1]
+        end
+        if range then
+          api.nvim_win_set_cursor(0, { (to_end and range[2] or range[1]), 0 })
+        end
+      end
+      return
+    end
+  end
+end
+
 vim.cmd([[
   hi link nreplError  ErrorMsg
   hi link nreplOutput String
