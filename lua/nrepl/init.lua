@@ -37,6 +37,9 @@ local function validate(config)
   if c.on_init ~= nil and type(c.on_init) ~= 'function' then
     error('invalid on_init value, expected function or nil')
   end
+  if c.no_defaults ~= nil and type(c.no_defaults) ~= 'boolean' then
+    error('invalid no_defaults value, expected boolean or nil')
+  end
   if c.buffer ~= nil and type(c.buffer) ~= 'number' and type(c.buffer) ~= 'string' then
     error('invalid buffer value, expected boolean or nil')
   end
@@ -53,6 +56,7 @@ local default_config = {
   indent = 4,
   inspect = true,
   redraw = true,
+  no_defaults = false,
   on_init = nil,
 }
 

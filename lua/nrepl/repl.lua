@@ -69,23 +69,25 @@ function M.new(config)
   local bufnr = api.nvim_get_current_buf()
   api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
   api.nvim_buf_set_name(bufnr, 'nrepl('..bufnr..')')
-  vim.cmd(string.format([=[
-    imap <silent><buffer> <CR> <Plug>(nrepl-eval-line)
-    imap <silent><buffer> <NL> <Plug>(nrepl-break-line)
+  if config.no_defaults ~= true then
+    vim.cmd(string.format([=[
+      imap <silent><buffer> <CR> <Plug>(nrepl-eval-line)
+      imap <silent><buffer> <NL> <Plug>(nrepl-break-line)
 
-    setlocal backspace=indent,start
-    setlocal completeopt=menu
-    imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
-    imap <silent><buffer><expr> <C-P> pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)'
-    imap <silent><buffer><expr> <C-N> pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)'
-    inoremap <buffer> <C-E> <C-E>
-    inoremap <buffer> <C-Y> <C-Y>
+      setlocal backspace=indent,start
+      setlocal completeopt=menu
+      imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
+      imap <silent><buffer><expr> <C-P> pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)'
+      imap <silent><buffer><expr> <C-N> pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)'
+      inoremap <buffer> <C-E> <C-E>
+      inoremap <buffer> <C-Y> <C-Y>
 
-    nmap <silent><buffer> [[ <Plug>(nrepl-[[)
-    nmap <silent><buffer> [] <Plug>(nrepl-[])
-    nmap <silent><buffer> ]] <Plug>(nrepl-]])
-    nmap <silent><buffer> ][ <Plug>(nrepl-][)
-  ]=]))
+      nmap <silent><buffer> [[ <Plug>(nrepl-[[)
+      nmap <silent><buffer> [] <Plug>(nrepl-[])
+      nmap <silent><buffer> ]] <Plug>(nrepl-]])
+      nmap <silent><buffer> ][ <Plug>(nrepl-][)
+    ]=]))
+  end
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
   vim.cmd(string.format([=[

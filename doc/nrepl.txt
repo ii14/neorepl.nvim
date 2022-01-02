@@ -74,7 +74,7 @@ nrepl.new([{config}])                               *nrepl.new()*
 >
         require('nrepl').new({...})
 <
-nrepl.config([{config}])                            *nrepl.config()*
+nrepl.config({config})                              *nrepl.config()*
     Sets the default config.
     See |nrepl-config| for the list of available options.
 >
@@ -117,15 +117,22 @@ on_init ~
         Type: fun(bufnr: number)
         Default: nil
 
+no_defaults ~
+    Disables all default settings and key mappings.
+        Type: boolean
+        Default: false
+
 buffer ~
     Start REPL attached to the buffer. Accepts values supported by |bufnr()|.
     0 for the current buffer.
+    Available only to |nrepl.new()|.
         Type: number | string
         Default: nil
 
 window ~
     Start REPL attached to the window. Accepts |window-ID|s and values
     supported by |winnr()|. 0 for the current window.
+    Available only to |nrepl.new()|.
         Type: number | string
         Default: nil
 
