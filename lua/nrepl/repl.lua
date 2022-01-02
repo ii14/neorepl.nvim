@@ -43,19 +43,19 @@ M.__index = M
 --- Create a new REPL instance
 ---@param config? nreplConfig
 function M.new(config)
-  if config.buffer then
-    if config.buffer == 0 then
-      config.buffer = api.nvim_get_current_buf()
+  if config.bufnr then
+    if config.bufnr == 0 then
+      config.bufnr = api.nvim_get_current_buf()
     end
-    if not api.nvim_buf_is_valid(config.buffer) then
+    if not api.nvim_buf_is_valid(config.bufnr) then
       error('invalid buffer')
     end
   end
-  if config.window then
-    if config.window == 0 then
-      config.window = api.nvim_get_current_win()
+  if config.winid then
+    if config.winid == 0 then
+      config.winid = api.nvim_get_current_win()
     end
-    if not api.nvim_win_is_valid(config.window) then
+    if not api.nvim_win_is_valid(config.winid) then
       error('invalid window')
     end
   end
@@ -92,8 +92,8 @@ function M.new(config)
   ---@type nreplRepl
   local this = setmetatable({
     bufnr = bufnr,
-    buffer = config.buffer or 0,
-    window = config.window or 0,
+    buffer = config.bufnr or 0,
+    window = config.winid or 0,
     vim_mode = config.lang == 'vim',
     redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, false),

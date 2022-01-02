@@ -8,8 +8,8 @@ local M = {}
 ---@field indent? number
 ---@field inspect? boolean
 ---@field redraw? boolean
----@field buffer? number
----@field window? number
+---@field bufnr? number
+---@field winid? number
 ---@field on_init? function(bufnr: number)
 
 --- Normalize configuration
@@ -37,11 +37,11 @@ local function validate(config)
   if c.on_init ~= nil and type(c.on_init) ~= 'function' then
     error('invalid on_init value, expected function or nil')
   end
-  if c.buffer ~= nil and type(c.buffer) ~= 'number' then
-    error('invalid buffer value, expected boolean or nil')
+  if c.bufnr ~= nil and type(c.bufnr) ~= 'number' then
+    error('invalid bufnr value, expected boolean or nil')
   end
-  if c.window ~= nil and type(c.window) ~= 'number' then
-    error('invalid window value, expected boolean or nil')
+  if c.winid ~= nil and type(c.winid) ~= 'number' then
+    error('invalid winid value, expected boolean or nil')
   end
   return c
 end
@@ -54,8 +54,8 @@ local default_config = {
   inspect = false,
   redraw = true,
   on_init = nil,
-  buffer = nil,
-  window = nil,
+  bufnr = nil,
+  winid = nil,
 }
 
 --- Set default configuration
