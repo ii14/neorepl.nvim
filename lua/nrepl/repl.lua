@@ -42,8 +42,8 @@ end
 ---@field history     string[][]    command history
 ---@field histpos     number        position in history
 ---@field histcur     string[]|nil  line before moving through history
----@field env         table         lua environment
----@field print       function      print function override
+---@field luaenv      table         lua environment
+---@field luaprint    function      print function override
 local M = {}
 M.__index = M
 
@@ -110,7 +110,7 @@ function M.new(config)
     this.indentstr = string.rep(' ', this.indent)
   end
 
-  this.print = function(...)
+  this.luaprint = function(...)
     local args = {...}
     for i, v in ipairs(args) do
       args[i] = tostring(v)
@@ -119,11 +119,11 @@ function M.new(config)
     this:put(lines, 'nreplOutput')
   end
 
-  this.env = setmetatable({
+  this.luaenv = setmetatable({
     --- access to global environment
     global = global,
     --- print function override
-    print = this.print,
+    print = this.luaprint,
   }, {
     __index = function(t, key)
       return rawget(t, key) or rawget(global, key)
@@ -325,11 +325,11 @@ function M:eval_lua(prg)
   end
 
   if res then
-    setfenv(res, self.env)
+    setfenv(res, self.luaenv)
 
     if not self:exec_context(function()
       -- temporarily replace print
-      _G.print = self.print
+      _G.print = self.luaprint
       ok, res, n = pcall_res(pcall(res))
       _G.print = prev_print
       if self.redraw then
