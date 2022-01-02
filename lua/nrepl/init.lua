@@ -140,44 +140,11 @@ function M.goto_next(to_end)
   goto_output(bufnr, false, to_end)
 end
 
-function M.get_completion()
+function M.complete()
   local bufnr = api.nvim_get_current_buf()
   local repl = M[bufnr]
   if repl == nil then error('invalid buffer: '..bufnr) end
-
-  local line = api.nvim_get_current_line()
-  -- TODO: handle repl commands
-  if line:sub(1,1) == '/' then
-    return
-  end
-
-  local pos = api.nvim_win_get_cursor(0)[2]
-  line = line:sub(1, pos)
-  local completions, start, comptype
-
-  if repl.vim_mode then
-    start = line:find('%S+$')
-    comptype = 'cmdline'
-  else
-    -- TODO: completes with the global lua environment, instead of repl env
-    start = line:find('[%a_][%w_]*$')
-    comptype = 'lua'
-  end
-
-  if repl.buffer > 0 then
-    if not api.nvim_buf_is_valid(repl.buffer) then
-      return
-    end
-    api.nvim_buf_call(repl.buffer, function()
-      completions = fn.getcompletion(line, comptype, 1)
-    end)
-  else
-    completions = fn.getcompletion(line, comptype, 1)
-  end
-
-  if completions and #completions > 0 then
-    fn.complete(start or pos + 1, completions)
-  end
+  repl:complete()
 end
 
 return M

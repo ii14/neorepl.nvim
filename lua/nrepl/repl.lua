@@ -45,7 +45,7 @@ function M.new(config)
     setlocal backspace=indent,start
     setlocal completeopt=menu
     inoremap <silent><buffer><expr> <Tab>
-      \ pumvisible() ? '<C-N>' : '<cmd>lua require"nrepl".get_completion()<CR>'
+      \ pumvisible() ? '<C-N>' : '<cmd>lua require"nrepl".complete()<CR>'
     inoremap <buffer> <C-E> <C-E>
     inoremap <buffer> <C-Y> <C-Y>
     inoremap <buffer> <C-N> <C-N>
@@ -336,6 +336,42 @@ function M:eval_vim(prg)
     self:put(vim.split(res, '\n', { plain = true, trimempty = true }), 'nreplOutput')
   else
     self:put({res}, 'nreplError')
+  end
+end
+
+function M:complete()
+  local line = api.nvim_get_current_line()
+  -- TODO: handle repl commands
+  if line:sub(1,1) == '/' then
+    return
+  end
+
+  local pos = api.nvim_win_get_cursor(0)[2]
+  line = line:sub(1, pos)
+  local completions, start, comptype
+
+  if self.vim_mode then
+    start = line:find('%S+$')
+    comptype = 'cmdline'
+  else
+    -- TODO: completes with the global lua environment, instead of repl env
+    start = line:find('[%a_][%w_]*$')
+    comptype = 'lua'
+  end
+
+  if self.buffer > 0 then
+    if not api.nvim_buf_is_valid(self.buffer) then
+      return
+    end
+    api.nvim_buf_call(self.buffer, function()
+      completions = fn.getcompletion(line, comptype, 1)
+    end)
+  else
+    completions = fn.getcompletion(line, comptype, 1)
+  end
+
+  if completions and #completions > 0 then
+    fn.complete(start or pos + 1, completions)
   end
 end
 
