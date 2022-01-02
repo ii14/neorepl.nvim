@@ -25,7 +25,7 @@ one-off commands with them, like for example `/v ls` to list buffers.
 
 Lua has its own environment, variables from the REPL won't leak to the global
 environment. If by any chance you do want to add something to the global
-environment, it's referenced in `global` variable. In vim script you can use
+environment, it's referenced in the `global` variable. In vim script you can use
 the `s:` scope, but it's shared between instances right now.
 
 You can switch buffer and window context with `/b` and `/w` commands, so things
@@ -55,6 +55,12 @@ nnoremap <silent> g: <cmd>call <SID>cmdwin()<CR>
 ```
 
 For the list of available options see `:h nrepl-config`.
+
+Multiple lines can get evaluated when line continuations start with `\` as the
+very first character in the line. If you need to evaluate a line that starts
+with `/` or `\`, add a space before. Note that vim script has line escaping that
+works just like this. So to break lines in a single expression with vim script,
+there has to be two backslashes.
 
 Plugin ships with its own completion, a half-assed one at the moment, but
 still, so it's best to disable other completion plugins for the `nrepl`
