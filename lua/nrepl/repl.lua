@@ -320,6 +320,17 @@ local function pcall_res(ok, ...)
   end
 end
 
+local function lua_exec(f)
+  local coro = coroutine.create(f)
+  local ok, res, n = pcall_res(coroutine.resume(coro))
+  if not ok then
+    if debug.getinfo(coro, 0, 'f').func ~= f then
+      res = debug.traceback(coro, res, 0)
+    end
+  end
+  return ok, res, n
+end
+
 --- Evaluate lua and append output to the buffer
 ---@param prg string
 function M:eval_lua(prg)
@@ -341,7 +352,7 @@ function M:eval_lua(prg)
     if not self:exec_context(function()
       -- temporarily replace print
       _G.print = self.luaprint
-      ok, res, n = pcall_res(pcall(res))
+      ok, res, n = lua_exec(res)
       _G.print = prev_print
       if self.redraw then
         vim.cmd('redraw')
@@ -351,8 +362,7 @@ function M:eval_lua(prg)
     end
 
     if not ok then
-      local msg = res:gsub([[^%[string "nrepl"%]:%d+:%s*]], '', 1)
-      self:put({msg}, 'nreplError')
+      self:put(vim.split(res, '\n', { plain = true }), 'nreplError')
     else
       local stringify = self.inspect and vim.inspect or tostring
       for i = 1, n do
@@ -363,8 +373,7 @@ function M:eval_lua(prg)
       end
     end
   else
-    local msg = err:gsub([[^%[string "nrepl"%]:%d+:%s*]], '', 1)
-    self:put({msg}, 'nreplError')
+    self:put({err}, 'nreplError')
   end
 end
 
