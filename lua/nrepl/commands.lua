@@ -190,6 +190,26 @@ table.insert(COMMANDS, {
 })
 
 table.insert(COMMANDS, {
+  command = 'redraw',
+  description = 'redraw after evaluation or print current value',
+  ---@param args string
+  ---@param repl nreplRepl
+  run = function(args, repl)
+    if args == 't' or args == 'true' then
+      repl.redraw = true
+      repl:put({'redraw: '..tostring(repl.redraw)}, 'nreplInfo')
+    elseif args == 'f' or args == 'false' then
+      repl.redraw = false
+      repl:put({'redraw: '..tostring(repl.redraw)}, 'nreplInfo')
+    elseif args == nil then
+      repl:put({'redraw: '..tostring(repl.redraw)}, 'nreplInfo')
+    else
+      repl:put({'invalid argument, expected t/f/true/false'}, 'nreplError')
+    end
+  end,
+})
+
+table.insert(COMMANDS, {
   command = 'clear',
   description = 'clear buffer',
   ---@param args string

@@ -13,12 +13,25 @@ local MSG_INVALID_COMMAND = {'invalid command'}
 
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
+---@generic T
+---@param v T|nil
+---@param default T
+---@return T
+local function get_opt(v, default)
+  if v == nil then
+    return default
+  else
+    return v
+  end
+end
+
 ---@class nreplRepl
 ---@field bufnr       number    repl buffer
 ---@field buffer      number    buffer context
 ---@field window      number    window context
 ---@field vim_mode    boolean   vim mode
 ---@field mark_id     number    current mark id counter
+---@field redraw      boolean   redraw after evaluation
 ---@field inspect     boolean   inspect variables
 ---@field indent      number    indent level
 ---@field indentstr?  string    indent string
@@ -65,9 +78,10 @@ function M.new(config)
     buffer = 0,
     window = 0,
     vim_mode = config.lang == 'vim',
+    redraw = get_opt(config.redraw, true),
+    inspect = get_opt(config.inspect, false),
+    indent = get_opt(config.indent, 0),
     mark_id = 1,
-    inspect = config.inspect or false,
-    indent = config.indent or 0,
   }, M)
 
   if this.indent > 0 then
@@ -241,7 +255,9 @@ function M:eval_lua(prg)
       _G.print = self.print
       ok, res, n = pcall_res(pcall(res))
       _G.print = prev_print
-      vim.cmd('redraw') -- TODO: make this optional
+      if self.redraw then
+        vim.cmd('redraw')
+      end
     end) then
       return
     end
@@ -278,7 +294,9 @@ function M:eval_vim(prg)
   local ok, res
   if not self:exec_context(function()
     ok, res = pcall(fn['nrepl#__evaluate__'], prg)
-    vim.cmd('redraw') -- TODO: make this optional
+    if self.redraw then
+      vim.cmd('redraw')
+    end
   end) then
     return
   end

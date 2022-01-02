@@ -4,23 +4,21 @@ local M = {}
 
 ---@class nreplConfig
 ---@field lang? 'lua'|'vim'
----@field on_init? function(bufnr: number)
 ---@field startinsert? boolean
 ---@field indent? number
 ---@field inspect? boolean
+---@field redraw? boolean
+---@field on_init? function(bufnr: number)
 
 --- Normalize configuration
 ---@param config? nreplConfig
-local function normalize_config(config)
+local function validate(config)
   local c = config and vim.deepcopy(config) or {}
   if c.lang == '' then
     c.lang = nil
   end
   if c.lang ~= nil and c.lang ~= 'lua' and c.lang ~= 'vim' then
     error('invalid lang value, expected "lua", "vim" or nil')
-  end
-  if c.on_init ~= nil and type(c.on_init) ~= 'function' then
-    error('invalid on_init value, expected function or nil')
   end
   if c.startinsert ~= nil and type(c.startinsert) ~= 'boolean' then
     error('invalid startinsert value, expected boolean or nil')
@@ -31,24 +29,35 @@ local function normalize_config(config)
   if c.inspect ~= nil and type(c.inspect) ~= 'boolean' then
     error('invalid inspect value, expected boolean or nil')
   end
+  if c.redraw ~= nil and type(c.redraw) ~= 'boolean' then
+    error('invalid redraw value, expected boolean or nil')
+  end
+  if c.on_init ~= nil and type(c.on_init) ~= 'function' then
+    error('invalid on_init value, expected function or nil')
+  end
   return c
 end
 
 ---@type nreplConfig Default configuration
 local default_config = {
+  lang = 'lua',
+  startinsert = false,
   indent = 4,
+  inspect = false,
+  redraw = true,
+  on_init = nil,
 }
 
 --- Set default configuration
 ---@param config? nreplConfig
 function M.config(config)
-  default_config = normalize_config(config)
+  default_config = validate(config)
 end
 
 --- Create a new REPL instance
 ---@param config? nreplConfig
 function M.new(config)
-  config = normalize_config(vim.tbl_extend('force', default_config, config or {}))
+  config = validate(vim.tbl_extend('force', default_config, config or {}))
   require('nrepl.repl').new(config)
 end
 
