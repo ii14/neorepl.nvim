@@ -6,6 +6,7 @@ local ns = api.nvim_create_namespace('nrepl')
 local MSG_VIM = {'-- VIMSCRIPT --'}
 local MSG_LUA = {'-- LUA --'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
+local MSG_MULTI_LINES_NOT_ALLOWED = {'multiple lines not allowed for this command'}
 local MSG_INVALID_BUF = {'invalid buffer'}
 local MSG_INVALID_WIN = {'invalid window'}
 -- local MSG_NOT_IMPLEMENTED = {'not implemented'}
@@ -27,7 +28,11 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      repl:eval_lua(args)
+      if #args > 1 then
+        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+        return
+      end
+      repl:eval_lua(args[1])
     else
       repl.vim_mode = false
       repl:put(MSG_LUA, 'nreplInfo')
@@ -42,7 +47,11 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      repl:eval_vim(args)
+      if #args > 1 then
+        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+        return
+      end
+      repl:eval_vim(args[1])
     else
       repl.vim_mode = true
       repl:put(MSG_VIM, 'nreplInfo')
@@ -57,7 +66,11 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      local bufnr = require('nrepl.util').parse_buffer(args)
+      if #args > 1 then
+        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+        return
+      end
+      local bufnr = require('nrepl.util').parse_buffer(args[1])
       if bufnr == 0 then
         repl.buffer = 0
         repl:put({'buffer: none'}, 'nreplInfo')
@@ -96,7 +109,11 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      local winid = require('nrepl.util').parse_window(args)
+      if #args > 1 then
+        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+        return
+      end
+      local winid = require('nrepl.util').parse_window(args[1])
       if winid == 0 then
         repl.window = 0
         repl:put({'window: none'}, 'nreplInfo')
@@ -126,6 +143,14 @@ table.insert(COMMANDS, {
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
+    if args then
+      if #args > 1 then
+        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+        return
+      else
+        args = args[1]
+      end
+    end
     if args == 't' or args == 'true' then
       repl.inspect = true
       repl:put({'inspect: '..tostring(repl.inspect)}, 'nreplInfo')
@@ -147,7 +172,11 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      local value = args:match('^%d+$')
+      if #args > 1 then
+        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+        return
+      end
+      local value = args[1]:match('^%d+$')
       if value then
         value = tonumber(value)
         if value < 0 or value > 32 then
@@ -176,6 +205,14 @@ table.insert(COMMANDS, {
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
+    if args then
+      if #args > 1 then
+        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+        return
+      else
+        args = args[1]
+      end
+    end
     if args == 't' or args == 'true' then
       repl.redraw = true
       repl:put({'redraw: '..tostring(repl.redraw)}, 'nreplInfo')

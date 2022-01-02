@@ -264,19 +264,34 @@ function M:eval_line()
   -- repl command
   local line = lines[1]
   if line:sub(1,1) == '/' then
-    if #lines > 1 then
-      self:put({'line breaks not implemented for repl commands'}, 'nreplError')
-      return self:new_line()
-    end
-
-    local cmd, args = line:match('^/(%a*)%s*(.-)%s*$')
+    local cmd, rest = lines[1]:match('^/(%a*)%s*(.*)$')
     if not cmd then
       self:put(MSG_INVALID_COMMAND, 'nreplError')
       return self:new_line()
     end
 
-    if args == '' then
-      args = nil
+    -- copy lines and trim command
+    local args = {}
+    for i, v in ipairs(lines) do
+      args[i] = v
+    end
+    args[1] = rest
+
+    do
+      -- check if it's only whitespace
+      local ws = true
+      for _, aline in ipairs(args) do
+        if not aline:match('^%s*$') then
+          ws = false
+          break
+        end
+      end
+      if ws then
+        args = nil
+      elseif #args == 1 then
+        -- trim trailing whitespace
+        args[1] = args[1]:match('^(.-)%s*$')
+      end
     end
 
     for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
