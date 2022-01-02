@@ -199,7 +199,11 @@ local function complete(expr, env)
 
       -- XXX this should be optional
       if t == 'function' then
-        suffix = '('
+        if debug.getinfo(v, 'u').nparams > 0 then
+          suffix = '('
+        else
+          suffix = '()'
+        end
       elseif t == 'table' then
         suffix = '.'
       end
