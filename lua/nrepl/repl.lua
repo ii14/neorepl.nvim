@@ -356,7 +356,7 @@ function M:complete()
     comptype = 'lua'
   end
 
-  if not M:exec_context(function()
+  if not self:exec_context(function()
     completions = fn.getcompletion(line, comptype, 1)
   end) then
     return
