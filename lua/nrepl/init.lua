@@ -48,19 +48,6 @@ function M.new(config)
   require('nrepl.repl').new(config)
 end
 
---- Get current REPL
-local function get()
-  local bufnr = api.nvim_get_current_buf()
-  local repl = M[bufnr]
-  if repl == nil then error('invalid buffer: '..bufnr) end
-  return repl
-end
-
---- Evaluate current line
-function M.eval_line()
-  get():eval_line()
-end
-
 --- Close REPL instance
 ---@param bufnr? string
 function M.close(bufnr)
@@ -72,6 +59,19 @@ function M.close(bufnr)
   vim.cmd('stopinsert')
   api.nvim_buf_delete(bufnr, { force = true })
   M[bufnr] = nil
+end
+
+--- Get current REPL
+local function get()
+  local bufnr = api.nvim_get_current_buf()
+  local repl = M[bufnr]
+  if repl == nil then error('invalid buffer: '..bufnr) end
+  return repl
+end
+
+--- Evaluate current line
+function M.eval_line()
+  get():eval_line()
 end
 
 --- Go to previous output
