@@ -36,22 +36,21 @@ function M.new(config)
   api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
   api.nvim_buf_set_name(bufnr, 'nrepl('..bufnr..')')
   vim.cmd(string.format([=[
-    inoremap <silent><buffer> <CR> <cmd>lua require'nrepl'.eval_line()<CR>
-    inoremap <silent><buffer> <NL> <CR><C-U>\
+    imap <silent><buffer> <CR> <Plug>(nrepl-eval-line)
+    imap <silent><buffer> <NL> <Plug>(nrepl-break-line)
 
     setlocal backspace=indent,start
     setlocal completeopt=menu
-    inoremap <silent><buffer><expr> <Tab>
-      \ pumvisible() ? '<C-N>' : '<cmd>lua require"nrepl".complete()<CR>'
+    imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
     inoremap <buffer> <C-E> <C-E>
     inoremap <buffer> <C-Y> <C-Y>
     inoremap <buffer> <C-N> <C-N>
     inoremap <buffer> <C-P> <C-P>
 
-    nnoremap <silent><buffer> [[ <cmd>lua require'nrepl'.goto_prev()<CR>
-    nnoremap <silent><buffer> [] <cmd>lua require'nrepl'.goto_prev(true)<CR>
-    nnoremap <silent><buffer> ]] <cmd>lua require'nrepl'.goto_next()<CR>
-    nnoremap <silent><buffer> ][ <cmd>lua require'nrepl'.goto_next(true)<CR>
+    nmap <silent><buffer> [[ <Plug>(nrepl-[[)
+    nmap <silent><buffer> [] <Plug>(nrepl-[])
+    nmap <silent><buffer> ]] <Plug>(nrepl-]])
+    nmap <silent><buffer> ][ <Plug>(nrepl-][)
 
     syn match nreplLinebreak "^\\"
 
