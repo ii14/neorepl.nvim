@@ -320,9 +320,9 @@ function M:eval_line()
   end
 
   if self.vim_mode then
-    self:eval_vim(table.concat(prg, '\n'):gsub('\n%s*\\', ' '))
+    self:eval_vim(prg)
   else
-    self:eval_lua(table.concat(prg, '\n'))
+    self:eval_lua(prg)
   end
   return self:new_line()
 end
@@ -341,6 +341,12 @@ end
 --- Evaluate lua and append output to the buffer
 ---@param prg string
 function M:eval_lua(prg)
+  if type(prg) == 'table' then
+    prg = table.concat(prg, '\n')
+  elseif type(prg) ~= 'string' then
+    error('invalid prg type')
+  end
+
   local ok, res, err, n
   res = loadstring('return '..prg, 'nrepl')
   if not res then
@@ -388,6 +394,12 @@ end
 --- Evaluate vim script and append output to the buffer
 ---@param prg string
 function M:eval_vim(prg)
+  if type(prg) == 'table' then
+    prg = table.concat(prg, '\n'):gsub('\n%s*\\', ' ')
+  elseif type(prg) ~= 'string' then
+    error('invalid prg type')
+  end
+
   -- print variables
   if prg:match('^%s*[bgstvw%(]:%s*$') then
     -- use let for plain g:, b:, w:, ...
