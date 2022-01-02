@@ -129,70 +129,7 @@ end
 
 local COMMANDS = nil
 
---- Evaluate current line
-function M:eval_line()
-  local line = api.nvim_get_current_line()
-  local cmd, args = line:match('^/%s*(%S*)%s*(.-)%s*$')
-  if cmd then
-    if args == '' then
-      args = nil
-    end
-
-    local got_command = false
-
-    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
-      if c.pattern == nil then
-        local name = c.command
-        c.pattern = '\\v\\C^'..name:sub(1,1)..'%['..name:sub(2)..']$'
-      end
-
-      if fn.match(cmd, c.pattern) >= 0 then
-        got_command = true
-        -- don't append new line when command returns false
-        if c.run(args, self) == false then
-          return
-        end
-        break
-      end
-    end
-
-    if not got_command then
-      self:put(MSG_INVALID_COMMAND, 'nreplError')
-    end
-  elseif line:match('^\\') then
-    local lnum = api.nvim_win_get_cursor(0)[1]
-    local prg = { line:sub(2) }
-    while true do
-      lnum = lnum - 1
-      if lnum <= 0 then
-        self:put({'invalid line break'}, 'nreplError')
-        break
-      else
-        line = api.nvim_buf_get_lines(self.bufnr, lnum - 1, lnum, true)[1]
-        if not line:match('^\\') then
-          if line:match('^/') then
-            self:put({'line breaks not implemented for repl commands'}, 'nreplError')
-          else
-            table.insert(prg, 1, line)
-            if self.vim_mode then
-              self:eval_vim(table.concat(prg, '\n'):gsub('\n%s*\\', ' '))
-            else
-              self:eval_lua(table.concat(prg, '\n'))
-            end
-          end
-          break
-        end
-        table.insert(prg, 1, line:sub(2))
-      end
-    end
-  else
-    if self.vim_mode then
-      self:eval_vim(line)
-    else
-      self:eval_lua(line)
-    end
-  end
-
+function M:new_line()
   api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {''})
   vim.cmd('$') -- TODO: don't use things like this, buffer can change during evaluation
 
@@ -201,6 +138,78 @@ function M:eval_line()
   if mode == 'i' or mode == 'ic' or mode == 'ix' then
     api.nvim_feedkeys(BREAK_UNDO, 'n', true)
   end
+end
+
+--- Evaluate current line
+function M:eval_line()
+  local line = api.nvim_get_current_line()
+
+  -- repl command
+  local cmd, args = line:match('^/%s*(%S*)%s*(.-)%s*$')
+  if cmd then
+    if args == '' then
+      args = nil
+    end
+
+    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+      if c.pattern == nil then
+        local name = c.command
+        c.pattern = '\\v\\C^'..name:sub(1,1)..'%['..name:sub(2)..']$'
+      end
+
+      if fn.match(cmd, c.pattern) >= 0 then
+        -- don't append new line when command returns false
+        if c.run(args, self) ~= false then
+          self:new_line()
+        end
+        return
+      end
+    end
+
+    self:put(MSG_INVALID_COMMAND, 'nreplError')
+    return self:new_line()
+  end
+
+  -- line breaks
+  if line:match('^\\') then
+    -- TODO: look ahead for line breaks too?
+    -- the problem with that is that the evaluation
+    -- output could potentially contain backslashes.
+    local lnum = api.nvim_win_get_cursor(0)[1]
+    local prg = { line:sub(2) }
+    while true do
+      lnum = lnum - 1
+      if lnum <= 0 then
+        self:put({'invalid line break'}, 'nreplError')
+        return self:new_line()
+      end
+
+      line = api.nvim_buf_get_lines(self.bufnr, lnum - 1, lnum, true)[1]
+      if not line:match('^\\') then
+        if line:match('^/') then
+          self:put({'line breaks not implemented for repl commands'}, 'nreplError')
+          return self:new_line()
+        end
+
+        table.insert(prg, 1, line)
+        if self.vim_mode then
+          self:eval_vim(table.concat(prg, '\n'):gsub('\n%s*\\', ' '))
+        else
+          self:eval_lua(table.concat(prg, '\n'))
+        end
+        return self:new_line()
+      else
+        table.insert(prg, 1, line:sub(2))
+      end
+    end
+  end
+
+  if self.vim_mode then
+    self:eval_vim(line)
+  else
+    self:eval_lua(line)
+  end
+  return self:new_line()
 end
 
 --- Gather results from pcall
