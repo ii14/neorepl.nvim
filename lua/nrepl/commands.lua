@@ -20,6 +20,31 @@ local BUF_EMPTY = '[No Name]'
 ---@type nreplCommand[]
 local COMMANDS = {}
 
+--- Command for boolean options
+---@param args string[]
+---@param repl nreplRepl
+local function command_boolean(args, repl)
+  if args then
+    if #args > 1 then
+      repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
+      return false
+    else
+      args = args[1]
+    end
+  end
+  if args == 't' or args == 'true' then
+    return true, true
+  elseif args == 'f' or args == 'false' then
+    return true, false
+  elseif args == nil then
+    return true, nil
+  else
+    repl:put({'invalid argument, expected t/f/true/false'}, 'nreplError')
+    return false
+  end
+end
+
+
 table.insert(COMMANDS, {
   command = 'lua',
   description = 'switch to lua or evaluate expression',
@@ -134,24 +159,12 @@ table.insert(COMMANDS, {
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
-    if args then
-      if #args > 1 then
-        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
-        return
-      else
-        args = args[1]
+    local ok, res = command_boolean(args, repl)
+    if ok then
+      if res ~= nil then
+        repl.inspect = res
       end
-    end
-    if args == 't' or args == 'true' then
-      repl.inspect = true
       repl:put({'inspect: '..tostring(repl.inspect)}, 'nreplInfo')
-    elseif args == 'f' or args == 'false' then
-      repl.inspect = false
-      repl:put({'inspect: '..tostring(repl.inspect)}, 'nreplInfo')
-    elseif args == nil then
-      repl:put({'inspect: '..tostring(repl.inspect)}, 'nreplInfo')
-    else
-      repl:put({'invalid argument, expected t/f/true/false'}, 'nreplError')
     end
   end,
 })
@@ -196,24 +209,12 @@ table.insert(COMMANDS, {
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
-    if args then
-      if #args > 1 then
-        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
-        return
-      else
-        args = args[1]
+    local ok, res = command_boolean(args, repl)
+    if ok then
+      if res ~= nil then
+        repl.redraw = res
       end
-    end
-    if args == 't' or args == 'true' then
-      repl.redraw = true
       repl:put({'redraw: '..tostring(repl.redraw)}, 'nreplInfo')
-    elseif args == 'f' or args == 'false' then
-      repl.redraw = false
-      repl:put({'redraw: '..tostring(repl.redraw)}, 'nreplInfo')
-    elseif args == nil then
-      repl:put({'redraw: '..tostring(repl.redraw)}, 'nreplInfo')
-    else
-      repl:put({'invalid argument, expected t/f/true/false'}, 'nreplError')
     end
   end,
 })
