@@ -2,8 +2,8 @@
 ==============================================================================
 
 :Repl [{lang}]                                      *:Repl* *nrepl*
-    Starts a new REPL instance.
-    {lang} can be "lua" or "vim".
+    Starts a new REPL instance. {lang} can be "lua" or "vim".
+    See |nrepl.new()| for starting a new instance with custom settings.
 
 ------------------------------------------------------------------------------
 KEY BINDINGS
