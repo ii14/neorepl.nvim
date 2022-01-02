@@ -26,17 +26,20 @@ local function get_opt(v, default)
 end
 
 ---@class nreplRepl
----@field bufnr       number    repl buffer
----@field buffer      number    buffer context
----@field window      number    window context
----@field vim_mode    boolean   vim mode
----@field mark_id     number    current mark id counter
----@field redraw      boolean   redraw after evaluation
----@field inspect     boolean   inspect variables
----@field indent      number    indent level
----@field indentstr?  string    indent string
----@field env         table     lua environment
----@field print       function  print function override
+---@field bufnr       number      repl buffer
+---@field buffer      number      buffer context
+---@field window      number      window context
+---@field vim_mode    boolean     vim mode
+---@field mark_id     number      current mark id counter
+---@field redraw      boolean     redraw after evaluation
+---@field inspect     boolean     inspect variables
+---@field indent      number      indent level
+---@field indentstr?  string      indent string
+---@field history     string[]    command history
+---@field histpos     number      position in history
+---@field histcur     string|nil  line before moving through history
+---@field env         table       lua environment
+---@field print       function    print function override
 local M = {}
 M.__index = M
 
@@ -68,10 +71,12 @@ function M.new(config)
     setlocal backspace=indent,start
     setlocal completeopt=menu
     imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
+    imap <silent><buffer><expr> <C-P> pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)'
+    imap <silent><buffer><expr> <C-N> pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)'
+    imap <silent><buffer> <Up>   <Plug>(nrepl-hist-prev)
+    imap <silent><buffer> <Down> <Plug>(nrepl-hist-next)
     inoremap <buffer> <C-E> <C-E>
     inoremap <buffer> <C-Y> <C-Y>
-    inoremap <buffer> <C-N> <C-N>
-    inoremap <buffer> <C-P> <C-P>
 
     nmap <silent><buffer> [[ <Plug>(nrepl-[[)
     nmap <silent><buffer> [] <Plug>(nrepl-[])
@@ -94,6 +99,8 @@ function M.new(config)
     redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, false),
     indent = get_opt(config.indent, 0),
+    history = {},
+    histpos = 0,
     mark_id = 1,
   }, M)
 
@@ -175,6 +182,19 @@ end
 --- Evaluate current line
 function M:eval_line()
   local line = api.nvim_get_current_line()
+  if line:match('^%s*$') then
+    return self:new_line()
+  end
+
+  self.histpos = 0
+  -- remove duplicate entries
+  for i = #self.history, 1, -1 do
+    if self.history[i] == line then
+      table.remove(self.history, i)
+    end
+  end
+  -- TODO: save multiple lines
+  table.insert(self.history, line)
 
   -- repl command
   if line:sub(1,1) == '/' then
@@ -365,6 +385,39 @@ function M:exec_context(f)
     f()
   end
   return true
+end
+
+function M:hist_prev()
+  if #self.history == 0 then
+    return
+  elseif self.histpos == 0 then
+    self.histcur = api.nvim_get_current_line()
+  end
+  self.histpos = self.histpos + 1
+  if self.histpos > #self.history then
+    self.histpos = 0
+    api.nvim_set_current_line(self.histcur)
+  else
+    api.nvim_set_current_line(self.history[#self.history - self.histpos + 1])
+  end
+end
+
+function M:hist_next()
+  if #self.history == 0 then
+    return
+  elseif self.histpos == 0 then
+    self.histcur = api.nvim_get_current_line()
+  end
+  self.histpos = self.histpos - 1
+  if self.histpos == 0 then
+    api.nvim_set_current_line(self.histcur)
+  elseif self.histpos < 0 then
+    self.histpos = #self.history
+    print(1)
+    api.nvim_set_current_line(self.history[1])
+  else
+    api.nvim_set_current_line(self.history[#self.history - self.histpos + 1])
+  end
 end
 
 function M:complete()

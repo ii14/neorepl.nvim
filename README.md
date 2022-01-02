@@ -35,12 +35,15 @@ require 'nrepl'.config{
 
 ### TODO
 
-- [ ] Completion
+- [X] Completion
   - [X] Vim script
   - [ ] Lua (works, but completes with the global, not REPL, environment)
   - [ ] REPL commands (works for commands names only, no arguments yet)
-- [ ] History
-- [ ] Evaluate multiple lines
+- [X] History
+  - [X] Save and recall single lines
+  - [ ] Make history work with multiple lines
+  - [ ] Save context, was it lua or vimscript
+- [X] Evaluate multiple lines
   - [X] Break line with NL/CTRL-J
   - [ ] Evaluate visual selection
 - [X] Context change

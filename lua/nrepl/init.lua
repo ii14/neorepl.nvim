@@ -98,6 +98,21 @@ function M.eval_line()
   get():eval_line()
 end
 
+--- Get previous line from the history
+function M.hist_prev()
+  get():hist_prev()
+end
+
+--- Get next line from the history
+function M.hist_next()
+  get():hist_next()
+end
+
+--- Complete current line
+function M.complete()
+  get():complete()
+end
+
 --- Go to previous output
 ---@param to_end? boolean
 function M.goto_prev(to_end)
@@ -108,11 +123,6 @@ end
 ---@param to_end? boolean
 function M.goto_next(to_end)
   get():goto_output(false, to_end)
-end
-
---- Complete current line
-function M.complete()
-  get():complete()
 end
 
 return M
