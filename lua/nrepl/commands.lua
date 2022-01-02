@@ -52,7 +52,7 @@ table.insert(COMMANDS, {
 
 table.insert(COMMANDS, {
   command = 'buffer',
-  description = 'change buffer context (0 to disable) or print current value',
+  description = 'option: buffer context (number or string, 0 to disable)',
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
@@ -95,7 +95,7 @@ table.insert(COMMANDS, {
 
 table.insert(COMMANDS, {
   command = 'window',
-  description = 'change window context (0 to disable) or print current value',
+  description = 'option: window context (number, 0 to disable)',
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
@@ -141,7 +141,7 @@ table.insert(COMMANDS, {
 
 table.insert(COMMANDS, {
   command = 'inspect',
-  description = 'inspect returned lua values or print current value',
+  description = 'option: inspect returned lua values (boolean)',
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
@@ -161,7 +161,7 @@ table.insert(COMMANDS, {
 
 table.insert(COMMANDS, {
   command = 'indent',
-  description = 'set indentation or print current value',
+  description = 'option: output indentation (number)',
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
@@ -191,7 +191,7 @@ table.insert(COMMANDS, {
 
 table.insert(COMMANDS, {
   command = 'redraw',
-  description = 'redraw after evaluation or print current value',
+  description = 'option: redraw after evaluation (boolean)',
   ---@param args string
   ---@param repl nreplRepl
   run = function(args, repl)
