@@ -270,12 +270,11 @@ function M:eval_line()
       return self:new_line()
     end
 
-    -- copy lines and trim command
-    local args = {}
-    for i, v in ipairs(lines) do
-      args[i] = v
+    -- copy lines, trim command and line breaks
+    local args = {rest}
+    for i = 2, #lines do
+      args[i] = lines[i]:sub(2)
     end
-    args[1] = rest
 
     do
       -- check if it's only whitespace

@@ -28,11 +28,7 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      if #args > 1 then
-        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
-        return
-      end
-      repl:eval_lua(args[1])
+      repl:eval_lua(table.concat(args, '\n'))
     else
       repl.vim_mode = false
       repl:put(MSG_LUA, 'nreplInfo')
@@ -47,11 +43,7 @@ table.insert(COMMANDS, {
   ---@param repl nreplRepl
   run = function(args, repl)
     if args then
-      if #args > 1 then
-        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'nreplError')
-        return
-      end
-      repl:eval_vim(args[1])
+      repl:eval_vim(table.concat(args, '\n'):gsub('\n%s*\\', ' '))
     else
       repl.vim_mode = true
       repl:put(MSG_VIM, 'nreplInfo')
