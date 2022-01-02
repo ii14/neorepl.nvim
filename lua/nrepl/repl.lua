@@ -13,6 +13,9 @@ local MSG_INVALID_COMMAND = {'invalid command'}
 
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
+---@type nreplCommand[]
+local COMMANDS = nil
+
 ---@generic T
 ---@param v T|nil
 ---@param default T
@@ -164,8 +167,6 @@ function M:put(lines, hlgroup)
   end
 end
 
-local COMMANDS = nil
-
 function M:new_line()
   api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {''})
   vim.cmd('$') -- TODO: don't use things like this, buffer can change during evaluation
@@ -228,6 +229,9 @@ end
 
 --- Evaluate current line
 function M:eval_line()
+  -- reset history position
+  self.histpos = 0
+
   local lines = self:get_line()
   if lines == nil then
     self:put({'illegal line break'}, 'nreplError')
@@ -238,7 +242,7 @@ function M:eval_line()
   do
     local ws = true
     for _, line in ipairs(lines) do
-      if not line:match('^%s$') then
+      if not line:match('^%s*$') then
         ws = false
         break
       end
@@ -256,7 +260,6 @@ function M:eval_line()
   end
   -- save lines to history
   table.insert(self.history, lines)
-  self.histpos = 0
 
   -- repl command
   local line = lines[1]
