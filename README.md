@@ -14,9 +14,10 @@ In insert mode type `/h` and enter to see available commands.
 
 ---
 
-There is no completion yet, and the completion from plugins is useless and
-annoying, it's probably best to turn it off. Also highlighting can be kinda
-buggy with indent-blankline.nvim plugin, so it's good to disable that too.
+Plugin ships with its own completion, a half-assed one at the moment, but
+still, so it's best to disable other completion plugins for the `nrepl`
+filetype. Also highlighting can be kinda buggy with indent-blankline.nvim
+plugin, so it's good to disable that too.
 
 It can be done by creating `ftplugin/nrepl.vim` file, for example:
 ```viml
