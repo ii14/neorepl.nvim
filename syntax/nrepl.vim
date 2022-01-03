@@ -31,32 +31,23 @@ syn match vimContinue "^\\\zs\s*\\"
 syn clear vimMapRhsExtend
 syn match vimMapRhsExtend contained "^\\\s*\\.*$" contains=vimContinue
 
-syn match   nreplCmdError "^/.*"
+syn match nreplCmdError   contained "^/.*"
+syn match nreplArgsError  contained "\s*\zs.*"
+syn match nreplBoolean    contained "\(t\|f\|true\|false\)\ze\s*$"
+syn match nreplString     contained "\s\zs\S.*"
+syn match nreplNumber     contained "\d\+\ze\s*$"
 
-syn match   nreplArgsError  contained "\s*\zs.*"
-syn match   nreplBoolean    contained "\(t\|f\|true\|false\)\ze\s*$"
-syn match   nreplString     contained "\s\zs\S.*"
-syn match   nreplNumber     contained "\d\+\ze\s*$"
-
-" vim and lua one-off commands
-syn region nreplVim matchgroup=nreplCmd start="^/v\%[im]\>" skip="^\\" end="^" keepend contains=@VIM fold transparent
-syn region nreplLua matchgroup=nreplCmd start="^/l\%[ua]\>" skip="^\\" end="^" keepend contains=@LUA fold transparent
-
-" vim and lua regions
 syn cluster NREPL add=nreplCmdError,nreplCmd,nreplVim,nreplLua
-syn region nreplVimStart matchgroup=nreplCmd start="^/v\%[im]\s*$" end="^\ze/l\%[ua]\s*$" keepend contains=nreplVimRegion,@NREPL
-syn region nreplLuaStart matchgroup=nreplCmd start="^/l\%[ua]\s*$" end="^\ze/v\%[im]\s*$" keepend contains=nreplLuaRegion,@NREPL
-syn region nreplVimRegion start="^[^/\\]" skip="^\\" end="^" keepend contains=@VIM contained fold transparent
-syn region nreplLuaRegion start="^[^/\\]" skip="^\\" end="^" keepend contains=@LUA contained fold transparent
-
-syn match nreplCmd "^/b\%[uffer]\a\@!"  nextgroup=nreplNumber,nreplString,nreplArgsError skipwhite
-syn match nreplCmd "^/w\%[indow]\a\@!"  nextgroup=nreplNumber,nreplString,nreplArgsError skipwhite
-syn match nreplCmd "^/i\%[nspect]\a\@!" nextgroup=nreplBoolean,nreplArgsError skipwhite
-syn match nreplCmd "^/ind\%[ent]\a\@!"  nextgroup=nreplNumber,nreplArgsError skipwhite
-syn match nreplCmd "^/r\%[edraw]\a\@!"  nextgroup=nreplBoolean,nreplArgsError skipwhite
-syn match nreplCmd "^/c\%[lear]\a\@!"   nextgroup=nreplArgsError skipwhite
-syn match nreplCmd "^/q\%[uit]\a\@!"    nextgroup=nreplArgsError skipwhite
-syn match nreplCmd "^/h\%[elp]\a\@!"    nextgroup=nreplArgsError skipwhite
+syn region nreplVim matchgroup=nreplCmd start="^/v\%[im]\>" skip="^\\" end="^" keepend contains=@VIM contained transparent
+syn region nreplLua matchgroup=nreplCmd start="^/l\%[ua]\>" skip="^\\" end="^" keepend contains=@LUA contained transparent
+syn match nreplCmd "^/b\%[uffer]\a\@!"  contained nextgroup=nreplNumber,nreplString,nreplArgsError skipwhite
+syn match nreplCmd "^/w\%[indow]\a\@!"  contained nextgroup=nreplNumber,nreplString,nreplArgsError skipwhite
+syn match nreplCmd "^/i\%[nspect]\a\@!" contained nextgroup=nreplBoolean,nreplArgsError skipwhite
+syn match nreplCmd "^/ind\%[ent]\a\@!"  contained nextgroup=nreplNumber,nreplArgsError skipwhite
+syn match nreplCmd "^/r\%[edraw]\a\@!"  contained nextgroup=nreplBoolean,nreplArgsError skipwhite
+syn match nreplCmd "^/c\%[lear]\a\@!"   contained nextgroup=nreplArgsError skipwhite
+syn match nreplCmd "^/q\%[uit]\a\@!"    contained nextgroup=nreplArgsError skipwhite
+syn match nreplCmd "^/h\%[elp]\a\@!"    contained nextgroup=nreplArgsError skipwhite
 
 hi link nreplError      Error
 hi link nreplCmdError   nreplError
@@ -66,9 +57,6 @@ hi link nreplContinue   LineNr
 hi link nreplBoolean    Boolean
 hi link nreplString     String
 hi link nreplNumber     Number
-
-" generate dynamically
-syn region nreplStart start="\%>0l^[^/\\]" skip="^\\" end="^" keepend contains=@LUA fold
 
 " match line breaks independently, outside of :syntax highlighting
 call matchadd('nreplContinue', '^\\')

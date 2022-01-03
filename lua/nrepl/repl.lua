@@ -47,6 +47,7 @@ end
 ---@field histcur     string[]|nil  line before moving through history
 ---@field luaenv      table         lua environment
 ---@field luaprint    function      print function override
+---@field synstart    number|nil    starting line of last command
 local M = {}
 M.__index = M
 
@@ -112,11 +113,6 @@ function M.new(config)
     mark_id = 1,
   }, M)
 
-  vim.cmd(string.format([[
-    syn clear nreplStart
-    syn region nreplStart start="\%%>0l^[^/\\]" skip="^\\" end="^" keepend contains=%s fold
-  ]], this.vim_mode and '@VIM' or '@LUA'))
-
   if this.indent > 0 then
     this.indentstr = string.rep(' ', this.indent)
   end
@@ -139,6 +135,14 @@ function M.new(config)
     __index = function(t, key)
       return rawget(t, key) or rawget(global, key)
     end,
+  })
+
+  local function update_syntax()
+    this:update_syntax()
+  end
+  api.nvim_buf_attach(bufnr, false, {
+    on_lines = update_syntax,
+    on_reload = update_syntax,
   })
 
   nrepl[bufnr] = this
@@ -179,14 +183,38 @@ function M:put(lines, hlgroup)
   end
 end
 
+function M:update_syntax()
+  local start
+  do
+    local count = api.nvim_buf_line_count(self.bufnr)
+    for i = count, 1, -1 do
+      local line = api.nvim_buf_get_lines(self.bufnr, i - 1, i, true)[1]
+      if not line:match('^\\') then
+        start = i
+        break
+      end
+    end
+  end
+  if start == self.synstart then
+    return
+  end
+  if self.synstart ~= nil then
+    vim.cmd([[syn clear nreplStart]])
+  end
+  self.synstart = start
+  if start == nil then
+    vim.cmd([[syn clear nreplStart]])
+  else
+    vim.cmd(string.format([[
+      syn region nreplStart start="\%%%dl^" end="\%%$" keepend display contains=@NREPL,%s
+    ]], self.synstart, self.vim_mode and '@VIM' or '@LUA'))
+  end
+end
+
 function M:clear()
   self.mark_id = 1
   api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
-  vim.cmd(string.format([[
-    syn clear nreplStart
-    syn region nreplStart start="\%%>0l^[^/\\]" skip="^\\" end="^" keepend contains=%s fold
-  ]], self.vim_mode and '@VIM' or '@LUA'))
 end
 
 --- Append empty line
@@ -649,13 +677,10 @@ function M:goto_output(backward, to_end, count)
 end
 
 vim.cmd([[
-  hi link nreplError      ErrorMsg
-  hi link nreplOutput     Normal
-  hi link nreplValue      Comment
-  hi link nreplInfo       Normal
-  hi link nreplLinebreak  Function
-  hi link nreplCommand    Type
-  hi link nreplInvalid    SpellBad
+  hi link nreplError  Error
+  hi link nreplOutput String
+  hi link nreplValue  Number
+  hi link nreplInfo   Function
 ]])
 
 return M
