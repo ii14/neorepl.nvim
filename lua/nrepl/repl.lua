@@ -249,12 +249,14 @@ function M:eval_line()
 
   -- remove duplicate entries in history
   for i = #self.history, 1, -1 do
-    if util.lines_equal(self.history[i], lines) then
+    if util.lines_equal(self.history[i].lines, lines) then
       table.remove(self.history, i)
     end
   end
-  -- save lines to history
-  table.insert(self.history, lines)
+  -- TODO: either save lua/vim mode if the command was /lua or /vim
+  -- or check this when comparing if lines are equal above.
+  -- it's so when you recall and run a lua command from vim mode,
+  -- it won't save that to history again
 
   -- repl command
   local line = lines[1]
@@ -262,6 +264,7 @@ function M:eval_line()
     line = line:sub(2)
     local cmd, rest = line:match('^(%a*)%s*(.*)$')
     if not cmd then
+      table.insert(self.history, { lines = lines, mode = 'cmd' })
       self:put(MSG_INVALID_COMMAND, 'nreplError')
       return self:new_line()
     end
@@ -286,6 +289,7 @@ function M:eval_line()
       end
 
       if fn.match(cmd, c.pattern) >= 0 then
+        table.insert(self.history, { lines = lines, mode = 'cmd' })
         -- don't append new line when command returns false
         if c.run(args, self) ~= false then
           self:new_line()
@@ -294,6 +298,7 @@ function M:eval_line()
       end
     end
 
+    table.insert(self.history, { lines = lines, mode = 'cmd' })
     self:put(MSG_INVALID_COMMAND, 'nreplError')
     return self:new_line()
   end
@@ -306,10 +311,12 @@ function M:eval_line()
   end
 
   if self.vim_mode then
+    table.insert(self.history, { lines = lines, mode = 'vim' })
     if self:eval_vim(prg) ~= false then
       return self:new_line()
     end
   else
+    table.insert(self.history, { lines = lines, mode = 'lua' })
     if self:eval_lua(prg) ~= false then
       return self:new_line()
     end
@@ -480,35 +487,51 @@ end
 ---@param prev boolean previous entry if true, next entry if false
 function M:hist_move(prev)
   if #self.history == 0 then return end
-  local lines, s, e = self:get_line()
-  if lines == nil then return end
+  local clines, s, e = self:get_line()
+  if clines == nil then return end
   if self.histpos == 0 then
-    self.histcur = lines
+    self.histcur = clines
   end
 
-  local nlines
+  -- get lines from history
+  local lines, mode
   if prev then
     self.histpos = self.histpos + 1
     if self.histpos > #self.history then
       self.histpos = 0
-      nlines = self.histcur
+      lines = self.histcur
     else
-      nlines = self.history[#self.history - self.histpos + 1]
+      local ent = self.history[#self.history - self.histpos + 1]
+      lines, mode = ent.lines, ent.mode
     end
   else
     self.histpos = self.histpos - 1
     if self.histpos == 0 then
-      nlines = self.histcur
+      lines = self.histcur
     elseif self.histpos < 0 then
       self.histpos = #self.history
-      nlines = self.history[1]
+      local ent = self.history[1]
+      lines, mode = ent.lines, ent.mode
     else
-      nlines = self.history[#self.history - self.histpos + 1]
+      local ent = self.history[#self.history - self.histpos + 1]
+      lines, mode = ent.lines, ent.mode
     end
   end
 
-  api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
-  api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
+  -- prepend /lua or /vim if entry was executed in other mode
+  local insert
+  if self.vim_mode and mode == 'lua' then
+    insert = '/l '
+  elseif not self.vim_mode and mode == 'vim' then
+    insert = '/v '
+  end
+  if insert then
+    lines = util.tbl_copy(lines)
+    lines[1] = insert..lines[1]
+  end
+
+  api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, lines)
+  api.nvim_win_set_cursor(0, { s + #lines - 1, #lines[#lines] })
 end
 
 --- Complete word under cursor

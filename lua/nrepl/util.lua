@@ -115,4 +115,15 @@ function M.lines_equal(a, b)
   return true
 end
 
+--- Shallow copy
+---@param t table
+---@return table
+function M.tbl_copy(t)
+  local r = {}
+  for k, v in pairs(t) do
+    r[k] = v
+  end
+  return r
+end
+
 return M
