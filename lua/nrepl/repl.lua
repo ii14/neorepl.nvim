@@ -81,8 +81,8 @@ function M.new(config)
       imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
       imap <silent><buffer><expr> <C-P> pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)'
       imap <silent><buffer><expr> <C-N> pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)'
-      inoremap <buffer> <C-E> <C-E>
-      inoremap <buffer> <C-Y> <C-Y>
+      inoremap <expr><buffer> <C-E> pumvisible() ? '<C-E>' : '<End>'
+      inoremap       <buffer> <C-Y> <C-Y>
 
       nmap <silent><buffer> [[ <Plug>(nrepl-[[)
       nmap <silent><buffer> [] <Plug>(nrepl-[])
