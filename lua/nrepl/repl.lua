@@ -10,6 +10,8 @@ local global = _G
 --- Reference to global print function
 local prev_print = _G.print
 
+local COMMAND_PREFIX = '/'
+
 local MSG_INVALID_COMMAND = {'invalid command'}
 
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
@@ -255,8 +257,9 @@ function M:eval_line()
 
   -- repl command
   local line = lines[1]
-  if line:sub(1,1) == '/' then
-    local cmd, rest = lines[1]:match('^/(%a*)%s*(.*)$')
+  if line:sub(1,1) == COMMAND_PREFIX then
+    line = line:sub(2)
+    local cmd, rest = line:match('^(%a*)%s*(.*)$')
     if not cmd then
       self:put(MSG_INVALID_COMMAND, 'nreplError')
       return self:new_line()
@@ -501,17 +504,17 @@ function M:complete()
   line = line:sub(1, pos)
   local completions, start
 
-  if line:sub(1,1) == '/' then
+  if line:sub(1,1) == COMMAND_PREFIX then
+    line = line:sub(2)
     -- TODO: complete command arguments too
-    if not line:match('^/%S*$') then
+    if not line:match('^%S*$') then
       return
     end
 
     local candidates = {}
-    local word = line:sub(2)
-    local size = #word
+    local size = #line
     for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
-      if word == c.command:sub(1, size) then
+      if line == c.command:sub(1, size) then
         table.insert(candidates, c.command)
       end
     end

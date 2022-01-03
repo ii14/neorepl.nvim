@@ -2,6 +2,8 @@ local api = vim.api
 local fn = vim.fn
 local nrepl = require('nrepl')
 
+local COMMAND_PREFIX = '/'
+
 local MSG_VIM = {'-- VIMSCRIPT --'}
 local MSG_LUA = {'-- LUA --'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
@@ -265,7 +267,7 @@ table.insert(COMMANDS, {
       local lines = {}
       for _, c in ipairs(COMMANDS) do
         if c.description then
-          local cmd = '/'..c.command
+          local cmd = COMMAND_PREFIX..c.command
           local pad = string.rep(' ', 12 - #cmd)
           table.insert(lines, cmd..pad..c.description)
         end
