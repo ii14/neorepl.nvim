@@ -113,8 +113,8 @@ function M.new(config)
   }, M)
 
   vim.cmd(string.format([[
-    syn clear nrepl1
-    syn region nrepl1 start="\%%>0l^[^/\\]" skip="^\\" end="^" keepend contains=%s fold
+    syn clear nreplStart
+    syn region nreplStart start="\%%>0l^[^/\\]" skip="^\\" end="^" keepend contains=%s fold
   ]], this.vim_mode and '@VIM' or '@LUA'))
 
   if this.indent > 0 then
