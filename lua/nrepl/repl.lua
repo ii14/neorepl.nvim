@@ -93,24 +93,10 @@ function M.new(config)
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
   vim.cmd(string.format([=[
-    syn match nreplLinebreak "^\\"
     augroup nrepl
       autocmd BufDelete <buffer> lua require'nrepl'[%d] = nil
     augroup end
   ]=], bufnr))
-
-  do
-    local t = {}
-    for i, cmd in ipairs(commands) do
-      local v = cmd.command
-      t[i] = v:sub(1,1)..'\\%['..v:sub(2)..']'
-    end
-    t = table.concat(t, '\\|')
-    vim.cmd(string.format([=[
-      syn match nreplInvalid "^/\l*"
-      syn match nreplCommand "^/\(%s\)\>"
-    ]=], t))
-  end
 
   ---@type nreplRepl
   local this = setmetatable({
@@ -125,6 +111,11 @@ function M.new(config)
     histpos = 0,
     mark_id = 1,
   }, M)
+
+  vim.cmd(string.format([[
+    syn clear nrepl1
+    syn region nrepl1 start="\%%>0l^[^/\\]" skip="^\\" end="^" keepend contains=%s fold
+  ]], this.vim_mode and '@VIM' or '@LUA'))
 
   if this.indent > 0 then
     this.indentstr = string.rep(' ', this.indent)
@@ -192,6 +183,10 @@ function M:clear()
   self.mark_id = 1
   api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
+  vim.cmd(string.format([[
+    syn clear nreplStart
+    syn region nreplStart start="\%%>0l^[^/\\]" skip="^\\" end="^" keepend contains=%s fold
+  ]], self.vim_mode and '@VIM' or '@LUA'))
 end
 
 --- Append empty line
