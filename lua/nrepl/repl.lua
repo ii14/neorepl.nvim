@@ -650,9 +650,9 @@ end
 
 vim.cmd([[
   hi link nreplError      ErrorMsg
-  hi link nreplOutput     String
-  hi link nreplValue      Number
-  hi link nreplInfo       Function
+  hi link nreplOutput     Normal
+  hi link nreplValue      Comment
+  hi link nreplInfo       Normal
   hi link nreplLinebreak  Function
   hi link nreplCommand    Type
   hi link nreplInvalid    SpellBad
