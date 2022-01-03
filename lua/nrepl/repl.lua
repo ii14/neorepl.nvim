@@ -419,8 +419,21 @@ function M:eval_vim(prg)
     return
   end
 
-  local hlgroup = ok and 'nreplOutput' or 'nreplError'
-  self:put(vim.split(res, '\n', { plain = true, trimempty = true }), hlgroup)
+  if ok then
+    local hlgroup
+    if type(res) == 'table' then
+      hlgroup = 'nreplError'
+      local throwpoint = res.throwpoint
+      res = vim.split(res.exception, '\n', { plain = true, trimempty = true })
+      table.insert(res, 1, 'Error detected while processing '..throwpoint..':')
+    else
+      hlgroup = 'nreplOutput'
+      res = vim.split(res, '\n', { plain = true, trimempty = true })
+    end
+    self:put(res, hlgroup)
+  else
+    self:put(vim.split(res, '\n', { plain = true, trimempty = true }), 'nreplError')
+  end
 end
 
 --- Execute function in current buffer/window context
