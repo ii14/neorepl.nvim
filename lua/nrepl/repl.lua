@@ -18,8 +18,7 @@ local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
 local luacomplete = nil
 
----@type nreplCommand[]
-local COMMANDS = nil
+local commands = require('nrepl.commands')
 
 ---@generic T
 ---@param v T|nil
@@ -99,6 +98,19 @@ function M.new(config)
       autocmd BufDelete <buffer> lua require'nrepl'[%d] = nil
     augroup end
   ]=], bufnr))
+
+  do
+    local t = {}
+    for i, cmd in ipairs(commands) do
+      local v = cmd.command
+      t[i] = v:sub(1,1)..'\\%['..v:sub(2)..']'
+    end
+    t = table.concat(t, '\\|')
+    vim.cmd(string.format([=[
+      syn match nreplInvalid "^/\l*"
+      syn match nreplCommand "^/\(%s\)\>"
+    ]=], t))
+  end
 
   ---@type nreplRepl
   local this = setmetatable({
@@ -279,7 +291,7 @@ function M:eval_line()
       args[1] = args[1]:match('^(.-)%s*$')
     end
 
-    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+    for _, c in ipairs(commands) do
       if c.pattern == nil then
         local name = c.command
         c.pattern = '\\v\\C^'..name:sub(1,1)..'%['..name:sub(2)..']$'
@@ -527,7 +539,7 @@ function M:complete()
 
     local candidates = {}
     local size = #line
-    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+    for _, c in ipairs(commands) do
       if line == c.command:sub(1, size) then
         table.insert(candidates, c.command)
       end
@@ -647,6 +659,8 @@ vim.cmd([[
   hi link nreplValue      Number
   hi link nreplInfo       Function
   hi link nreplLinebreak  Function
+  hi link nreplCommand    Type
+  hi link nreplInvalid    SpellBad
 ]])
 
 return M
