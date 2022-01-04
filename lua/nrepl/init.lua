@@ -14,43 +14,67 @@ local M = {}
 ---@field env_lua? table|fun():table
 
 --- Normalize configuration
----@param config? nreplConfig
-local function validate(config)
-  local c = config and vim.deepcopy(config) or {}
-  if c.lang == '' then
-    c.lang = nil
+---@type fun(config: any): nreplConfig
+local validate do
+  local function enum(values)
+    return function(v)
+      if v == nil then
+        return true
+      elseif type(v) ~= 'string' then
+        return false
+      end
+      for _, vc in ipairs(values) do
+        if v == vc then
+          return true
+        end
+      end
+      return false
+    end
   end
-  if c.lang ~= nil and c.lang ~= 'lua' and c.lang ~= 'vim' then
-    error('invalid lang value, expected "lua", "vim" or nil')
+
+  local function union(types)
+    return function(v)
+      if v == nil then
+        return true
+      end
+      local t = type(v)
+      for _, tc in ipairs(types) do
+        if t == tc then
+          return true
+        end
+      end
+      return false
+    end
   end
-  if c.startinsert ~= nil and type(c.startinsert) ~= 'boolean' then
-    error('invalid startinsert value, expected boolean or nil')
+
+  local function between(min, max)
+    return function(v)
+      return v == nil or (type(v) == 'number' and v >= min and v <= max)
+    end
   end
-  if c.indent ~= nil and (type(c.indent) ~= 'number' or c.indent < 0 or c.indent > 32) then
-    error('invalid indent value, expected positive number, max 32 or nil')
+
+  function validate(config)
+    local c = config and vim.deepcopy(config) or {}
+
+    if c.lang == '' then
+      c.lang = nil
+    end
+
+    vim.validate {
+      lang        = { c.lang,         enum{'lua', 'vim'}, '"lua" or "vim"' },
+      startinsert = { c.startinsert,  'boolean', true },
+      indent      = { c.indent,       between(0, 32), 'number between 0 and 32' },
+      inspect     = { c.inspect,      'boolean', true },
+      redraw      = { c.redraw,       'boolean', true },
+      on_init     = { c.on_init,      'function', true },
+      no_defaults = { c.no_defaults,  'boolean', true },
+      buffer      = { c.buffer,       union{'number', 'string'}, 'number or string' },
+      window      = { c.window,       union{'number', 'string'}, 'number or string' },
+      env_lua     = { c.env_lua,      union{'table', 'function'}, 'table or function' },
+    }
+
+    return c
   end
-  if c.inspect ~= nil and type(c.inspect) ~= 'boolean' then
-    error('invalid inspect value, expected boolean or nil')
-  end
-  if c.redraw ~= nil and type(c.redraw) ~= 'boolean' then
-    error('invalid redraw value, expected boolean or nil')
-  end
-  if c.on_init ~= nil and type(c.on_init) ~= 'function' then
-    error('invalid on_init value, expected function or nil')
-  end
-  if c.no_defaults ~= nil and type(c.no_defaults) ~= 'boolean' then
-    error('invalid no_defaults value, expected boolean or nil')
-  end
-  if c.buffer ~= nil and type(c.buffer) ~= 'number' and type(c.buffer) ~= 'string' then
-    error('invalid buffer value, expected boolean or nil')
-  end
-  if c.window ~= nil and type(c.window) ~= 'number' and type(c.window) ~= 'string' then
-    error('invalid window value, expected boolean or nil')
-  end
-  if c.env_lua ~= nil and type(c.env_lua) ~= 'table' and type(c.env_lua) ~= 'function' then
-    error('invalid env_lua value, expected table, function or nil')
-  end
-  return c
 end
 
 ---@type nreplConfig Default configuration
