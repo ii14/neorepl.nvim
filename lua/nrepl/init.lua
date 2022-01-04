@@ -11,6 +11,7 @@ local M = {}
 ---@field buffer? number|string
 ---@field window? number|string
 ---@field on_init? fun(bufnr: number)
+---@field env_lua? table|fun():table
 
 --- Normalize configuration
 ---@param config? nreplConfig
@@ -46,6 +47,9 @@ local function validate(config)
   if c.window ~= nil and type(c.window) ~= 'number' and type(c.window) ~= 'string' then
     error('invalid window value, expected boolean or nil')
   end
+  if c.env_lua ~= nil and type(c.env_lua) ~= 'table' and type(c.env_lua) ~= 'function' then
+    error('invalid env_lua value, expected table, function or nil')
+  end
   return c
 end
 
@@ -58,11 +62,15 @@ local default_config = {
   redraw = true,
   no_defaults = false,
   on_init = nil,
+  env_lua = nil,
 }
 
 --- Set default configuration
 ---@param config? nreplConfig
 function M.config(config)
+  -- TODO: merge with the old one.
+  -- to do so, we need a way of resetting values back to default,
+  -- in particular on_init, env_lua, lang. either false or have nrepl.DEFAULT constant
   config = validate(config)
   if config.buffer ~= nil or config.window ~= nil then
     error('buffer and window cannot be set on a default configuration')

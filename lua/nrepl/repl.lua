@@ -138,6 +138,33 @@ function M.new(config)
     end,
   })
 
+  -- add user environment
+  local userenv = config.env_lua
+  if userenv then
+    (function()
+      if type(userenv) == 'function' then
+        local ok, res = pcall(userenv)
+        if not ok then
+          local err = vim.split(res, '\n', { plain = true })
+          table.insert(err, 1, 'Error from user env:')
+          this:put(err, 'nreplError')
+          return this:new_line()
+        elseif type(res) == nil then
+          return
+        elseif type(res) ~= 'table' then
+          this:put({'Result of user env is not a table'}, 'nreplError')
+          return this:new_line()
+        else
+          userenv = res
+        end
+      end
+
+      for k, v in pairs(userenv) do
+        this.luaenv[k] = v
+      end
+    end)()
+  end
+
   nrepl[bufnr] = this
   if config.on_init then
     config.on_init(bufnr)

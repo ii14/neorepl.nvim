@@ -138,6 +138,11 @@ on_init ~
         Type: fun(bufnr: number)
         Default: nil
 
+env_lua ~
+    User defined lua environment.
+        Type: table | fun():table
+        Default: nil
+
 no_defaults ~
     Disables all default settings and key mappings.
         Type: boolean
