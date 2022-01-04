@@ -389,6 +389,7 @@ function M:eval_lua(prg)
   end
 end
 
+local vimeval = nil
 --- Evaluate vim script and append output to the buffer
 ---@param prg string
 function M:eval_vim(prg)
@@ -411,7 +412,8 @@ function M:eval_vim(prg)
   -- create a temporary script for each instance.
   local ok, res
   if not self:exec_context(function()
-    ok, res = pcall(fn['nrepl#__evaluate__'], prg)
+    -- TODO: fallback to plain execute()
+    ok, res = (vimeval or require('nrepl.vimeval')).exec(self.bufnr, prg)
     if self.redraw then
       vim.cmd('redraw')
     end
@@ -420,19 +422,12 @@ function M:eval_vim(prg)
   end
 
   if ok then
-    local hlgroup
-    if type(res) == 'table' then
-      hlgroup = 'nreplError'
-      local throwpoint = res.throwpoint
-      res = vim.split(res.exception, '\n', { plain = true, trimempty = true })
-      table.insert(res, 1, 'Error detected while processing '..throwpoint..':')
-    else
-      hlgroup = 'nreplOutput'
-      res = vim.split(res, '\n', { plain = true, trimempty = true })
-    end
-    self:put(res, hlgroup)
+    self:put(vim.split(res, '\n', { plain = true, trimempty = true }), 'nreplOutput')
   else
-    self:put(vim.split(res, '\n', { plain = true, trimempty = true }), 'nreplError')
+    local throwpoint = res.throwpoint
+    res = vim.split(res.exception, '\n', { plain = true, trimempty = true })
+    table.insert(res, 1, 'Error detected while processing '..throwpoint..':')
+    self:put(res, 'nreplError')
   end
 end
 
