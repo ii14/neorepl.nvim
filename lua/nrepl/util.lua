@@ -3,6 +3,17 @@ local fn = vim.fn
 
 local M = {}
 
+--- Create a lookup table
+---@param t string[]
+---@return table<string,boolean>
+function M.make_lookup(t)
+  local r = {}
+  for _, k in ipairs(t) do
+    r[k] = true
+  end
+  return r
+end
+
 --- Parse buffer
 ---@param buf string|number
 ---@param zero_is_current? boolean

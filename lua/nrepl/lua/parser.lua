@@ -1,4 +1,5 @@
 local tinsert = table.insert
+local make_lookup = require('nrepl.util').make_lookup
 
 local M = {}
 
@@ -36,22 +37,11 @@ local M = {}
 local WHITESPACE = ' \t\v\f\r'
 local RE_WHITESPACE = '['..WHITESPACE..']*([^'..WHITESPACE..'])'
 
----@type table<string,boolean>
-local KEYWORDS do
-  local function make_lookup(t)
-    local r = {}
-    for _, k in ipairs(t) do
-      r[k] = true
-    end
-    return r
-  end
-
-  KEYWORDS = make_lookup {
-    'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
-    'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
-    'return', 'then', 'true', 'until', 'while',
-  }
-end
+local KEYWORDS = make_lookup {
+  'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
+  'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
+  'return', 'then', 'true', 'until', 'while',
+}
 
 --- Tokenize lua source code
 ---@param input string

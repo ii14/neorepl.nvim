@@ -2,6 +2,7 @@ local M = {}
 
 local parser = require('nrepl.lua.parser')
 local tinsert = table.insert
+local make_lookup = require('nrepl.util').make_lookup
 
 local RE_IDENT = '^[%a_][%a%d_]*$'
 
@@ -318,6 +319,12 @@ local function complete(var, e)
   end
 end
 
+local KEYWORDS_BEFORE_IDENT = make_lookup {
+  'and', 'do', 'else', 'elseif', 'end',
+  'if', 'in', 'not', 'or', 'repeat',
+  'return', 'then', 'until', 'while',
+}
+
 ---@param src string
 ---@param env table
 ---@return string[]
@@ -340,12 +347,17 @@ function M.complete(src, env)
     -- stop after incomplete strings and comments
     if lt.type == 'string' and lt.incomplete then return end
     if lt.type == 'comment' and lt.incomplete then return end
+
     -- stop after . : ... operators
-    if lt.type == 'op' and lt.value == '.' and
-       lt.value == ':' and lt.value == '...' then return end
-    -- stop if there is no space after some tokens
-    local space = src:sub(-1,-1):match('%s')
-    if not space and (lt.type == 'ident' or lt.type == 'number') then return end
+    if lt.type == 'op' and (lt.value == '.' or
+       lt.value == ':' or lt.value == '...' or
+       lt.value == '[' or lt.value == ']')
+    then return end
+
+    -- stop if there is no space after ident. keywords are fine tho
+    if lt.type == 'ident' and
+      (not src:sub(-1,-1):match('%s') or not KEYWORDS_BEFORE_IDENT[lt.value])
+    then return end
   end
 
   --- complete from env, with a fake empty exp
