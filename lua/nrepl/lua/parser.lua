@@ -3,6 +3,8 @@ local M = {}
 local lexer = require('nrepl.lua.lexer')
 local tinsert = table.insert
 
+local RE_IDENT = '^[%a_][%a%d_]*$'
+
 ---@type table<string,boolean>
 local KEYWORDS do
   local function make_lookup(t)
@@ -39,9 +41,10 @@ end
 ---@field type nreplLuaExpType
 ---@alias nreplLuaExp nreplLuaExpBase|nreplLuaToken[]
 
+--- Get last expression
 ---@param ts nreplLuaToken[]
 ---@return nreplLuaExp[]
-local function get_last_exp(ts)
+local function parse(ts)
   local r = {}
   local t = nil ---@type nreplLuaToken
   local i = 0
@@ -122,8 +125,10 @@ local function get_last_exp(ts)
   return r
 end
 
+--- uv.fs_scandir iterator
 local function scandir_iterator(fs)
   local uv = vim.loop
+  ---@return string, string
   return function()
     local dirname, dirtype = uv.fs_scandir_next(fs)
     if dirname then
@@ -132,9 +137,11 @@ local function scandir_iterator(fs)
   end
 end
 
--- TODO: module.path, module.cpath
--- TODO: look up module.loaded whether the 'a/b/c' style is used
+---@param query string
+---@return string[]
 local function get_modules(query)
+  -- TODO: module.path, module.cpath
+  -- TODO: look up module.loaded whether the 'a/b/c' style is used
   local res = {}
 
   local function scan(path, base, filter)
@@ -185,18 +192,12 @@ local function parse_string(t)
   return (not t.long and not t.incomplete) and t.value:sub(2, #t.value - 1) or nil
 end
 
-local RE_IDENT = '^[%a_][%a%d_]*$'
-
----@param src string
+---@param es nreplLuaExp[]
 ---@param env table
----@return string[]|boolean
-function M.parse(src, env)
-  local ts = lexer.lex(src) ---@type nreplLuaToken[]
-  local es = get_last_exp(ts)
-  local last = table.remove(es) ---@type nreplLuaExp
-
-  -- resolve references leading up to the last element
+---@return any
+local function resolve(es, env)
   local var = env or _G
+
   for _, e in ipairs(es) do
     if e.type == 'root' then
       if type(var) ~= 'table' then return end
@@ -228,133 +229,146 @@ function M.parse(src, env)
     end
   end
 
-  -- complete last element
+  return var
+end
+
+---@param var any
+---@param e nreplLuaExp
+---@return number, string[]
+local function complete(var, e)
   -- TODO: refactor
-  if last then
-    local e = last
-    if e.type == 'root' then
-      if type(var) ~= 'table' then return end
-      local res = {}
-      local re = '^'..e[1].value
+  if var == nil or e == nil then
+    return
+  end
 
-      for k, v in pairs(var) do
-        if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
-          if type(v) == 'function' then
-            local i = debug.getinfo(v, 'u')
-            ---@diagnostic disable-next-line: undefined-field
-            if i.isvararg or i.nparams > 0 then
-              tinsert(res, k..'(')
-            else
-              tinsert(res, k..'()')
-            end
-          elseif type(v) == 'table' then
-            tinsert(res, k..'.')
+  if e.type == 'root' then
+    if type(var) ~= 'table' then return end
+    local res = {}
+    local re = '^'..e[1].value
+
+    for k, v in pairs(var) do
+      if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
+        if type(v) == 'function' then
+          local i = debug.getinfo(v, 'u')
+          ---@diagnostic disable-next-line: undefined-field
+          if i.isvararg or i.nparams > 0 then
+            tinsert(res, k..'(')
           else
-            tinsert(res, k)
+            tinsert(res, k..'()')
           end
-        end
-      end
-
-      table.sort(res)
-      return e[1].col, res
-    elseif e.type == 'prop' then
-      if type(var) ~= 'table' then return end
-      local res = {}
-      local re = '^'..(e[2] and e[2].value or '')
-
-      for k, v in pairs(var) do
-        if type(k) == 'string' and match(k, re) then
-          if not k:match(RE_IDENT) then
-            -- TODO: escape key
-            k = "['"..k.."']"
-          else
-            k = '.'..k
-          end
-          if type(v) == 'function' then
-            local i = debug.getinfo(v, 'u')
-            ---@diagnostic disable-next-line: undefined-field
-            if i.isvararg or i.nparams > 0 then
-              tinsert(res, k..'(')
-            else
-              tinsert(res, k..'()')
-            end
-          elseif type(v) == 'table' then
-            tinsert(res, k..'.')
-          else
-            tinsert(res, k)
-          end
-        end
-      end
-
-      table.sort(res)
-      return e[1].col, res
-    elseif e.type == 'index' then
-      -- TODO
-      return
-    elseif e.type == 'method' then
-      if type(var) ~= 'table' then return end
-      local res = {}
-      local re = '^'..(e[2] and e[2].value or '')
-
-      for k, v in pairs(var) do
-        if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
-          if type(v) == 'function' then
-            local i = debug.getinfo(v, 'u')
-            ---@diagnostic disable-next-line: undefined-field
-            if i.isvararg or i.nparams > 1 then
-              tinsert(res, ':'..k..'(')
-            ---@diagnostic disable-next-line: undefined-field
-            elseif i.nparams > 0 then
-              tinsert(res, ':'..k..'()')
-            end
-          end
-        end
-      end
-
-      table.sort(res)
-      return e[1].col, res
-    elseif e.type == 'call1' then
-      if var ~= require then return end
-      local res = {}
-      if e[1].incomplete and not e[1].long then
-        if e[1].long then return end
-        local stype = e[1].value:sub(1,1)
-        for _, modname in ipairs(get_modules(e[1].value:sub(2))) do
-          -- escape string?
-          tinsert(res, stype..modname..stype)
-        end
-      end
-      return e[1].col, res
-    elseif e.type == 'call2' then
-      if var ~= require then return end
-      local res = {}
-      if e[2] == nil or e[2].incomplete then
-        if e[2] then
-          if e[2].long then return end
-          local stype = e[2].value:sub(1,1)
-          for _, modname in ipairs(get_modules(e[2].value:sub(2))) do
-            -- escape string?
-            tinsert(res, '('..stype..modname..stype..')')
-          end
+        elseif type(v) == 'table' then
+          tinsert(res, k..'.')
         else
-          for _, modname in ipairs(get_modules()) do
-            -- escape string?
-            tinsert(res, "('"..modname.."')")
+          tinsert(res, k)
+        end
+      end
+    end
+
+    table.sort(res)
+    return e[1].col, res
+  elseif e.type == 'prop' then
+    if type(var) ~= 'table' then return end
+    local res = {}
+    local re = '^'..(e[2] and e[2].value or '')
+
+    for k, v in pairs(var) do
+      if type(k) == 'string' and match(k, re) then
+        if not k:match(RE_IDENT) then
+          -- TODO: escape key
+          k = "['"..k.."']"
+        else
+          k = '.'..k
+        end
+        if type(v) == 'function' then
+          local i = debug.getinfo(v, 'u')
+          ---@diagnostic disable-next-line: undefined-field
+          if i.isvararg or i.nparams > 0 then
+            tinsert(res, k..'(')
+          else
+            tinsert(res, k..'()')
+          end
+        elseif type(v) == 'table' then
+          tinsert(res, k..'.')
+        else
+          tinsert(res, k)
+        end
+      end
+    end
+
+    table.sort(res)
+    return e[1].col, res
+  elseif e.type == 'index' then
+    -- TODO
+    return
+  elseif e.type == 'method' then
+    if type(var) ~= 'table' then return end
+    local res = {}
+    local re = '^'..(e[2] and e[2].value or '')
+
+    for k, v in pairs(var) do
+      if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
+        if type(v) == 'function' then
+          local i = debug.getinfo(v, 'u')
+          ---@diagnostic disable-next-line: undefined-field
+          if i.isvararg or i.nparams > 1 then
+            tinsert(res, ':'..k..'(')
+          ---@diagnostic disable-next-line: undefined-field
+          elseif i.nparams > 0 then
+            tinsert(res, ':'..k..'()')
           end
         end
-      elseif e[3] == nil then
-        tinsert(res, ')')
       end
-      return e[1].col, res
     end
+
+    table.sort(res)
+    return e[1].col, res
+  elseif e.type == 'call1' then
+    if var ~= require then return end
+    local res = {}
+    if e[1].incomplete and not e[1].long then
+      if e[1].long then return end
+      local stype = e[1].value:sub(1,1)
+      for _, modname in ipairs(get_modules(e[1].value:sub(2))) do
+        -- escape string?
+        tinsert(res, stype..modname..stype)
+      end
+    end
+    return e[1].col, res
+  elseif e.type == 'call2' then
+    if var ~= require then return end
+    local res = {}
+    if e[2] == nil or e[2].incomplete then
+      if e[2] then
+        if e[2].long then return end
+        local stype = e[2].value:sub(1,1)
+        for _, modname in ipairs(get_modules(e[2].value:sub(2))) do
+          -- escape string?
+          tinsert(res, '('..stype..modname..stype..')')
+        end
+      else
+        for _, modname in ipairs(get_modules()) do
+          -- escape string?
+          tinsert(res, "('"..modname.."')")
+        end
+      end
+    elseif e[3] == nil then
+      tinsert(res, ')')
+    end
+    return e[1].col, res
   end
 end
 
 ---@param src string
 ---@param env table
----@return string[]|boolean
+---@return string[]
 function M.complete(src, env)
-  return M.parse(src, env)
+  local ts = lexer.lex(src)
+  local es = parse(ts)
+  local last = table.remove(es) ---@type nreplLuaExp
+  if last then
+    local var = resolve(es, env or _G)
+    return complete(var, last)
+  end
 end
 
 return M
