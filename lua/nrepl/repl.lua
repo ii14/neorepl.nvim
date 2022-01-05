@@ -5,18 +5,11 @@ local util = require('nrepl.util')
 
 local ns = api.nvim_create_namespace('nrepl')
 
---- Reference to global environment
-local global = _G
---- Reference to global print function
-local prev_print = _G.print
-
 local COMMAND_PREFIX = '/'
 
 local MSG_INVALID_COMMAND = {'invalid command'}
 
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
-
-local luacomplete = nil
 
 ---@type nreplCommand[]
 local COMMANDS = nil
@@ -35,6 +28,8 @@ end
 
 ---@class nreplRepl
 ---@field bufnr       number        repl buffer
+---@field lua         nreplLua
+---@field vim         nreplVim
 ---@field buffer      number        buffer context
 ---@field window      number        window context
 ---@field vim_mode    boolean       vim mode
@@ -46,14 +41,12 @@ end
 ---@field history     string[][]    command history
 ---@field histpos     number        position in history
 ---@field histcur     string[]|nil  line before moving through history
----@field luaenv      table         lua environment
----@field luaprint    function      print function override
-local M = {}
-M.__index = M
+local Repl = {}
+Repl.__index = Repl
 
 --- Create a new REPL instance
 ---@param config? nreplConfig
-function M.new(config)
+function Repl.new(config)
   if config.buffer then
     config.buffer = util.parse_buffer(config.buffer, true)
     if not config.buffer then
@@ -112,58 +105,14 @@ function M.new(config)
     history = {},
     histpos = 0,
     mark_id = 1,
-  }, M)
+  }, Repl)
 
   if this.indent > 0 then
     this.indentstr = string.rep(' ', this.indent)
   end
 
-  this.luaprint = function(...)
-    local args = {...}
-    for i, v in ipairs(args) do
-      args[i] = tostring(v)
-    end
-    local lines = vim.split(table.concat(args, '\t'), '\n', { plain = true })
-    this:put(lines, 'nreplOutput')
-  end
-
-  this.luaenv = setmetatable({
-    --- access to global environment
-    global = global,
-    --- print function override
-    print = this.luaprint,
-  }, {
-    __index = function(t, key)
-      return rawget(t, key) or rawget(global, key)
-    end,
-  })
-
-  -- add user environment
-  local userenv = config.env_lua
-  if userenv then
-    (function()
-      if type(userenv) == 'function' then
-        local ok, res = pcall(userenv)
-        if not ok then
-          local err = vim.split(res, '\n', { plain = true })
-          table.insert(err, 1, 'Error from user env:')
-          this:put(err, 'nreplError')
-          return this:new_line()
-        elseif type(res) == nil then
-          return
-        elseif type(res) ~= 'table' then
-          this:put({'Result of user env is not a table'}, 'nreplError')
-          return this:new_line()
-        else
-          userenv = res
-        end
-      end
-
-      for k, v in pairs(userenv) do
-        this.luaenv[k] = v
-      end
-    end)()
-  end
+  this.lua = require('nrepl.lua').new(this, config)
+  this.vim = require('nrepl.vim').new(this, config)
 
   nrepl[bufnr] = this
   if config.on_init then
@@ -177,7 +126,7 @@ end
 --- Append lines to the buffer
 ---@param lines string[]  lines
 ---@param hlgroup string  highlight group
-function M:put(lines, hlgroup)
+function Repl:put(lines, hlgroup)
   -- indent lines
   if self.indentstr then
     local t = {}
@@ -203,14 +152,14 @@ function M:put(lines, hlgroup)
   end
 end
 
-function M:clear()
+function Repl:clear()
   self.mark_id = 1
   api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
 end
 
 --- Append empty line
-function M:new_line()
+function Repl:new_line()
   api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {''})
   vim.cmd('$') -- TODO: don't use things like this, buffer can change during evaluation
 
@@ -224,7 +173,7 @@ end
 --- Get lines under cursor
 --- Returns nil on illegal line break
 ---@return string[]|nil
-function M:get_line()
+function Repl:get_line()
   local line = api.nvim_get_current_line()
   local lnum = api.nvim_win_get_cursor(0)[1]
   local s, e = lnum, lnum
@@ -259,7 +208,7 @@ function M:get_line()
 end
 
 --- Evaluate current line
-function M:eval_line()
+function Repl:eval_line()
   -- reset history position
   self.histpos = 0
 
@@ -333,138 +282,18 @@ function M:eval_line()
   end
 
   if self.vim_mode then
-    if self:eval_vim(prg) ~= false then
+    if self.vim:eval(prg) ~= false then
       return self:new_line()
     end
   else
-    if self:eval_lua(prg) ~= false then
+    if self.lua:eval(prg) ~= false then
       return self:new_line()
     end
-  end
-end
-
---- Gather results from pcall
-local function pcall_res(ok, ...)
-  if ok then
-    -- return returned values as a table and its size,
-    -- because when iterating ipairs will stop at nil
-    return ok, {...}, select('#', ...)
-  else
-    return ok, ...
-  end
-end
-
-local function lua_exec(f)
-  local coro = coroutine.create(f)
-  local ok, res, n = pcall_res(coroutine.resume(coro))
-  if not ok then
-    if debug.getinfo(coro, 0, 'f').func ~= f then
-      res = debug.traceback(coro, res, 0)
-    end
-  end
-  return ok, res, n
-end
-
---- Evaluate lua and append output to the buffer
----@param prg string
-function M:eval_lua(prg)
-  if type(prg) == 'table' then
-    prg = table.concat(prg, '\n')
-  elseif type(prg) ~= 'string' then
-    error('invalid prg type')
-  end
-
-  local ok, res, err, n
-  res = loadstring('return '..prg, 'nrepl')
-  if not res then
-    res, err = loadstring(prg, 'nrepl')
-  end
-
-  if res then
-    setfenv(res, self.luaenv)
-
-    if not self:exec_context(function()
-      -- temporarily replace print
-      _G.print = self.luaprint
-      ok, res, n = lua_exec(res)
-      _G.print = prev_print
-      if self.redraw then
-        vim.cmd('redraw')
-      end
-    end) then
-      return
-    end
-
-    if not ok then
-      self:put(vim.split(res, '\n', { plain = true }), 'nreplError')
-    else
-      local stringify = self.inspect and vim.inspect or tostring
-      for i = 1, n do
-        res[i] = stringify(res[i])
-      end
-      if #res > 0 then
-        self:put(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'nreplValue')
-      end
-    end
-  elseif err:match("'<eof>'$") then
-    -- more input expected, add line break
-    api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {'\\'})
-    vim.cmd('$')
-    return false
-  else
-    self:put({err}, 'nreplError')
-  end
-end
-
---- Evaluate vim script and append output to the buffer
----@param prg string
-function M:eval_vim(prg)
-  if type(prg) == 'table' then
-    prg = table.concat(prg, '\n'):gsub('\n%s*\\', ' ')
-  elseif type(prg) ~= 'string' then
-    error('invalid prg type')
-  end
-
-  -- print variables
-  if prg:match('^%s*[bgstvw%(]:%s*$') then
-    -- use let for plain g:, b:, w:, ...
-    prg = 'let '..prg
-  elseif prg:match('^%s*[bgstvw%(]:') or prg:match('^%s*%(') then
-    prg = 'echo '..prg
-  end
-
-  -- call execute() from a vim script file to have script local variables.
-  -- context is shared between repl instances. a potential solution is to
-  -- create a temporary script for each instance.
-  local ok, res
-  if not self:exec_context(function()
-    ok, res = pcall(fn['nrepl#__evaluate__'], prg)
-    if self.redraw then
-      vim.cmd('redraw')
-    end
-  end) then
-    return
-  end
-
-  if ok then
-    local hlgroup
-    if type(res) == 'table' then
-      hlgroup = 'nreplError'
-      local throwpoint = res.throwpoint
-      res = vim.split(res.exception, '\n', { plain = true, trimempty = true })
-      table.insert(res, 1, 'Error detected while processing '..throwpoint..':')
-    else
-      hlgroup = 'nreplOutput'
-      res = vim.split(res, '\n', { plain = true, trimempty = true })
-    end
-    self:put(res, hlgroup)
-  else
-    self:put(vim.split(res, '\n', { plain = true, trimempty = true }), 'nreplError')
   end
 end
 
 --- Execute function in current buffer/window context
-function M:exec_context(f)
+function Repl:exec_context(f)
   local buf = self.buffer
   local win = self.window
 
@@ -505,7 +334,7 @@ end
 
 --- Move between entries in history
 ---@param prev boolean previous entry if true, next entry if false
-function M:hist_move(prev)
+function Repl:hist_move(prev)
   if #self.history == 0 then return end
   local lines, s, e = self:get_line()
   if lines == nil then return end
@@ -539,11 +368,11 @@ function M:hist_move(prev)
 end
 
 --- Complete word under cursor
-function M:complete()
+function Repl:complete()
   local line = api.nvim_get_current_line()
   local pos = api.nvim_win_get_cursor(0)[2]
   line = line:sub(1, pos)
-  local completions, start
+  local results, start
 
   if line:sub(1,1) == COMMAND_PREFIX then
     line = line:sub(2)
@@ -563,49 +392,23 @@ function M:complete()
       fn.complete(2, candidates)
     end
     return
-  elseif self.vim_mode then
-    start = line:find('[^%s%(%)=%-%+%*|/~%.,]*$')
-    if line:match('^%s*[bgstvw]:') or line:match('^%s*%(') then
-      line = 'echo '..line
-    end
-
-    if not self:exec_context(function()
-      completions = fn.getcompletion(line, 'cmdline', 1)
-    end) then
-      return
-    end
-  else
-    if luacomplete == nil then
-      luacomplete = require('nrepl.lua.complete').complete
-    end
-
-    -- merge environments on the fly, because
-    -- I don't know how to do it cleanly otherwise
-    local env = {}
-    for k, v in pairs(_G) do
-      env[k] = v
-    end
-    for k, v in pairs(self.luaenv) do
-      env[k] = v
-    end
-
-    -- TODO: concat with previous lines
-    completions, start = luacomplete(line, env)
-    if completions == nil or #completions == 0 then
-      return
-    end
-    start = start + 1
   end
 
-  if completions and #completions > 0 then
-    fn.complete(start or pos + 1, completions)
+  if self.vim_mode then
+    results, start = self.vim:complete(line)
+  else
+    results, start = self.lua:complete(line)
+  end
+
+  if results and #results > 0 then
+    fn.complete(start or pos + 1, results)
   end
 end
 
 --- Go to previous/next output implementation
 ---@param backward boolean
 ---@param to_end? boolean
-function M:goto_output(backward, to_end, count)
+function Repl:goto_output(backward, to_end, count)
   count = count or 1
   local ranges = {}
   do
@@ -676,4 +479,4 @@ vim.cmd([[
   hi link nreplLinebreak  Function
 ]])
 
-return M
+return Repl
