@@ -194,11 +194,9 @@ table.insert(COMMANDS, {
           repl:put({'invalid argument, expected number in range 0 to 32'}, 'nreplError')
         elseif value == 0 then
           repl.indent = 0
-          repl.indentstr = nil
           repl:put({'indent: '..repl.indent}, 'nreplInfo')
         else
           repl.indent = value
-          repl.indentstr = string.rep(' ', value)
           repl:put({'indent: '..repl.indent}, 'nreplInfo')
         end
       else

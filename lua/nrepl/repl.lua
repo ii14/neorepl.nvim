@@ -34,7 +34,6 @@ end
 ---@field redraw      boolean       redraw after evaluation
 ---@field inspect     boolean       inspect variables
 ---@field indent      number        indent level
----@field indentstr?  string        indent string
 ---@field history     string[][]    command history
 ---@field histpos     number        position in history
 ---@field histcur     string[]|nil  line before moving through history
@@ -102,10 +101,6 @@ function Repl.new(config)
     mark_id = 1,
   }, Repl)
 
-  if this.indent > 0 then
-    this.indentstr = string.rep(' ', this.indent)
-  end
-
   this.lua = require('nrepl.lua').new(this, config)
   this.vim = require('nrepl.vim').new(this, config)
 
@@ -117,10 +112,11 @@ end
 ---@param hlgroup string  highlight group
 function Repl:put(lines, hlgroup)
   -- indent lines
-  if self.indentstr then
+  if self.indent > 0 then
+    local prefix = string.rep(' ', self.indent)
     local t = {}
     for i, line in ipairs(lines) do
-      t[i] = self.indentstr..line
+      t[i] = prefix..line
     end
     lines = t
   end
