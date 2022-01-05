@@ -576,7 +576,7 @@ function M:complete()
     end
   else
     if luacomplete == nil then
-      luacomplete = require('nrepl.lua.parser').complete
+      luacomplete = require('nrepl.lua.complete').complete
     end
 
     -- TODO: concat with previous lines
