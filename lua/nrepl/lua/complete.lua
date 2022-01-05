@@ -187,7 +187,7 @@ local function complete(var, e)
         if type(v) == 'function' then
           local nparams, isvararg, argnames = get_func_info(v)
           tinsert(res, {
-            word = k..((isvararg or nparams > 0) and '(' or '()'),
+            word = k..((isvararg or nparams > 0) and (v == require and "'" or '(') or '()'),
             abbr = k..'('..table.concat(argnames, ', ')..')',
             menu = type(v),
           })
@@ -215,7 +215,7 @@ local function complete(var, e)
         if type(v) == 'function' then
           local nparams, isvararg, argnames = get_func_info(v)
           tinsert(res, {
-            word = word..((isvararg or nparams > 0) and '(' or '()'),
+            word = word..((isvararg or nparams > 0) and (v == require and "'" or '(') or '()'),
             abbr = k..'('..table.concat(argnames, ', ')..')',
             menu = type(v),
           })
