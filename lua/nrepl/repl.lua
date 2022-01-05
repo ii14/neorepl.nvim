@@ -82,11 +82,11 @@ function Repl.new(config)
       nmap <silent><buffer> ][ <Plug>(nrepl-][)
     ]=]))
   end
+  -- set filetype after mappings and settings to allow overriding in ftplugin
+  api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
   vim.cmd(string.format([[
     syn match nreplLinebreak "^\\"
   ]]))
-  -- set filetype after mappings and settings to allow overriding in ftplugin
-  api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
 
   ---@type nreplRepl
   local this = setmetatable({
