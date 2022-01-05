@@ -1,6 +1,9 @@
 local api = vim.api
 
-local M = {}
+local M = {
+  ---@type nreplRepl[]
+  buffers = {},
+}
 
 ---@class nreplConfig
 ---@field lang? 'lua'|'vim'
@@ -106,7 +109,20 @@ end
 ---@param config? nreplConfig
 function M.new(config)
   config = validate(vim.tbl_extend('force', default_config, config or {}))
-  require('nrepl.repl').new(config)
+  local repl = require('nrepl.repl').new(config)
+  local bufnr = repl.bufnr
+  M.buffers[bufnr] = repl
+  vim.cmd(string.format([[
+    augroup nrepl
+      autocmd BufDelete <buffer> lua require'nrepl'.buffers[%d] = nil
+    augroup end
+  ]], bufnr))
+  if config.on_init then
+    config.on_init(bufnr)
+  end
+  if config.startinsert then
+    vim.cmd('startinsert')
+  end
 end
 
 --- Close REPL instance
@@ -116,17 +132,19 @@ function M.close(bufnr)
   if bufnr == nil or bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  if M[bufnr] == nil then error('invalid buffer: '..bufnr) end
+  if M.buffers[bufnr] == nil then
+    error('invalid buffer: '..bufnr)
+  end
   vim.cmd('stopinsert')
+  M.buffers[bufnr] = nil
   api.nvim_buf_delete(bufnr, { force = true })
-  M[bufnr] = nil
 end
 
 --- Get current REPL
 ---@return nreplRepl
 local function get()
   local bufnr = api.nvim_get_current_buf()
-  local repl = M[bufnr]
+  local repl = M.buffers[bufnr]
   if repl == nil then error('invalid buffer: '..bufnr) end
   return repl
 end

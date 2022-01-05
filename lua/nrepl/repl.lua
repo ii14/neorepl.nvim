@@ -1,14 +1,11 @@
 local api = vim.api
 local fn = vim.fn
-local nrepl = require('nrepl')
 local util = require('nrepl.util')
 
 local ns = api.nvim_create_namespace('nrepl')
 
 local COMMAND_PREFIX = '/'
-
 local MSG_INVALID_COMMAND = {'invalid command'}
-
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
 ---@type nreplCommand[]
@@ -46,6 +43,7 @@ Repl.__index = Repl
 
 --- Create a new REPL instance
 ---@param config? nreplConfig
+---@return nreplRepl
 function Repl.new(config)
   if config.buffer then
     config.buffer = util.parse_buffer(config.buffer, true)
@@ -84,14 +82,11 @@ function Repl.new(config)
       nmap <silent><buffer> ][ <Plug>(nrepl-][)
     ]=]))
   end
+  vim.cmd(string.format([[
+    syn match nreplLinebreak "^\\"
+  ]]))
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
-  vim.cmd(string.format([=[
-    syn match nreplLinebreak "^\\"
-    augroup nrepl
-      autocmd BufDelete <buffer> lua require'nrepl'[%d] = nil
-    augroup end
-  ]=], bufnr))
 
   ---@type nreplRepl
   local this = setmetatable({
@@ -114,13 +109,7 @@ function Repl.new(config)
   this.lua = require('nrepl.lua').new(this, config)
   this.vim = require('nrepl.vim').new(this, config)
 
-  nrepl[bufnr] = this
-  if config.on_init then
-    config.on_init(bufnr)
-  end
-  if config.startinsert then
-    vim.cmd('startinsert')
-  end
+  return this
 end
 
 --- Append lines to the buffer
