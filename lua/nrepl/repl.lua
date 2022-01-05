@@ -580,8 +580,8 @@ function M:complete()
     end
 
     -- TODO: concat with previous lines
-    start, completions = luacomplete(line)
-    if start == nil then
+    completions, start = luacomplete(line)
+    if completions == nil then
       return
     end
     start = start + 1

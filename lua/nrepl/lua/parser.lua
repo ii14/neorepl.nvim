@@ -232,6 +232,10 @@ local function resolve(es, env)
   return var
 end
 
+local function sort_completions(a, b)
+  return a.word < b.word
+end
+
 ---@param var any
 ---@param e nreplLuaExp
 ---@return number, string[]
@@ -252,20 +256,30 @@ local function complete(var, e)
           local i = debug.getinfo(v, 'u')
           ---@diagnostic disable-next-line: undefined-field
           if i.isvararg or i.nparams > 0 then
-            tinsert(res, k..'(')
+            tinsert(res, {
+              word = k..'(',
+              abbr = k,
+              menu = type(v),
+            })
           else
-            tinsert(res, k..'()')
+            tinsert(res, {
+              word = k..'()',
+              abbr = k,
+              menu = type(v),
+            })
           end
-        elseif type(v) == 'table' then
-          tinsert(res, k..'.')
         else
-          tinsert(res, k)
+          tinsert(res, {
+            word = k,
+            abbr = k,
+            menu = type(v),
+          })
         end
       end
     end
 
-    table.sort(res)
-    return e[1].col, res
+    table.sort(res, sort_completions)
+    return res, e[1].col
   elseif e.type == 'prop' then
     if type(var) ~= 'table' then return end
     local res = {}
@@ -273,30 +287,36 @@ local function complete(var, e)
 
     for k, v in pairs(var) do
       if type(k) == 'string' and match(k, re) then
-        if not k:match(RE_IDENT) then
-          -- TODO: escape key
-          k = "['"..k.."']"
-        else
-          k = '.'..k
-        end
+        -- TODO: escape key
+        local word = k:match(RE_IDENT) and '.'..k or "['"..k.."']"
         if type(v) == 'function' then
           local i = debug.getinfo(v, 'u')
           ---@diagnostic disable-next-line: undefined-field
           if i.isvararg or i.nparams > 0 then
-            tinsert(res, k..'(')
+            tinsert(res, {
+              word = word..'(',
+              abbr = k,
+              menu = type(v),
+            })
           else
-            tinsert(res, k..'()')
+            tinsert(res, {
+              word = word..'()',
+              abbr = k,
+              menu = type(v),
+            })
           end
-        elseif type(v) == 'table' then
-          tinsert(res, k..'.')
         else
-          tinsert(res, k)
+          tinsert(res, {
+            word = word,
+            abbr = k,
+            menu = type(v),
+          })
         end
       end
     end
 
-    table.sort(res)
-    return e[1].col, res
+    table.sort(res, sort_completions)
+    return res, e[1].col
   elseif e.type == 'index' then
     -- TODO
     return
@@ -311,17 +331,25 @@ local function complete(var, e)
           local i = debug.getinfo(v, 'u')
           ---@diagnostic disable-next-line: undefined-field
           if i.isvararg or i.nparams > 1 then
-            tinsert(res, ':'..k..'(')
+            tinsert(res, {
+              word = ':'..k..'(',
+              abbr = k,
+              menu = type(v),
+            })
           ---@diagnostic disable-next-line: undefined-field
           elseif i.nparams > 0 then
-            tinsert(res, ':'..k..'()')
+            tinsert(res, {
+              word = ':'..k..'()',
+              abbr = k,
+              menu = type(v),
+            })
           end
         end
       end
     end
 
-    table.sort(res)
-    return e[1].col, res
+    table.sort(res, sort_completions)
+    return res, e[1].col
   elseif e.type == 'call1' then
     if var ~= require then return end
     local res = {}
@@ -330,10 +358,14 @@ local function complete(var, e)
       local stype = e[1].value:sub(1,1)
       for _, modname in ipairs(get_modules(e[1].value:sub(2))) do
         -- escape string?
-        tinsert(res, stype..modname..stype)
+        tinsert(res, {
+          word = stype..modname..stype,
+          abbr = modname,
+          menu = package.loaded[modname] ~= nil and 'module+' or 'module',
+        })
       end
     end
-    return e[1].col, res
+    return res, e[1].col
   elseif e.type == 'call2' then
     if var ~= require then return end
     local res = {}
@@ -343,18 +375,26 @@ local function complete(var, e)
         local stype = e[2].value:sub(1,1)
         for _, modname in ipairs(get_modules(e[2].value:sub(2))) do
           -- escape string?
-          tinsert(res, '('..stype..modname..stype..')')
+          tinsert(res, {
+            word = '('..stype..modname..stype..')',
+            abbr = modname,
+            menu = package.loaded[modname] ~= nil and 'module+' or 'module',
+          })
         end
       else
         for _, modname in ipairs(get_modules()) do
           -- escape string?
-          tinsert(res, "('"..modname.."')")
+          tinsert(res, {
+            word = "('"..modname.."')",
+            abbr = modname,
+            menu = package.loaded[modname] ~= nil and 'module+' or 'module',
+          })
         end
       end
     elseif e[3] == nil then
       tinsert(res, ')')
     end
-    return e[1].col, res
+    return res, e[1].col
   end
 end
 
@@ -362,13 +402,24 @@ end
 ---@param env table
 ---@return string[]
 function M.complete(src, env)
+  env = env or _G
   local ts = lexer.lex(src)
   local es = parse(ts)
+
   local last = table.remove(es) ---@type nreplLuaExp
-  if last then
-    local var = resolve(es, env or _G)
-    return complete(var, last)
-  end
+  if not last then return end
+  local var = resolve(es, env)
+  if not var then return end
+  local completions, pos = complete(var, last)
+  if pos then return completions, pos end
+
+  -- TODO: if failed, complete from env
+  -- local t = ts[#ts]
+  -- if not t then return end
+  -- if t.type == 'string' and t.incomplete then return end
+  -- if t.type == 'comment' and t.incomplete then return end
+  -- local e = { type = 'root', {  } }
+  -- return complete(env, e)
 end
 
 return M
