@@ -338,36 +338,37 @@ function M.complete(src, env)
   local ts, endline, endcol = parser.lex(src)
   local es = parser.parse(ts)
 
-  local last = table.remove(es) ---@type nreplLuaExp
-  if last then
+  -- don't complete identifiers if there is a space after them
+  local le = table.remove(es) ---@type nreplLuaExp
+  if le and le[#le].type ~= 'ident' or not src:sub(-1,-1):match('%s') then
     local var = resolve(es, env)
     if not var then return end
-    local completions, pos = complete(var, last)
+    local completions, pos = complete(var, le)
     if pos then return completions, pos end
   end
 
-  -- -- TODO: if failed, complete from env
-  -- local lt = ts[#ts]
-  -- if lt then
-  --   -- don't complete after incomplete strings and comments
-  --   if lt.type == 'string' and lt.incomplete then return end
-  --   if lt.type == 'comment' and lt.incomplete then return end
-  --   -- require a space after identifiers
-  --   if lt.type == 'ident' and not src:sub(-1, -1):match('%s') then return end
-  -- end
+  local lt = ts[#ts]
+  if lt then -- TODO: this is just basic stuff for now, probably needs a lot more
+    -- stop after incomplete strings and comments
+    if lt.type == 'string' and lt.incomplete then return end
+    if lt.type == 'comment' and lt.incomplete then return end
+    -- stop after . : ... operators
+    if lt.type == 'op' and lt.value == '.' and
+       lt.value == ':' and lt.value == '...' then return end
+    -- stop if there is no space after some tokens
+    local space = src:sub(-1,-1):match('%s')
+    if not space and (lt.type == 'ident' or lt.type == 'number') then return end
+  end
 
-  -- local e = {
-  --   type = 'root',
-  --   {
-  --     type = 'ident',
-  --     value = 'v',
-  --     line = endline,
-  --     col = endcol,
-  --   },
-  -- }
-  -- local completions, pos = complete(env, e)
-  -- P(completions)
-  -- return complete(env, e)
+  --- complete from env, with a fake empty exp
+  return complete(env, {
+    type = 'root', {
+      type = 'ident',
+      value = '',
+      line = endline,
+      col = endcol,
+    },
+  })
 end
 
 return M
