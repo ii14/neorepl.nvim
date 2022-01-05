@@ -69,7 +69,7 @@ indent-blankline.nvim plugin, so it's good to disable that too.
 
 It can be done by creating `ftplugin/nrepl.vim` file, for example:
 ```viml
-let g:indent_blankline_enabled = v:false
+let b:indent_blankline_enabled = v:false
 call compe#setup({'enabled': v:false}, 0)
 ```
 
