@@ -186,20 +186,11 @@ local function complete(var, e)
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
           local nparams, isvararg, argnames = get_func_info(v)
-          local abbr = k..'('..table.concat(argnames, ', ')..')'
-          if isvararg or nparams > 0 then
-            tinsert(res, {
-              word = k..'(',
-              abbr = abbr,
-              menu = type(v),
-            })
-          else
-            tinsert(res, {
-              word = k..'()',
-              abbr = abbr,
-              menu = type(v),
-            })
-          end
+          tinsert(res, {
+            word = k..((isvararg or nparams > 0) and '(' or '()'),
+            abbr = k..'('..table.concat(argnames, ', ')..')',
+            menu = type(v),
+          })
         else
           tinsert(res, {
             word = k,
@@ -223,20 +214,11 @@ local function complete(var, e)
         local word = k:match(RE_IDENT) and '.'..k or "['"..k.."']"
         if type(v) == 'function' then
           local nparams, isvararg, argnames = get_func_info(v)
-          local abbr = k..'('..table.concat(argnames, ', ')..')'
-          if isvararg or nparams > 0 then
-            tinsert(res, {
-              word = word..'(',
-              abbr = abbr,
-              menu = type(v),
-            })
-          else
-            tinsert(res, {
-              word = word..'()',
-              abbr = abbr,
-              menu = type(v),
-            })
-          end
+          tinsert(res, {
+            word = word..((isvararg or nparams > 0) and '(' or '()'),
+            abbr = k..'('..table.concat(argnames, ', ')..')',
+            menu = type(v),
+          })
         else
           tinsert(res, {
             word = word,
@@ -261,18 +243,10 @@ local function complete(var, e)
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
           local nparams, isvararg, argnames = get_func_info(v)
-          local abbr = k..'('..table.concat(argnames, ', ')..')'
-          if isvararg or nparams > 1 then
+          if nparams > 0 then
             tinsert(res, {
-              word = ':'..k..'(',
-              abbr = abbr,
-              menu = type(v),
-            })
-          ---@diagnostic disable-next-line: undefined-field
-          elseif nparams > 0 then
-            tinsert(res, {
-              word = ':'..k..'()',
-              abbr = abbr,
+              word = ':'..k..((isvararg or nparams > 1) and '(' or '()'),
+              abbr = k..'('..table.concat(argnames, ', ')..')',
               menu = type(v),
             })
           end
