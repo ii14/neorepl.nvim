@@ -203,7 +203,9 @@ local function complete(var, e)
 
     table.sort(res, sort_completions)
     return res, e[1].col
-  elseif e.type == 'prop' then
+  end
+
+  if e.type == 'prop' then
     if type(var) ~= 'table' then return end
     local res = {}
     local re = '^'..(e[2] and e[2].value or '')
@@ -231,10 +233,14 @@ local function complete(var, e)
 
     table.sort(res, sort_completions)
     return res, e[1].col
-  elseif e.type == 'index' then
+  end
+
+  if e.type == 'index' then
     -- TODO
     return
-  elseif e.type == 'method' then
+  end
+
+  if e.type == 'method' then
     if type(var) ~= 'table' then return end
     local res = {}
     local re = '^'..(e[2] and e[2].value or '')
@@ -256,9 +262,12 @@ local function complete(var, e)
 
     table.sort(res, sort_completions)
     return res, e[1].col
-  elseif e.type == 'call1' then
+  end
+
+  if e.type == 'call1' then
     if var ~= require then return end
     local res = {}
+
     if e[1].incomplete and not e[1].long then
       if e[1].long then return end
       local stype = e[1].value:sub(1,1)
@@ -271,10 +280,14 @@ local function complete(var, e)
         })
       end
     end
+
     return res, e[1].col
-  elseif e.type == 'call2' then
+  end
+
+  if e.type == 'call2' then
     if var ~= require then return end
     local res = {}
+
     if e[2] == nil or e[2].incomplete then
       if e[2] then
         if e[2].long then return end
@@ -300,6 +313,7 @@ local function complete(var, e)
     elseif e[3] == nil then
       tinsert(res, ')')
     end
+
     return res, e[1].col
   end
 end
