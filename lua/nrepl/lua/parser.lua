@@ -55,7 +55,7 @@ end
 
 --- Tokenize lua source code
 ---@param input string
----@return nreplLuaToken[]
+---@return nreplLuaToken[] tokens, number line, number col
 function M.lex(input)
   local line = 0
   local col = 0
@@ -79,6 +79,7 @@ function M.lex(input)
       -- I guess we don't have to handle \r's?
       local _, pos, ch = rest:find(RE_WHITESPACE)
       if pos == nil then
+        col = col + #rest
         return
       elseif ch == '\n' then
         rest = rest:sub(pos + 1)
@@ -105,6 +106,7 @@ function M.lex(input)
           local _, pos, ch = rest:find('([%]\n])')
           if pos == nil then
             value = value..rest
+            col = col + #rest
             rest = ''
             return {
               type = 'comment',
@@ -139,6 +141,7 @@ function M.lex(input)
         local pos = rest:find('\n')
         if pos == nil then
           value = rest
+          col = col + #rest
           rest = ''
           return {
             type = 'comment',
@@ -171,6 +174,7 @@ function M.lex(input)
           local _, pos, ch = rest:find('([%]\n])')
           if pos == nil then
             value = value..rest
+            col = col + #rest
             rest = ''
             return {
               type = 'string',
@@ -264,6 +268,7 @@ function M.lex(input)
           local _, pos, ch = rest:find('([\n\\'..str..'])')
           if pos == nil then
             value = value..rest
+            col = col + #rest
             rest = ''
             return {
               type = 'string',
@@ -312,7 +317,7 @@ function M.lex(input)
     if not token then break end
     tinsert(tokens, token)
   end
-  return tokens
+  return tokens, line, col
 end
 
 --- Get last expression

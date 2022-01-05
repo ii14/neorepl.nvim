@@ -121,6 +121,53 @@ local function sort_completions(a, b)
   return a.word < b.word
 end
 
+---@type table<string,string[]>
+local NVIM_API = nil
+---@return table<string,string[]>
+local function get_nvim_api()
+  if NVIM_API then
+    return NVIM_API
+  end
+
+  local info = {}
+  for _, func in ipairs(vim.fn.api_info().functions) do
+    local params = func.parameters
+    for i, v in ipairs(params) do
+      params[i] = v[2]
+    end
+    info[func.name] = params
+  end
+
+  NVIM_API = {}
+  for k, v in pairs(vim.api) do
+    local params = info[k]
+    if params then
+      NVIM_API[v] = params
+    end
+  end
+  return NVIM_API
+end
+
+---@param f function
+---@return number nparams, number isvararg, string[] argnames
+local function get_func_info(f)
+  local api_func = get_nvim_api()[f]
+  if api_func then return #api_func, false, api_func end
+
+  local info = debug.getinfo(f, 'u')
+  local args = {}
+  ---@diagnostic disable-next-line: undefined-field
+  for i = 1, info.nparams do
+    args[i] = debug.getlocal(f, i)
+  end
+  ---@diagnostic disable-next-line: undefined-field
+  if info.isvararg then
+    tinsert(args, '...')
+  end
+  ---@diagnostic disable-next-line: undefined-field
+  return info.nparams, info.isvararg, args
+end
+
 ---@param var any
 ---@param e nreplLuaExp
 ---@return number, string[]
@@ -138,18 +185,18 @@ local function complete(var, e)
     for k, v in pairs(var) do
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
-          local i = debug.getinfo(v, 'u')
-          ---@diagnostic disable-next-line: undefined-field
-          if i.isvararg or i.nparams > 0 then
+          local nparams, isvararg, argnames = get_func_info(v)
+          local abbr = k..'('..table.concat(argnames, ', ')..')'
+          if isvararg or nparams > 0 then
             tinsert(res, {
               word = k..'(',
-              abbr = k,
+              abbr = abbr,
               menu = type(v),
             })
           else
             tinsert(res, {
               word = k..'()',
-              abbr = k,
+              abbr = abbr,
               menu = type(v),
             })
           end
@@ -175,18 +222,18 @@ local function complete(var, e)
         -- TODO: escape key
         local word = k:match(RE_IDENT) and '.'..k or "['"..k.."']"
         if type(v) == 'function' then
-          local i = debug.getinfo(v, 'u')
-          ---@diagnostic disable-next-line: undefined-field
-          if i.isvararg or i.nparams > 0 then
+          local nparams, isvararg, argnames = get_func_info(v)
+          local abbr = k..'('..table.concat(argnames, ', ')..')'
+          if isvararg or nparams > 0 then
             tinsert(res, {
               word = word..'(',
-              abbr = k,
+              abbr = abbr,
               menu = type(v),
             })
           else
             tinsert(res, {
               word = word..'()',
-              abbr = k,
+              abbr = abbr,
               menu = type(v),
             })
           end
@@ -213,19 +260,19 @@ local function complete(var, e)
     for k, v in pairs(var) do
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
-          local i = debug.getinfo(v, 'u')
-          ---@diagnostic disable-next-line: undefined-field
-          if i.isvararg or i.nparams > 1 then
+          local nparams, isvararg, argnames = get_func_info(v)
+          local abbr = k..'('..table.concat(argnames, ', ')..')'
+          if isvararg or nparams > 1 then
             tinsert(res, {
               word = ':'..k..'(',
-              abbr = k,
+              abbr = abbr,
               menu = type(v),
             })
           ---@diagnostic disable-next-line: undefined-field
-          elseif i.nparams > 0 then
+          elseif nparams > 0 then
             tinsert(res, {
               word = ':'..k..'()',
-              abbr = k,
+              abbr = abbr,
               menu = type(v),
             })
           end
@@ -288,22 +335,38 @@ end
 ---@return string[]
 function M.complete(src, env)
   env = env or _G
-  local ts = parser.lex(src)
+  local ts, endline, endcol = parser.lex(src)
   local es = parser.parse(ts)
 
   local last = table.remove(es) ---@type nreplLuaExp
-  if not last then return end
-  local var = resolve(es, env)
-  if not var then return end
-  local completions, pos = complete(var, last)
-  if pos then return completions, pos end
+  if last then
+    local var = resolve(es, env)
+    if not var then return end
+    local completions, pos = complete(var, last)
+    if pos then return completions, pos end
+  end
 
-  -- TODO: if failed, complete from env
-  -- local t = ts[#ts]
-  -- if not t then return end
-  -- if t.type == 'string' and t.incomplete then return end
-  -- if t.type == 'comment' and t.incomplete then return end
-  -- local e = { type = 'root', {  } }
+  -- -- TODO: if failed, complete from env
+  -- local lt = ts[#ts]
+  -- if lt then
+  --   -- don't complete after incomplete strings and comments
+  --   if lt.type == 'string' and lt.incomplete then return end
+  --   if lt.type == 'comment' and lt.incomplete then return end
+  --   -- require a space after identifiers
+  --   if lt.type == 'ident' and not src:sub(-1, -1):match('%s') then return end
+  -- end
+
+  -- local e = {
+  --   type = 'root',
+  --   {
+  --     type = 'ident',
+  --     value = 'v',
+  --     line = endline,
+  --     col = endcol,
+  --   },
+  -- }
+  -- local completions, pos = complete(env, e)
+  -- P(completions)
   -- return complete(env, e)
 end
 
