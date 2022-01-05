@@ -1,8 +1,10 @@
-local M = {}
-
 local parser = require('nrepl.lua.parser')
-local tinsert = table.insert
-local make_lookup = require('nrepl.util').make_lookup
+local tinsert, tsort, tremove, tconcat = table.insert, table.sort, table.remove, table.concat
+local dgetinfo, dgetlocal = debug.getinfo, debug.getlocal
+local ploaded = package.loaded
+local api, api_info = vim.api, vim.fn.api_info
+
+local M = {}
 
 local RE_IDENT = '^[%a_][%a%d_]*$'
 
@@ -11,58 +13,8 @@ local function match(str, re)
   return ok and res
 end
 
---- uv.fs_scandir iterator
-local function scandir_iterator(fs)
-  local uv = vim.loop
-  ---@return string, string
-  return function()
-    local dirname, dirtype = uv.fs_scandir_next(fs)
-    if dirname then
-      return dirname, dirtype
-    end
-  end
-end
-
----@param query string
----@return string[]
-local function get_modules(query)
-  -- TODO: module.path, module.cpath
-  -- TODO: look up module.loaded whether the 'a/b/c' style is used
-  local res = {}
-
-  local function scan(path, base, filter)
-    local dir = vim.loop.fs_scandir(path)
-    if not dir then return end
-    for name, type in scandir_iterator(dir) do
-      if filter == nil or name:sub(1, #filter) == filter then
-        if type == 'file' and name:sub(-4) == ('.lua') then
-          local modname = name:sub(1, -5)
-          if modname == 'init' and base then
-            tinsert(res, base)
-          elseif modname ~= '' then
-            tinsert(res, base and base..'.'..modname or modname)
-          end
-        elseif type == 'directory' then
-          scan(path..'/'..name, base and base..'.'..name or name)
-        end
-      end
-    end
-  end
-
-  query = vim.split(query or '', '[%./]')
-  local last = table.remove(query) or ''
-  local suffix = '/lua'
-  local modbase
-  if #query > 0 then
-    suffix = suffix..'/'..table.concat(query, '/')
-    modbase = table.concat(query, '.')
-  end
-
-  for _, path in ipairs(vim.api.nvim_list_runtime_paths()) do
-    scan(path..suffix, modbase, last)
-  end
-  table.sort(res)
-  return res
+local function sort_completions(a, b)
+  return a.word < b.word
 end
 
 ---@param t nreplLuaToken
@@ -78,6 +30,122 @@ local function parse_string(t)
   return (not t.long and not t.incomplete) and t.value:sub(2, #t.value - 1) or nil
 end
 
+
+---@type function
+---@param query string
+---@return string[]
+local get_modules do
+  --- uv.fs_scandir iterator
+  local function scandir_iterator(fs)
+    local uv = vim.loop
+    ---@return string, string
+    return function()
+      local dirname, dirtype = uv.fs_scandir_next(fs)
+      if dirname then
+        return dirname, dirtype
+      end
+    end
+  end
+
+  function get_modules(query)
+    -- TODO: module.path, module.cpath
+    -- TODO: look up module.loaded whether the 'a/b/c' style is used
+    local res = {}
+
+    local function scan(path, base, filter)
+      local dir = vim.loop.fs_scandir(path)
+      if not dir then return end
+      for name, type in scandir_iterator(dir) do
+        if filter == nil or name:sub(1, #filter) == filter then
+          if type == 'file' and name:sub(-4) == ('.lua') then
+            local modname = name:sub(1, -5)
+            if modname == 'init' and base then
+              tinsert(res, base)
+            elseif modname ~= '' then
+              tinsert(res, base and base..'.'..modname or modname)
+            end
+          elseif type == 'directory' then
+            scan(path..'/'..name, base and base..'.'..name or name)
+          end
+        end
+      end
+    end
+
+    query = vim.split(query or '', '[%./]')
+    local last = tremove(query) or ''
+    local suffix = '/lua'
+    local modbase
+    if #query > 0 then
+      suffix = suffix..'/'..tconcat(query, '/')
+      modbase = tconcat(query, '.')
+    end
+
+    for _, path in ipairs(api.nvim_list_runtime_paths()) do
+      scan(path..suffix, modbase, last)
+    end
+    tsort(res)
+    return res
+  end
+end
+
+---@type function
+---@return table<string,string[]>
+local get_nvim_api do
+  ---@type table<string,string[]>
+  local NVIM_API = nil
+  function get_nvim_api()
+    if NVIM_API then
+      return NVIM_API
+    end
+
+    local info = {}
+    for _, func in ipairs(api_info().functions) do
+      local params = func.parameters
+      for i, v in ipairs(params) do
+        params[i] = v[2]
+      end
+      info[func.name] = params
+    end
+
+    NVIM_API = {}
+    for k, v in pairs(api) do
+      local params = info[k]
+      if params then
+        NVIM_API[v] = params
+      end
+    end
+    return NVIM_API
+  end
+end
+
+---@param f function
+---@return number nparams, number isvararg, string[] argnames
+local function get_func_info(f)
+  local api_func = get_nvim_api()[f]
+  if api_func then return #api_func, false, api_func end
+
+  ---@diagnostic disable: undefined-field
+  local info = dgetinfo(f, 'u')
+  local args = {}
+  for i = 1, info.nparams do
+    args[i] = dgetlocal(f, i)
+  end
+  if info.isvararg then
+    tinsert(args, '...')
+  end
+  return info.nparams, info.isvararg, args
+  ---@diagnostic enable: undefined-field
+end
+
+
+local function isindexable(v)
+  if type(v) == 'table' then
+    return true
+  end
+  local mt = getmetatable(v)
+  return mt and mt.__index
+end
+
 ---@param es nreplLuaExp[]
 ---@param env table
 ---@return any
@@ -85,18 +153,13 @@ local function resolve(es, env)
   local var = env or _G
 
   for _, e in ipairs(es) do
-    if e.type == 'root' then
-      if type(var) ~= 'table' then return end
-      local prop = var[e[1].value]
-      if prop == nil then return end
-      var = prop
-    elseif e.type == 'prop' then
-      if type(var) ~= 'table' then return end
-      local prop = var[e[2].value]
+    if e.type == 'root' or e.type == 'prop' then
+      if not isindexable(var) then return end
+      local prop = var[e[e.type == 'root' and 1 or 2].value]
       if prop == nil then return end
       var = prop
     elseif e.type == 'index' then
-      if type(var) ~= 'table' then return end
+      if not isindexable(var) then return end
       local r = (e[2].type == 'number' and parse_number or parse_string)(e[2])
       if r == nil then return end
       local prop = var[r]
@@ -109,64 +172,13 @@ local function resolve(es, env)
       if var ~= require then return end
       local r = parse_string(e.type == 'call1' and e[1] or e[2])
       if r == nil then return end
-      local prop = package.loaded[r]
+      local prop = ploaded[r]
       if prop == nil then return end
       var = prop
     end
   end
 
   return var
-end
-
-local function sort_completions(a, b)
-  return a.word < b.word
-end
-
----@type table<string,string[]>
-local NVIM_API = nil
----@return table<string,string[]>
-local function get_nvim_api()
-  if NVIM_API then
-    return NVIM_API
-  end
-
-  local info = {}
-  for _, func in ipairs(vim.fn.api_info().functions) do
-    local params = func.parameters
-    for i, v in ipairs(params) do
-      params[i] = v[2]
-    end
-    info[func.name] = params
-  end
-
-  NVIM_API = {}
-  for k, v in pairs(vim.api) do
-    local params = info[k]
-    if params then
-      NVIM_API[v] = params
-    end
-  end
-  return NVIM_API
-end
-
----@param f function
----@return number nparams, number isvararg, string[] argnames
-local function get_func_info(f)
-  local api_func = get_nvim_api()[f]
-  if api_func then return #api_func, false, api_func end
-
-  local info = debug.getinfo(f, 'u')
-  local args = {}
-  ---@diagnostic disable-next-line: undefined-field
-  for i = 1, info.nparams do
-    args[i] = debug.getlocal(f, i)
-  end
-  ---@diagnostic disable-next-line: undefined-field
-  if info.isvararg then
-    tinsert(args, '...')
-  end
-  ---@diagnostic disable-next-line: undefined-field
-  return info.nparams, info.isvararg, args
 end
 
 ---@param var any
@@ -179,7 +191,7 @@ local function complete(var, e)
   end
 
   if e.type == 'root' then
-    if type(var) ~= 'table' then return end
+    if not isindexable(var) then return end
     local res = {}
     local re = '^'..e[1].value
 
@@ -189,7 +201,7 @@ local function complete(var, e)
           local nparams, isvararg, argnames = get_func_info(v)
           tinsert(res, {
             word = k..((isvararg or nparams > 0) and (v == require and "'" or '(') or '()'),
-            abbr = k..'('..table.concat(argnames, ', ')..')',
+            abbr = k..'('..tconcat(argnames, ', ')..')',
             menu = type(v),
           })
         else
@@ -202,12 +214,12 @@ local function complete(var, e)
       end
     end
 
-    table.sort(res, sort_completions)
+    tsort(res, sort_completions)
     return res, e[1].col
   end
 
   if e.type == 'prop' then
-    if type(var) ~= 'table' then return end
+    if not isindexable(var) then return end
     local res = {}
     local re = '^'..(e[2] and e[2].value or '')
 
@@ -219,7 +231,7 @@ local function complete(var, e)
           local nparams, isvararg, argnames = get_func_info(v)
           tinsert(res, {
             word = word..((isvararg or nparams > 0) and (v == require and "'" or '(') or '()'),
-            abbr = k..'('..table.concat(argnames, ', ')..')',
+            abbr = k..'('..tconcat(argnames, ', ')..')',
             menu = type(v),
           })
         else
@@ -232,7 +244,7 @@ local function complete(var, e)
       end
     end
 
-    table.sort(res, sort_completions)
+    tsort(res, sort_completions)
     return res, e[1].col
   end
 
@@ -242,7 +254,7 @@ local function complete(var, e)
   end
 
   if e.type == 'method' then
-    if type(var) ~= 'table' then return end
+    if not isindexable(var) then return end
     local res = {}
     local re = '^'..(e[2] and e[2].value or '')
 
@@ -253,7 +265,7 @@ local function complete(var, e)
           if nparams > 0 then
             tinsert(res, {
               word = ':'..k..((isvararg or nparams > 1) and '(' or '()'),
-              abbr = k..'('..table.concat(argnames, ', ')..')',
+              abbr = k..'('..tconcat(argnames, ', ')..')',
               menu = type(v),
             })
           end
@@ -261,7 +273,7 @@ local function complete(var, e)
       end
     end
 
-    table.sort(res, sort_completions)
+    tsort(res, sort_completions)
     return res, e[1].col
   end
 
@@ -277,7 +289,7 @@ local function complete(var, e)
         tinsert(res, {
           word = stype..modname..stype,
           abbr = modname,
-          menu = package.loaded[modname] ~= nil and 'module+' or 'module',
+          menu = ploaded[modname] ~= nil and 'module+' or 'module',
         })
       end
     end
@@ -298,7 +310,7 @@ local function complete(var, e)
           tinsert(res, {
             word = '('..stype..modname..stype..')',
             abbr = modname,
-            menu = package.loaded[modname] ~= nil and 'module+' or 'module',
+            menu = ploaded[modname] ~= nil and 'module+' or 'module',
           })
         end
       else
@@ -307,7 +319,7 @@ local function complete(var, e)
           tinsert(res, {
             word = "('"..modname.."')",
             abbr = modname,
-            menu = package.loaded[modname] ~= nil and 'module+' or 'module',
+            menu = ploaded[modname] ~= nil and 'module+' or 'module',
           })
         end
       end
@@ -319,7 +331,7 @@ local function complete(var, e)
   end
 end
 
-local KEYWORDS_BEFORE_IDENT = make_lookup {
+local KEYWORDS_BEFORE_IDENT = require('nrepl.util').make_lookup {
   'and', 'do', 'else', 'elseif', 'end',
   'if', 'in', 'not', 'or', 'repeat',
   'return', 'then', 'until', 'while',
@@ -329,12 +341,11 @@ local KEYWORDS_BEFORE_IDENT = make_lookup {
 ---@param env table
 ---@return string[]
 function M.complete(src, env)
-  env = env or _G
   local ts, endline, endcol = parser.lex(src)
   local es = parser.parse(ts)
 
   -- don't complete identifiers if there is a space after them
-  local le = table.remove(es) ---@type nreplLuaExp
+  local le = tremove(es) ---@type nreplLuaExp
   if le and le[#le].type ~= 'ident' or not src:sub(-1,-1):match('%s') then
     local var = resolve(es, env)
     if not var then return end
@@ -345,8 +356,7 @@ function M.complete(src, env)
   local lt = ts[#ts]
   if lt then -- TODO: this is just basic stuff for now, probably needs a lot more
     -- stop after incomplete strings and comments
-    if lt.type == 'string' and lt.incomplete then return end
-    if lt.type == 'comment' and lt.incomplete then return end
+    if lt.incomplete then return end
 
     -- stop after . : ... operators
     if lt.type == 'op' and (lt.value == '.' or

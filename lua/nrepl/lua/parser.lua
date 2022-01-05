@@ -1,5 +1,4 @@
-local tinsert = table.insert
-local make_lookup = require('nrepl.util').make_lookup
+local tinsert, srep = table.insert, string.rep
 
 local M = {}
 
@@ -37,7 +36,7 @@ local M = {}
 local WHITESPACE = ' \t\v\f\r'
 local RE_WHITESPACE = '['..WHITESPACE..']*([^'..WHITESPACE..'])'
 
-local KEYWORDS = make_lookup {
+local KEYWORDS = require('nrepl.util').make_lookup {
   'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
   'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
   'return', 'then', 'true', 'until', 'while',
@@ -91,7 +90,7 @@ function M.lex(input)
       if long then
         -- LONG COMMENTS
         value = value..slice(#long)
-        local re = '^%]'..string.rep('=', #long - 2)..'%]'
+        local re = '^%]'..srep('=', #long - 2)..'%]'
         while true do
           local _, pos, ch = rest:find('([%]\n])')
           if pos == nil then
@@ -159,7 +158,7 @@ function M.lex(input)
       local long = rest:match('^%[=?=?=?=?%[')
       if long then
         local value = slice(#long)
-        local re = '^%]'..string.rep('=', #long - 2)..'%]'
+        local re = '^%]'..srep('=', #long - 2)..'%]'
         while true do
           local _, pos, ch = rest:find('([%]\n])')
           if pos == nil then
