@@ -63,10 +63,9 @@ works just like this. So to break lines in a single expression with vim script,
 there has to be two backslashes. By default you can break line in insert mode
 with `CTRL-J`.
 
-Plugin ships with its own completion, a half-assed one at the moment, but
-still, so it's best to disable other completion plugins for the `nrepl`
-filetype. Also highlighting can be kinda buggy with indent-blankline.nvim
-plugin, so it's good to disable that too.
+Plugin ships with its own completion, so it's best to disable other completion
+plugins for the `nrepl` filetype. Also highlighting can be kinda buggy with
+indent-blankline.nvim plugin, so it's good to disable that too.
 
 It can be done by creating `ftplugin/nrepl.vim` file, for example:
 ```viml
@@ -89,7 +88,7 @@ require 'nrepl'.config{
 
 - [X] Completion
   - [X] Vim script (should be the same as on the command line)
-  - [X] Lua (not perfect, I hope to either find something that works or to roll out my own)
+  - [X] Lua (best lua completion for neovim in town)
   - [X] REPL commands (works for commands names only, no arguments yet)
 - [X] History
   - [X] Save and recall single lines
