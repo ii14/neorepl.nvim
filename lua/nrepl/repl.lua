@@ -579,9 +579,19 @@ function M:complete()
       luacomplete = require('nrepl.lua.complete').complete
     end
 
+    -- merge environments on the fly, because
+    -- I don't know how to do it cleanly otherwise
+    local env = {}
+    for k, v in pairs(_G) do
+      env[k] = v
+    end
+    for k, v in pairs(self.luaenv) do
+      env[k] = v
+    end
+
     -- TODO: concat with previous lines
-    completions, start = luacomplete(line)
-    if completions == nil then
+    completions, start = luacomplete(line, env)
+    if completions == nil or #completions == 0 then
       return
     end
     start = start + 1
