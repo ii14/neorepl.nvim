@@ -576,25 +576,15 @@ function M:complete()
     end
   else
     if luacomplete == nil then
-      luacomplete = require('nrepl.luacomplete')
+      luacomplete = require('nrepl.lua.parser').complete
     end
 
-    -- merge envs on the fly, just to get it working
-    -- without modifying the completion code too much
-    local env = {}
-    for k, v in pairs(global) do
-      env[k] = v
-    end
-    for k, v in pairs(self.luaenv) do
-      env[k] = v
-    end
-
-    local prefix
-    prefix, completions = luacomplete(line, env)
-    if prefix == nil or completions == nil then
+    -- TODO: concat with previous lines
+    start, completions = luacomplete(line)
+    if start == nil then
       return
     end
-    start = #prefix + 1
+    start = start + 1
   end
 
   if completions and #completions > 0 then
