@@ -362,19 +362,35 @@ function Repl:complete()
   if line:sub(1,1) == COMMAND_PREFIX then
     line = line:sub(2)
     -- TODO: complete command arguments too
-    if not line:match('^%S*$') then
+    if line:match('^%S*$') then
+      local candidates = {}
+      local size = #line
+      for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+        if line == c.command:sub(1, size) then
+          table.insert(candidates, c.command)
+        end
+      end
+      if #candidates > 0 then
+        fn.complete(2, candidates)
+      end
       return
     end
 
-    local candidates = {}
-    local size = #line
-    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
-      if line == c.command:sub(1, size) then
-        table.insert(candidates, c.command)
-      end
+    -- TODO: complete multiple lines
+    local begin = fn.match(line, [[\v\C^v%[im]\s+\zs]])
+    if begin >= 0 then
+      results, start = self.vim:complete(line:sub(begin + 1))
+    else
+      begin = fn.match(line, [[\v\C^l%[ua]\s+\zs]])
+      if begin < 0 then return end
+      results, start = self.lua:complete(line:sub(begin + 1))
     end
-    if #candidates > 0 then
-      fn.complete(2, candidates)
+    if start then
+      start = start + begin + 1
+    end
+
+    if results and #results > 0 then
+      fn.complete(start or pos + 1, results)
     end
     return
   end
@@ -382,6 +398,7 @@ function Repl:complete()
   if self.vim_mode then
     results, start = self.vim:complete(line)
   else
+    -- TODO: complete multiple lines
     results, start = self.lua:complete(line)
   end
 
