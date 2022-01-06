@@ -195,7 +195,7 @@ local function complete(var, e)
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
           local argnames, isvararg, special = get_func_info(v)
-          if #argnames > 0 then
+          if (not isvararg and #argnames > 0) or (isvararg and #argnames > 1) then
             tinsert(res, {
               word = ':'..k..((isvararg or #argnames > 1) and '(' or '()'),
               abbr = k..'('..tconcat(argnames, ', ')..')',
