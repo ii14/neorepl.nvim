@@ -33,10 +33,12 @@ end
 
 
 ---@param f function
----@return number nparams, number isvararg, string[] argnames
+---@return string[] argnames, boolean isvararg, boolean special
 local function get_func_info(f)
   local api_func = providers.api()[f]
-  if api_func then return #api_func, false, api_func end
+  if api_func then
+    return api_func, false, true
+  end
 
   ---@diagnostic disable: undefined-field
   local info = dgetinfo(f, 'u')
@@ -47,7 +49,7 @@ local function get_func_info(f)
   if info.isvararg then
     tinsert(args, '...')
   end
-  return info.nparams, info.isvararg, args
+  return args, info.isvararg, false
   ---@diagnostic enable: undefined-field
 end
 
@@ -112,11 +114,11 @@ local function complete(var, e)
     for k, v in pairs(var) do
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
-          local nparams, isvararg, argnames = get_func_info(v)
+          local argnames, isvararg, special = get_func_info(v)
           tinsert(res, {
-            word = k..((isvararg or nparams > 0) and (v == require and "'" or '(') or '()'),
+            word = k..((isvararg or #argnames > 0) and (v == require and "'" or '(') or '()'),
             abbr = k..'('..tconcat(argnames, ', ')..')',
-            menu = type(v),
+            menu = special and 'function*' or 'function',
           })
         else
           tinsert(res, {
@@ -145,7 +147,7 @@ local function complete(var, e)
         res[i] = {
           word = word..((#argnames > 0) and '(' or '()'),
           abbr = k..'('..argnames..')',
-          menu = 'function',
+          menu = 'function*',
         }
       end
       return res, e[1].col
@@ -159,11 +161,11 @@ local function complete(var, e)
         -- TODO: escape key
         local word = k:match(RE_IDENT) and '.'..k or "['"..k.."']"
         if type(v) == 'function' then
-          local nparams, isvararg, argnames = get_func_info(v)
+          local argnames, isvararg, special = get_func_info(v)
           tinsert(res, {
-            word = word..((isvararg or nparams > 0) and (v == require and "'" or '(') or '()'),
+            word = word..((isvararg or #argnames > 0) and (v == require and "'" or '(') or '()'),
             abbr = k..'('..tconcat(argnames, ', ')..')',
-            menu = type(v),
+            menu = special and 'function*' or 'function'
           })
         else
           tinsert(res, {
@@ -192,12 +194,12 @@ local function complete(var, e)
     for k, v in pairs(var) do
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
-          local nparams, isvararg, argnames = get_func_info(v)
-          if nparams > 0 then
+          local argnames, isvararg, special = get_func_info(v)
+          if #argnames > 0 then
             tinsert(res, {
-              word = ':'..k..((isvararg or nparams > 1) and '(' or '()'),
+              word = ':'..k..((isvararg or #argnames > 1) and '(' or '()'),
               abbr = k..'('..tconcat(argnames, ', ')..')',
-              menu = type(v),
+              menu = special and 'function*' or 'function'
             })
           end
         end
