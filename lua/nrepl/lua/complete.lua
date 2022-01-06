@@ -22,9 +22,15 @@ end
 ---@param f function
 ---@return string[] argnames, boolean isvararg, boolean special
 local function get_func_info(f)
+  -- TODO: merge nvim api and lua stdlib into one table
   local api_func = providers.api()[f]
   if api_func then
     return api_func, false, true
+  end
+
+  local stdlib_func = providers.stdlib()[f]
+  if stdlib_func then
+    return stdlib_func, false, true
   end
 
   ---@diagnostic disable: undefined-field
@@ -132,11 +138,19 @@ local function complete(var, e)
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
           local argnames, isvararg, special = get_func_info(v)
-          tinsert(res, {
-            word = k..((isvararg or #argnames > 0) and (v == require and "'" or '(') or '()'),
-            abbr = k..'('..tconcat(argnames, ', ')..')',
-            menu = special and 'function*' or 'function',
-          })
+          if type(argnames) == 'string' then
+            tinsert(res, {
+              word = k..(#argnames > 0 and (v == require and "'" or '(') or '()'),
+              abbr = k..'('..argnames..')',
+              menu = special and 'function*' or 'function',
+            })
+          else
+            tinsert(res, {
+              word = k..((isvararg or #argnames > 0) and (v == require and "'" or '(') or '()'),
+              abbr = k..'('..tconcat(argnames, ', ')..')',
+              menu = special and 'function*' or 'function',
+            })
+          end
         else
           tinsert(res, {
             word = k,
@@ -193,11 +207,19 @@ local function complete(var, e)
 
         if type(v) == 'function' then
           local argnames, isvararg, special = get_func_info(v)
-          tinsert(res, {
-            word = word..((isvararg or #argnames > 0) and (v == require and "'" or '(') or '()'),
-            abbr = abbr..'('..tconcat(argnames, ', ')..')',
-            menu = special and 'function*' or 'function'
-          })
+          if type(argnames) == 'string' then
+            tinsert(res, {
+              word = word..(#argnames > 0 and (v == require and "'" or '(') or '()'),
+              abbr = abbr..'('..argnames..')',
+              menu = special and 'function*' or 'function',
+            })
+          else
+            tinsert(res, {
+              word = word..((isvararg or #argnames > 0) and (v == require and "'" or '(') or '()'),
+              abbr = abbr..'('..tconcat(argnames, ', ')..')',
+              menu = special and 'function*' or 'function',
+            })
+          end
         else
           tinsert(res, {
             word = word,
@@ -227,11 +249,19 @@ local function complete(var, e)
         if type(v) == 'function' then
           local argnames, isvararg, special = get_func_info(v)
           if isvararg or #argnames > 0 then
-            tinsert(res, {
-              word = ':'..k..((isvararg or #argnames > 1) and '(' or '()'),
-              abbr = k..'('..tconcat(argnames, ', ')..')',
-              menu = special and 'function*' or 'function'
-            })
+            if type(argnames) == 'string' then
+              tinsert(res, {
+                word = ':'..k..'(', -- TODO: figure out if it should be '()'
+                abbr = k..'('..argnames..')',
+                menu = special and 'function*' or 'function',
+              })
+            else
+              tinsert(res, {
+                word = ':'..k..((isvararg or #argnames > 1) and '(' or '()'),
+                abbr = k..'('..tconcat(argnames, ', ')..')',
+                menu = special and 'function*' or 'function',
+              })
+            end
           end
         end
       end

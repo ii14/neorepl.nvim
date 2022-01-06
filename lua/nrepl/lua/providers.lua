@@ -61,7 +61,7 @@ do -- require completion
   end
 end
 
-do -- vim.api completion
+do -- vim.api function signatures
   ---@type table<string,string[]>
   local NVIM_API = nil
 
@@ -104,7 +104,7 @@ do -- vim.fn completion
     -- get all builtin functions
     if VIM_FNS == nil then
       VIM_FNS = {}
-      for _, func in ipairs(require('nrepl.vim.functions')) do
+      for _, func in ipairs(require('nrepl.lua.data.functions')) do
         if VIM_FNS[func[1]] == nil then
           VIM_FNS[func[1]] = func[2]
         end
@@ -131,6 +131,16 @@ do -- vim.fn completion
 
     tsort(res, function_sort)
     return res
+  end
+end
+
+do -- lua stdlib function signatures
+  STDLIB_FNS = nil
+  function M.stdlib()
+    if not STDLIB_FNS then
+      STDLIB_FNS = require('nrepl.lua.data.stdlib')
+    end
+    return STDLIB_FNS
   end
 end
 
