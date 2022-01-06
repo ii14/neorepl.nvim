@@ -92,7 +92,7 @@ do -- vim.api function signatures
 end
 
 do -- vim.fn completion
-  VIM_FNS = nil
+  local VIM_FNS = nil
 
   local function function_sort(a, b)
     return slower(a[1]) < slower(b[1])
@@ -135,7 +135,7 @@ do -- vim.fn completion
 end
 
 do -- lua stdlib function signatures
-  STDLIB_FNS = nil
+  local STDLIB_FNS = nil
   function M.stdlib()
     if not STDLIB_FNS then
       STDLIB_FNS = require('nrepl.lua.data.stdlib')
