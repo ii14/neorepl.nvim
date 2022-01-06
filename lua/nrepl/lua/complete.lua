@@ -1,5 +1,6 @@
 local parser = require('nrepl.lua.parser')
 local providers = require('nrepl.lua.providers')
+local util = require('nrepl.lua.util')
 local tinsert, tsort, tremove, tconcat = table.insert, table.sort, table.remove, table.concat
 local dgetinfo, dgetlocal = debug.getinfo, debug.getlocal
 local slower = string.lower
@@ -17,89 +18,6 @@ end
 local function sort_completions(a, b)
   return slower(a.word) < slower(b.word)
 end
-
----@param t nreplLuaToken
----@return number
-local function parse_number(t)
-  return t.value:match('^%d+$') and tonumber(t.value) or nil
-end
-
-local TO_ESC_SEQS = {
-  ['a']  = '\a',
-  ['b']  = '\b',
-  ['f']  = '\f',
-  ['n']  = '\n',
-  ['r']  = '\r',
-  ['t']  = '\t',
-  ['v']  = '\v',
-  ['\\'] = '\\',
-  ["'"]  = "'",
-  ['"']  = '"',
-}
-
---- Parse string from token
----@param t nreplLuaToken
----@return string
-local function parse_string(t)
-  -- don't handle long strings, for now at least
-  if t.long then return end
-  -- incomplete strings don't have the closing quote
-  local str = t.value:sub(2, not t.incomplete and -2 or nil)
-
-  local n = 1
-  local m
-
-  while true do
-    n = str:find('\\', n)
-    if not n then
-      return str
-    end
-
-    n = n + 1
-    m = str:match([=[^([abfnrtv\\'"])]=], n)
-    if m then
-      str = str:sub(1, n-2)..TO_ESC_SEQS[m]..str:sub(n+1)
-    else
-      m = str:match([=[^(%d%d?%d?)]=], n)
-      if m then
-        local b = tonumber(m)
-        if b > 255 then return end
-        str = str:sub(1, n-2)..string.char(b)..str:sub(n+#m)
-      else
-        return
-      end
-    end
-  end
-
-  return str
-end
-
----@type function
----@param s string
----@return string
-local escape_string do
-  local FROM_ESC_SEQS = {
-    ['\a'] = '\\a',
-    ['\b'] = '\\b',
-    ['\f'] = '\\f',
-    ['\n'] = '\\n',
-    ['\r'] = '\\r',
-    ['\t'] = '\\t',
-    ['\v'] = '\\v',
-  }
-
-  for i = 0, 255 do
-    local ch = string.char(i)
-    if not FROM_ESC_SEQS[ch] and ch:match('[%c\128-\255]') then
-      FROM_ESC_SEQS[ch] = '\\'..i
-    end
-  end
-
-  function escape_string(s)
-    return s:gsub('\\', '\\\\'):gsub('[%c\128-\255]', FROM_ESC_SEQS)
-  end
-end
-
 
 ---@param f function
 ---@return string[] argnames, boolean isvararg, boolean special
@@ -121,7 +39,6 @@ local function get_func_info(f)
   return args, info.isvararg, false
   ---@diagnostic enable: undefined-field
 end
-
 
 local function isindexable(v)
   if type(v) == 'table' then
@@ -147,9 +64,9 @@ local function resolve(es, env)
       if not isindexable(var) then return end
       local t, r = e[2], nil
       if t.type == 'number' then
-        r = parse_number(t)
+        r = util.parse_number(t)
       elseif t.type == 'string' and not t.incomplete then
-        r = parse_string(t)
+        r = util.parse_string(t)
       end
       if r == nil then return end
       local prop = var[r]
@@ -162,7 +79,7 @@ local function resolve(es, env)
       if var ~= require then return end
       local t = e.type == 'call1' and e[1] or e[2]
       if t.incomplete then return end
-      local r = parse_string(t)
+      local r = util.parse_string(t)
       if r == nil then return end
       local prop = ploaded[r]
       if prop == nil then return end
@@ -223,7 +140,7 @@ local function complete(var, e)
         if abbr:match(RE_IDENT) then
           word = '.'..abbr
         else
-          abbr = escape_string(abbr)
+          abbr = util.escape_string(abbr)
           word = "['"..abbr:gsub("'", "\\'").."']"
         end
 
@@ -246,7 +163,7 @@ local function complete(var, e)
         if k:match(RE_IDENT) then
           word = '.'..abbr
         else
-          abbr = escape_string(abbr)
+          abbr = util.escape_string(abbr)
           word = "['"..abbr:gsub("'", "\\'").."']"
         end
 
