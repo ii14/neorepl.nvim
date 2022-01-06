@@ -24,11 +24,54 @@ local function parse_number(t)
   return t.value:match('^%d+$') and tonumber(t.value) or nil
 end
 
+local ESCAPE_SEQS = {
+  ['a']  = '\a',
+  ['b']  = '\b',
+  ['f']  = '\f',
+  ['n']  = '\n',
+  ['r']  = '\r',
+  ['t']  = '\t',
+  ['v']  = '\v',
+  ['\\'] = '\\',
+  ["'"]  = "'",
+  ['"']  = '"',
+}
+
+--- Parse string from token
 ---@param t nreplLuaToken
 ---@return string
 local function parse_string(t)
-  -- TODO: interpret escape sequences
-  return (not t.long and not t.incomplete) and t.value:sub(2, #t.value - 1) or nil
+  -- don't handle long strings, for now at least
+  if t.long then return end
+  -- incomplete strings don't have the closing quote
+  local str = t.value:sub(2, not t.incomplete and -2 or nil)
+
+  local n = 1
+  local m
+
+  while true do
+    n = str:find('\\', n)
+    if not n then
+      return str
+    end
+
+    n = n + 1
+    m = str:match([=[^([abfnrtv\\'"])]=], n)
+    if m then
+      str = str:sub(1, n-2)..ESCAPE_SEQS[m]..str:sub(n+1)
+    else
+      m = str:match([=[^(%d%d?%d?)]=], n)
+      if m then
+        local b = tonumber(m)
+        if b > 255 then return end
+        str = str:sub(1, n-2)..string.char(b)..str:sub(n+#m)
+      else
+        return
+      end
+    end
+  end
+
+  return str
 end
 
 
@@ -76,7 +119,12 @@ local function resolve(es, env)
       var = prop
     elseif e.type == 'index' then
       if not isindexable(var) then return end
-      local r = (e[2].type == 'number' and parse_number or parse_string)(e[2])
+      local t, r = e[2], nil
+      if t.type == 'number' then
+        r = parse_number(t)
+      elseif t.type == 'string' and not t.incomplete then
+        r = parse_string(t)
+      end
       if r == nil then return end
       local prop = var[r]
       if prop == nil then return end
@@ -86,7 +134,9 @@ local function resolve(es, env)
     else
       -- call1 and call2, only for require
       if var ~= require then return end
-      local r = parse_string(e.type == 'call1' and e[1] or e[2])
+      local t = e.type == 'call1' and e[1] or e[2]
+      if t.incomplete then return end
+      local r = parse_string(t)
       if r == nil then return end
       local prop = ploaded[r]
       if prop == nil then return end
