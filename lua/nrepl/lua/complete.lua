@@ -90,6 +90,30 @@ local function resolve(es, env)
   return var
 end
 
+--- Table and metatable iterator
+local function mpairs(t)
+  local t1 = type(t) == 'table' and t or nil
+  local t2 = getmetatable(t)
+  t2 = t2 and type(t2.__index) == 'table' and t2.__index or nil
+  t = t1 or t2
+  local k
+
+  if t == nil then
+    return function() end
+  end
+
+  return function()
+    local v
+    k, v = next(t, k)
+    if k then
+      return k, v
+    elseif t == t1 and t2 then
+      t, k = t2, nil
+      return next(t, k)
+    end
+  end
+end
+
 ---@param var any
 ---@param e nreplLuaExp
 ---@return number, string[]
@@ -104,7 +128,7 @@ local function complete(var, e)
     local res = {}
     local re = '^'..e[1].value
 
-    for k, v in pairs(var) do
+    for k, v in mpairs(var) do
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
           local argnames, isvararg, special = get_func_info(v)
@@ -156,7 +180,7 @@ local function complete(var, e)
     local res = {}
     local re = '^'..(e[2] and e[2].value or '')
 
-    for k, v in pairs(var) do
+    for k, v in mpairs(var) do
       if type(k) == 'string' and match(k, re) then
         local abbr = k
         local word
@@ -198,11 +222,11 @@ local function complete(var, e)
     local res = {}
     local re = '^'..(e[2] and e[2].value or '')
 
-    for k, v in pairs(var) do
+    for k, v in mpairs(var) do
       if type(k) == 'string' and match(k, re) and k:match(RE_IDENT) then
         if type(v) == 'function' then
           local argnames, isvararg, special = get_func_info(v)
-          if (not isvararg and #argnames > 0) or (isvararg and #argnames > 1) then
+          if isvararg or #argnames > 0 then
             tinsert(res, {
               word = ':'..k..((isvararg or #argnames > 1) and '(' or '()'),
               abbr = k..'('..tconcat(argnames, ', ')..')',
