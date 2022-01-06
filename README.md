@@ -15,7 +15,7 @@ Start a new instance with:
 
 In insert mode type `/h` and enter to see available commands.
 
-![screenshot](media/screenshot.png)
+![demo](media/demo.gif)
 
 ---
 
