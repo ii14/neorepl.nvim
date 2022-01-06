@@ -250,8 +250,9 @@ local function complete(var, e)
           local argnames, isvararg, special = get_func_info(v)
           if isvararg or #argnames > 0 then
             if type(argnames) == 'string' then
+              local hasargs = argnames:match(',') or argnames:match('%.%.%.')
               tinsert(res, {
-                word = ':'..k..'(', -- TODO: figure out if it should be '()'
+                word = ':'..k..(hasargs and '(' or '()'),
                 abbr = k..'('..argnames..')',
                 menu = special and 'function*' or 'function',
               })
