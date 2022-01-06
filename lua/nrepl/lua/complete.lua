@@ -2,7 +2,7 @@ local parser = require('nrepl.lua.parser')
 local tinsert, tsort, tremove, tconcat = table.insert, table.sort, table.remove, table.concat
 local dgetinfo, dgetlocal = debug.getinfo, debug.getlocal
 local ploaded = package.loaded
-local api, api_info = vim.api, vim.fn.api_info
+local fn, api, api_info = vim.fn, vim.api, vim.fn.api_info
 
 local M = {}
 
@@ -118,6 +118,50 @@ local get_nvim_api do
   end
 end
 
+---@type function
+---@param filter string
+---@return table
+local get_vim_functions do
+  VIM_FNS = nil
+
+  local function function_sort(a, b)
+    return string.lower(a[1]) < string.lower(b[1])
+  end
+
+  function get_vim_functions(filter)
+    -- get all builtin functions
+    if VIM_FNS == nil then
+      VIM_FNS = {}
+      for _, func in ipairs(require('nrepl.vim.functions')) do
+        if VIM_FNS[func[1]] == nil then
+          VIM_FNS[func[1]] = func[2]
+        end
+      end
+    end
+
+    local size = #filter
+    local res = {}
+
+    -- match builtin functions
+    for name, args in pairs(VIM_FNS) do
+      if size == 0 or name:sub(1, size) == filter then
+        tinsert(res, {name, args})
+      end
+    end
+
+    -- match user functions
+    for _, line in ipairs(vim.split(api.nvim_exec('function', true), '\n')) do
+      local name, args = line:match('^function%s+([%a_][%a%d_#]*)%((.*)%)')
+      if name ~= nil and (size == 0 or name:sub(1, size) == filter) then
+        tinsert(res, {name, args})
+      end
+    end
+
+    table.sort(res, function_sort)
+    return res
+  end
+end
+
 ---@param f function
 ---@return number nparams, number isvararg, string[] argnames
 local function get_func_info(f)
@@ -220,6 +264,23 @@ local function complete(var, e)
 
   if e.type == 'prop' then
     if not isindexable(var) then return end
+
+    -- special handling for vim.fn
+    if var == fn then
+      local res = get_vim_functions(e[2] and e[2].value or '')
+      for i, v in ipairs(res) do
+        local k = v[1]
+        local argnames = v[2]
+        local word = k:match(RE_IDENT) and '.'..k or "['"..k.."']"
+        res[i] = {
+          word = word..((#argnames > 0) and '(' or '()'),
+          abbr = k..'('..argnames..')',
+          menu = 'function',
+        }
+      end
+      return res, e[1].col
+    end
+
     local res = {}
     local re = '^'..(e[2] and e[2].value or '')
 
