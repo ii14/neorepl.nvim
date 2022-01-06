@@ -24,7 +24,7 @@ local function parse_number(t)
   return t.value:match('^%d+$') and tonumber(t.value) or nil
 end
 
-local ESCAPE_SEQS = {
+local TO_ESC_SEQS = {
   ['a']  = '\a',
   ['b']  = '\b',
   ['f']  = '\f',
@@ -58,7 +58,7 @@ local function parse_string(t)
     n = n + 1
     m = str:match([=[^([abfnrtv\\'"])]=], n)
     if m then
-      str = str:sub(1, n-2)..ESCAPE_SEQS[m]..str:sub(n+1)
+      str = str:sub(1, n-2)..TO_ESC_SEQS[m]..str:sub(n+1)
     else
       m = str:match([=[^(%d%d?%d?)]=], n)
       if m then
@@ -72,6 +72,32 @@ local function parse_string(t)
   end
 
   return str
+end
+
+---@type function
+---@param s string
+---@return string
+local escape_string do
+  local FROM_ESC_SEQS = {
+    ['\a'] = '\\a',
+    ['\b'] = '\\b',
+    ['\f'] = '\\f',
+    ['\n'] = '\\n',
+    ['\r'] = '\\r',
+    ['\t'] = '\\t',
+    ['\v'] = '\\v',
+  }
+
+  for i = 0, 255 do
+    local ch = string.char(i)
+    if not FROM_ESC_SEQS[ch] and ch:match('[%c\128-\255]') then
+      FROM_ESC_SEQS[ch] = '\\'..i
+    end
+  end
+
+  function escape_string(s)
+    return s:gsub('\\', '\\\\'):gsub('[%c\128-\255]', FROM_ESC_SEQS)
+  end
 end
 
 
@@ -191,12 +217,19 @@ local function complete(var, e)
     if var == vim.fn then
       local res = providers.fn(e[2] and e[2].value or '')
       for i, v in ipairs(res) do
-        local k = v[1]
+        local abbr = v[1]
         local argnames = v[2]
-        local word = k:match(RE_IDENT) and '.'..k or "['"..k.."']"
+        local word
+        if abbr:match(RE_IDENT) then
+          word = '.'..abbr
+        else
+          abbr = escape_string(abbr)
+          word = "['"..abbr:gsub("'", "\\'").."']"
+        end
+
         res[i] = {
           word = word..((#argnames > 0) and '(' or '()'),
-          abbr = k..'('..argnames..')',
+          abbr = abbr..'('..argnames..')',
           menu = 'function*',
         }
       end
@@ -208,19 +241,26 @@ local function complete(var, e)
 
     for k, v in pairs(var) do
       if type(k) == 'string' and match(k, re) then
-        -- TODO: escape key
-        local word = k:match(RE_IDENT) and '.'..k or "['"..k.."']"
+        local abbr = k
+        local word
+        if k:match(RE_IDENT) then
+          word = '.'..abbr
+        else
+          abbr = escape_string(abbr)
+          word = "['"..abbr:gsub("'", "\\'").."']"
+        end
+
         if type(v) == 'function' then
           local argnames, isvararg, special = get_func_info(v)
           tinsert(res, {
             word = word..((isvararg or #argnames > 0) and (v == require and "'" or '(') or '()'),
-            abbr = k..'('..tconcat(argnames, ', ')..')',
+            abbr = abbr..'('..tconcat(argnames, ', ')..')',
             menu = special and 'function*' or 'function'
           })
         else
           tinsert(res, {
             word = word,
-            abbr = k,
+            abbr = abbr,
             menu = type(v),
           })
         end
