@@ -1,6 +1,7 @@
 local parser = require('nrepl.lua.parser')
 local tinsert, tsort, tremove, tconcat = table.insert, table.sort, table.remove, table.concat
 local dgetinfo, dgetlocal = debug.getinfo, debug.getlocal
+local slower = string.lower
 local ploaded = package.loaded
 local fn, api, api_info = vim.fn, vim.api, vim.fn.api_info
 
@@ -14,7 +15,7 @@ local function match(str, re)
 end
 
 local function sort_completions(a, b)
-  return a.word < b.word
+  return slower(a.word) < slower(b.word)
 end
 
 ---@param t nreplLuaToken
@@ -125,7 +126,7 @@ local get_vim_functions do
   VIM_FNS = nil
 
   local function function_sort(a, b)
-    return string.lower(a[1]) < string.lower(b[1])
+    return slower(a[1]) < slower(b[1])
   end
 
   function get_vim_functions(filter)
@@ -157,7 +158,7 @@ local get_vim_functions do
       end
     end
 
-    table.sort(res, function_sort)
+    tsort(res, function_sort)
     return res
   end
 end
