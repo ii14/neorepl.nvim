@@ -6,6 +6,7 @@ local COMMAND_PREFIX = '/'
 
 local MSG_VIM = {'-- VIMSCRIPT --'}
 local MSG_LUA = {'-- LUA --'}
+local MSG_DEBUG = {'-- DEBUGGER --'}
 local MSG_ARGS_NOT_ALLOWED = {'arguments not allowed for this command'}
 local MSG_MULTI_LINES_NOT_ALLOWED = {'multiple lines not allowed for this command'}
 local MSG_INVALID_BUF = {'invalid buffer'}
@@ -73,6 +74,21 @@ table.insert(COMMANDS, {
     else
       repl.vim_mode = true
       repl:put(MSG_VIM, 'nreplInfo')
+    end
+  end,
+})
+
+table.insert(COMMANDS, {
+  command = 'debug',
+  description = 'start a debugger',
+  ---@param args string
+  ---@param repl nreplRepl
+  run = function(args, repl)
+    if args then
+      repl:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
+    else
+      repl.debug_mode = true
+      repl:put(MSG_DEBUG, 'nreplInfo')
     end
   end,
 })

@@ -27,9 +27,11 @@ end
 ---@field bufnr       number        repl buffer
 ---@field lua         nreplLua
 ---@field vim         nreplVim
+---@field debugger    nreplDebug
 ---@field buffer      number        buffer context
 ---@field window      number        window context
 ---@field vim_mode    boolean       vim mode
+---@field debug_mode  boolean       debug mode
 ---@field mark_id     number        current mark id counter
 ---@field redraw      boolean       redraw after evaluation
 ---@field inspect     boolean       inspect variables
@@ -93,6 +95,7 @@ function Repl.new(config)
     buffer = config.buffer or 0,
     window = config.window or 0,
     vim_mode = config.lang == 'vim',
+    debug_mode = false,
     redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
@@ -203,19 +206,23 @@ function Repl:eval_line()
     return self:new_line()
   end
 
-  -- ignore if it's only whitespace
-  if util.lines_empty(lines) then
-    return self:new_line()
-  end
-
-  -- remove duplicate entries in history
-  for i = #self.history, 1, -1 do
-    if util.lines_equal(self.history[i], lines) then
-      table.remove(self.history, i)
+  -- temporarily disabled for debug mode,
+  -- to get enter to repeat last command
+  if not self.debug_mode then
+    -- ignore if it's only whitespace
+    if util.lines_empty(lines) then
+      return self:new_line()
     end
+
+    -- remove duplicate entries in history
+    for i = #self.history, 1, -1 do
+      if util.lines_equal(self.history[i], lines) then
+        table.remove(self.history, i)
+      end
+    end
+    -- save lines to history
+    table.insert(self.history, lines)
   end
-  -- save lines to history
-  table.insert(self.history, lines)
 
   -- repl command
   local line = lines[1]
@@ -256,6 +263,14 @@ function Repl:eval_line()
     end
 
     self:put(MSG_INVALID_COMMAND, 'nreplError')
+    return self:new_line()
+  end
+
+  if self.debug_mode then
+    if self.debugger == nil then
+      self.debugger = require('nrepl.debug').new(self)
+    end
+    self.debugger:eval(table.concat(lines))
     return self:new_line()
   end
 
