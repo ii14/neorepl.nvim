@@ -20,6 +20,9 @@ local function example()
   x = nested(x)
 
   print('example C')
+  print('example D')
+  print('example E')
+  print('example F')
 
   return x
 end
@@ -75,6 +78,8 @@ function Debug:eval(prg)
     res, err = debugger.step(self.func)
   elseif prg == 'f' then
     res, err = debugger.finish(self.func)
+  elseif prg == 'c' then
+    res, err = coroutine.resume(self.func)
   else
     self.repl:put({'invalid debugger command'}, 'nreplError')
   end
