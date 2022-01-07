@@ -57,6 +57,7 @@ table.insert(COMMANDS, {
     if args then
       repl.lua:eval(args)
     else
+      repl.debug_mode = false
       repl.vim_mode = false
       repl:put(MSG_LUA, 'nreplInfo')
     end
@@ -72,6 +73,7 @@ table.insert(COMMANDS, {
     if args then
       repl.vim:eval(args)
     else
+      repl.debug_mode = false
       repl.vim_mode = true
       repl:put(MSG_VIM, 'nreplInfo')
     end
