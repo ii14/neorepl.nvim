@@ -29,7 +29,8 @@ end
 
 ---@class nreplDebug
 ---@field repl nreplRepl    parent
----@field func function     debugged program
+---@field func function     debugged function
+---@field thread thread     debugged thread
 ---@field lastcmd string    last command
 ---@field print fun(...)    print function
 local Debug = {}
@@ -56,7 +57,8 @@ function Debug.new(repl, _)
   end
 
   debugger = require('nrepl.debug.debugger')
-  this.func = coroutine.create(example)
+  this.func = example
+  this.thread = coroutine.create(example)
 
   return this
 end
@@ -73,13 +75,29 @@ function Debug:eval(prg)
 
   _G.print = self.print
   if prg == 'n' then
-    res, err = debugger.next(self.func)
+    res, err = debugger.next(self.thread)
   elseif prg == 's' then
-    res, err = debugger.step(self.func)
+    res, err = debugger.step(self.thread)
   elseif prg == 'f' then
-    res, err = debugger.finish(self.func)
+    res, err = debugger.finish(self.thread)
   elseif prg == 'c' then
-    res, err = coroutine.resume(self.func)
+    res, err = coroutine.resume(self.thread)
+  elseif prg == 'b' then
+    local out = {}
+    local level = 0
+    while true do
+      local i = debug.getinfo(self.thread, level)
+      if not i then
+        break
+      end
+      table.insert(out, string.format('#%d %s:%d', level, i.short_src, i.currentline))
+      level = level + 1
+    end
+    if #out > 0 then
+      self.repl:put(out, 'nreplInfo')
+    else
+      self.repl:put({'no backtrace'}, 'nreplInfo')
+    end
   else
     self.repl:put({'invalid debugger command'}, 'nreplError')
   end
@@ -88,7 +106,7 @@ function Debug:eval(prg)
   if res == true then
     self.repl:put({'Thread returned successfully'}, 'nreplInfo')
   elseif res == false then
-    self.repl:put({'Exception: '..err}, 'nreplDebug')
+    self.repl:put({'Exception: '..err}, 'nreplError')
   elseif res then
     self.repl:put({'Line '..res}, 'nreplInfo')
   end
