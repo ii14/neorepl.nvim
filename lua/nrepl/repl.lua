@@ -493,6 +493,7 @@ vim.cmd([[
   hi link nreplOutput     String
   hi link nreplValue      Number
   hi link nreplInfo       Function
+  hi link nreplWarn       WarningMsg
   hi link nreplLinebreak  Function
 ]])
 

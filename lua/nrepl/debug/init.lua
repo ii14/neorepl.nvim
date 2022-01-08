@@ -92,9 +92,9 @@ function Debug:eval(prg)
     end end
 
     if #out > 0 then
-      self.repl:put(out, 'nreplInfo')
+      self.repl:put(out, 'nreplValue')
     else
-      self.repl:put({'empty'}, 'nreplInfo')
+      self.repl:put({'empty'}, 'nreplWarn')
     end
   elseif prg == 'l' then -- locals
     local out = {}
@@ -108,9 +108,9 @@ function Debug:eval(prg)
     end end
 
     if #out > 0 then
-      self.repl:put(out, 'nreplInfo')
+      self.repl:put(out, 'nreplValue')
     else
-      self.repl:put({'empty'}, 'nreplInfo')
+      self.repl:put({'empty'}, 'nreplWarn')
     end
   elseif prg == 'u' then -- upvalues
     local func = debug.getinfo(self.thread, 0, 'f').func
@@ -124,9 +124,9 @@ function Debug:eval(prg)
     end end
 
     if #out > 0 then
-      self.repl:put(out, 'nreplInfo')
+      self.repl:put(out, 'nreplValue')
     else
-      self.repl:put({'empty'}, 'nreplInfo')
+      self.repl:put({'empty'}, 'nreplWarn')
     end
   else
     self.repl:put({'invalid debugger command'}, 'nreplError')
