@@ -1,6 +1,15 @@
 #include <lua.h>
 #include <lauxlib.h>
+#ifndef NREPL_NO_YIELD_CHECK
+# include <luajit.h> // luajit required
+#endif
 #include <stdio.h>
+
+#ifndef NREPL_NO_YIELD_CHECK
+# if LUAJIT_VERSION_NUM < 20100
+#  include "lj_frame.h" // run make luajit-2.0
+# endif
+#endif
 
 #ifndef LUA_OK
 #define LUA_OK 0
@@ -47,7 +56,14 @@ static void hook(lua_State *L, lua_Debug *ar)
     skipline = ar->currentline;
     lua_pushnumber(L, ar->currentline);
     lua_setfield(L, LUA_REGISTRYINDEX, REGKEY_LINE);
-    lua_yield(L, 0);
+#ifndef NREPL_NO_YIELD_CHECK
+# if LUAJIT_VERSION_NUM < 20100
+    if (cframe_canyield(L->cframe))
+# else
+    if (lua_isyieldable(L))
+# endif
+#endif
+      lua_yield(L, 0);
   } else {
     skipline = -1;
   }
