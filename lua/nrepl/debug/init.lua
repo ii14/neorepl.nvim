@@ -85,18 +85,36 @@ function Debug:eval(prg)
   elseif prg == 'b' then
     local out = {}
     local level = 0
+
     while true do
       local i = debug.getinfo(self.thread, level)
-      if not i then
-        break
-      end
+      if not i then break end
       table.insert(out, string.format('#%d %s:%d', level, i.short_src, i.currentline))
       level = level + 1
     end
+
     if #out > 0 then
       self.repl:put(out, 'nreplInfo')
     else
-      self.repl:put({'no backtrace'}, 'nreplInfo')
+      self.repl:put({'empty'}, 'nreplInfo')
+    end
+  elseif prg == 'l' then
+    local out = {}
+    local i = 1
+
+    while true do
+      -- TODO: invalid level throws exception
+      local key, value = debug.getlocal(self.thread, 0, i)
+      if not key then break end
+      value = tostring(value):gsub('\n', '\\n')
+      table.insert(out, string.format('#%d %s = %s', i, key, value))
+      i = i + 1
+    end
+
+    if #out > 0 then
+      self.repl:put(out, 'nreplInfo')
+    else
+      self.repl:put({'empty'}, 'nreplInfo')
     end
   else
     self.repl:put({'invalid debugger command'}, 'nreplError')
