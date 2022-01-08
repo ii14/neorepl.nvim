@@ -39,6 +39,7 @@ local function example()
 
   return x
 end
+-- "./lua/nrepl/debug/init.lua"
 
 ---@class nreplDebug
 ---@field repl nreplRepl              parent

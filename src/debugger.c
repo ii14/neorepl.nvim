@@ -20,12 +20,30 @@
 #define MODE_NEXT 1
 #define MODE_FINISH 2
 
+#ifndef NREPL_NO_YIELD_CHECK
+# if LUAJIT_VERSION_NUM < 20100
+#  define CAN_YIELD(L) (cframe_canyield((L)->cframe))
+# else
+#  define CAN_YIELD(L) (lua_isyieldable(L))
+# endif
+#else
+# define CAN_YIELD(L) (1)
+#endif
+
+typedef struct {
+  int line;
+  char *file;
+} debug_breakpoint;
+
 typedef struct {
   int thread;
   int func;
   int currentline;
   int skipline;
   int skiplevel;
+  int continuing;
+  size_t bplen;
+  debug_breakpoint *bps;
 } debug_userdata;
 
 static int getlevel(lua_State *L)
@@ -72,6 +90,41 @@ static void hook(lua_State *L, lua_Debug *ar)
   // save current line
   data->currentline = ar->currentline;
 
+  // breakpoints
+  if (data->continuing) { // TODO: move to a separate hook function
+    if (data->bplen == 0 || !CAN_YIELD(L))
+      return;
+    int gotinfo = 0;
+    for (size_t i = 0; i < data->bplen; ++i) {
+      debug_breakpoint *bp = &data->bps[i];
+      // check line first, since it's cheap
+      if (ar->currentline != bp->line)
+        return;
+
+      // get source info if necessary, once
+      if (!gotinfo) {
+        if (!lua_getinfo(L, "S", ar))
+          return;
+        gotinfo = 1;
+      }
+
+      // skip if we don't know the file
+      if (*(ar->source) != '@')
+        continue;
+
+      // yield if everything checks out
+      if (strcmp(bp->file, ar->short_src) == 0) {
+        if (ar->currentline != data->skipline) {
+          data->skipline = ar->currentline;
+          lua_yield(L, 0);
+        } else {
+          data->skipline = -1;
+        }
+      }
+    }
+    return;
+  }
+
   // get call stack level
   int level = getlevel(L);
   if (data->skiplevel != -1 && level > data->skiplevel)
@@ -83,13 +136,7 @@ static void hook(lua_State *L, lua_Debug *ar)
     // number and skip it next time
     // TODO: save source, because it could be a different file
     data->skipline = ar->currentline;
-#ifndef NREPL_NO_YIELD_CHECK
-# if LUAJIT_VERSION_NUM < 20100
-    if (cframe_canyield(L->cframe))
-# else
-    if (lua_isyieldable(L))
-# endif
-#endif
+    if (CAN_YIELD(L))
       lua_yield(L, 0);
   } else {
     data->skipline = -1;
@@ -119,7 +166,8 @@ static int debugger_hook(lua_State *L, int mode)
     data->skiplevel = -1;
   }
 
-  lua_sethook(thread, hook, LUA_MASKLINE, 1);
+  data->continuing = 0;
+  lua_sethook(thread, hook, LUA_MASKLINE, 0);
   int status = lua_resume(thread, 0);
   lua_sethook(thread, NULL, 0, 0); // TODO: restore previous hook
   data->skiplevel = -1;
@@ -165,7 +213,20 @@ static int debugger_continue(lua_State *L)
   if (!canresume(thread))
     luaL_error(L, "cannot resume dead coroutine");
 
-  int status = lua_resume(thread, 0);
+  lua_pushvalue(L, -2);
+  lua_setfield(L, LUA_REGISTRYINDEX, NREPL_CURRENT);
+
+  data->continuing = 1;
+  int status;
+  if (data->bplen > 0) { // set hook if there are any breakpoints set
+    lua_sethook(thread, hook, LUA_MASKLINE, 0);
+    status = lua_resume(thread, 0);
+    lua_sethook(thread, NULL, 0, 0); // TODO: restore previous hook
+    data->skiplevel = -1;
+  } else {
+    status = lua_resume(thread, 0);
+  }
+
   if (status == LUA_OK) { // coroutine returned
     lua_pushboolean(L, 1);
     return 1;
@@ -180,6 +241,36 @@ static int debugger_continue(lua_State *L)
     luaL_error(L, "unknown resume status");
   }
   return 0; // unreachable
+}
+
+static int debugger_breakpoint(lua_State *L)
+{
+  debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
+  const char *file = luaL_checkstring(L, 2);
+  int line = luaL_checkinteger(L, 3);
+  if (file == NULL || *file == '\0')
+    luaL_error(L, "no file name");
+  if (line <= 0)
+    luaL_error(L, "line smaller than 1");
+
+  size_t slen = strlen(file);
+  char *sfile = malloc(slen + 1);
+  if (sfile == NULL)
+    luaL_error(L, "malloc");
+  memcpy(sfile, file, slen + 1);
+
+  size_t nlen = data->bplen + 1;
+  debug_breakpoint *nbps = realloc(data->bps, nlen * sizeof(debug_breakpoint));
+  if (nbps == NULL) {
+    free(sfile);
+    luaL_error(L, "realloc");
+  }
+
+  nbps[nlen - 1] = (debug_breakpoint){ .line = line, .file = sfile };
+  data->bps = nbps;
+  data->bplen = nlen;
+  lua_pushinteger(L, nlen);
+  return 1;
 }
 
 static int debugger_create(lua_State *L)
@@ -198,6 +289,9 @@ static int debugger_create(lua_State *L)
   data->currentline = -1;
   data->skipline = -1;
   data->skiplevel = -1;
+  data->continuing = 0;
+  data->bplen = 0;
+  data->bps = NULL;
 
   luaL_getmetatable(L, NREPL_THREAD);
   lua_setmetatable(L, -2);
@@ -256,6 +350,9 @@ static int debugger_index(lua_State *L)
   } else if (strcmp(index, "continue") == 0) {
     lua_pushcfunction(L, debugger_continue);
     return 1;
+  } else if (strcmp(index, "breakpoint") == 0) {
+    lua_pushcfunction(L, debugger_breakpoint);
+    return 1;
   }
 
   return 0;
@@ -266,6 +363,11 @@ static int debugger_gc(lua_State *L)
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
   luaL_unref(L, LUA_REGISTRYINDEX, data->thread);
   luaL_unref(L, LUA_REGISTRYINDEX, data->func);
+  if (data->bps != NULL) {
+    for (size_t i = 0; i < data->bplen; ++i)
+      free(data->bps[i].file);
+    free(data->bps);
+  }
   return 0;
 }
 
