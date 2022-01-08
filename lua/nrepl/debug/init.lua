@@ -1,3 +1,15 @@
+---@class nreplDebuggerThread
+---@field thread thread
+---@field func function
+---@field currentline number
+---@field status 'running'|'suspended'|'normal'|'dead'
+---@field next fun() boolean|number
+---@field step fun() boolean|number
+---@field finish fun() boolean|number
+---@field continue fun() boolean|number
+
+---@class nreplDebugger
+---@field create fun(function) nreplDebuggerThread
 local debugger = nil
 local prev_print = _G.print
 
@@ -21,6 +33,7 @@ local function example()
 
   print('example C')
   print('example D')
+
   print('example E')
   print('example F')
 
@@ -28,11 +41,10 @@ local function example()
 end
 
 ---@class nreplDebug
----@field repl nreplRepl    parent
----@field func function     debugged function
----@field thread thread     debugged thread
----@field lastcmd string    last command
----@field print fun(...)    print function
+---@field repl nreplRepl              parent
+---@field thread nreplDebuggerThread  debugged thread
+---@field lastcmd string              last command
+---@field print fun(...)              print function
 local Debug = {}
 Debug.__index = Debug
 
@@ -57,8 +69,7 @@ function Debug.new(repl, _)
   end
 
   debugger = require('nrepl.debug.debugger')
-  this.func = example
-  this.thread = coroutine.create(example)
+  this.thread = debugger.create(example)
 
   return this
 end
@@ -75,19 +86,19 @@ function Debug:eval(prg)
 
   _G.print = self.print
   if prg == 'n' then -- next
-    res, err = debugger.next(self.thread)
+    res, err = self.thread:next()
   elseif prg == 's' then -- step
-    res, err = debugger.step(self.thread)
+    res, err = self.thread:step()
   elseif prg == 'f' then -- finish
-    res, err = debugger.finish(self.thread)
+    res, err = self.thread:finish()
   elseif prg == 'c' then -- continue
-    res, err = coroutine.resume(self.thread)
+    res, err = self.thread:continue()
   elseif prg == 'b' then -- backtrace
     local out = {}
     do local level = 0; while true do
-      local i = debug.getinfo(self.thread, level)
+      local i = debug.getinfo(self.thread.thread, level)
       if not i then break end
-      table.insert(out, string.format('#%d %s:%d', level, i.short_src, i.currentline))
+      table.insert(out, string.format('#%d %s:%d', level, i.source, i.currentline))
       level = level + 1
     end end
 
@@ -101,7 +112,7 @@ function Debug:eval(prg)
     do local i = 0; while true do
       i = i + 1
       -- TODO: invalid level throws exception
-      local key, value = debug.getlocal(self.thread, 0, i)
+      local key, value = debug.getlocal(self.thread.thread, 0, i)
       if not key then break end
       value = tostring(value):gsub('\n', '\\n')
       table.insert(out, string.format('#%d %s = %s', i, key, value))
@@ -113,7 +124,7 @@ function Debug:eval(prg)
       self.repl:put({'empty'}, 'nreplWarn')
     end
   elseif prg == 'u' then -- upvalues
-    local func = debug.getinfo(self.thread, 0, 'f').func
+    local func = debug.getinfo(self.thread.thread, 0, 'f').func
     local out = {}
     do local i = 0; while true do
       i = i + 1
