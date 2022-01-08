@@ -30,12 +30,15 @@ do -- require completion
       if not dir then return end
       for name, type in scandir_iterator(dir) do
         if filter == nil or name:sub(1, #filter) == filter then
-          if type == 'file' and name:sub(-4) == ('.lua') then
-            local modname = name:sub(1, -5)
-            if modname == 'init' and base then
-              tinsert(res, base)
-            elseif modname ~= '' then
-              tinsert(res, base and base..'.'..modname or modname)
+          if type == 'file' then
+            local modname, ext = name:match('^(.+)%.(%a%a-)$')
+            print(modname, ext)
+            if modname and (ext == 'lua' or ext == 'so') then
+              if modname == 'init' and base then
+                tinsert(res, base)
+              elseif modname ~= '' then
+                tinsert(res, base and base..'.'..modname or modname)
+              end
             end
           elseif type == 'directory' then
             scan(path..'/'..name, base and base..'.'..name or name)
