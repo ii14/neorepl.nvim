@@ -74,42 +74,53 @@ function Debug:eval(prg)
   end
 
   _G.print = self.print
-  if prg == 'n' then
+  if prg == 'n' then -- next
     res, err = debugger.next(self.thread)
-  elseif prg == 's' then
+  elseif prg == 's' then -- step
     res, err = debugger.step(self.thread)
-  elseif prg == 'f' then
+  elseif prg == 'f' then -- finish
     res, err = debugger.finish(self.thread)
-  elseif prg == 'c' then
+  elseif prg == 'c' then -- continue
     res, err = coroutine.resume(self.thread)
-  elseif prg == 'b' then
+  elseif prg == 'b' then -- backtrace
     local out = {}
-    local level = 0
-
-    while true do
+    do local level = 0; while true do
       local i = debug.getinfo(self.thread, level)
       if not i then break end
       table.insert(out, string.format('#%d %s:%d', level, i.short_src, i.currentline))
       level = level + 1
-    end
+    end end
 
     if #out > 0 then
       self.repl:put(out, 'nreplInfo')
     else
       self.repl:put({'empty'}, 'nreplInfo')
     end
-  elseif prg == 'l' then
+  elseif prg == 'l' then -- locals
     local out = {}
-    local i = 1
-
-    while true do
+    do local i = 0; while true do
+      i = i + 1
       -- TODO: invalid level throws exception
       local key, value = debug.getlocal(self.thread, 0, i)
       if not key then break end
       value = tostring(value):gsub('\n', '\\n')
       table.insert(out, string.format('#%d %s = %s', i, key, value))
-      i = i + 1
+    end end
+
+    if #out > 0 then
+      self.repl:put(out, 'nreplInfo')
+    else
+      self.repl:put({'empty'}, 'nreplInfo')
     end
+  elseif prg == 'u' then -- upvalues
+    local out = {}
+    do local i = 0; while true do
+      i = i + 1
+      local key, value = debug.getupvalue(self.func, i)
+      if not key then break end
+      value = tostring(value):gsub('\n', '\\n')
+      table.insert(out, string.format('#%d %s = %s', i, key, value))
+    end end
 
     if #out > 0 then
       self.repl:put(out, 'nreplInfo')
