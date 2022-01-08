@@ -113,10 +113,11 @@ function Debug:eval(prg)
       self.repl:put({'empty'}, 'nreplInfo')
     end
   elseif prg == 'u' then -- upvalues
+    local func = debug.getinfo(self.thread, 0, 'f').func
     local out = {}
     do local i = 0; while true do
       i = i + 1
-      local key, value = debug.getupvalue(self.func, i)
+      local key, value = debug.getupvalue(func, i)
       if not key then break end
       value = tostring(value):gsub('\n', '\\n')
       table.insert(out, string.format('#%d %s = %s', i, key, value))
