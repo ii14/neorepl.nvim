@@ -32,7 +32,6 @@ do -- require completion
         if filter == nil or name:sub(1, #filter) == filter then
           if type == 'file' then
             local modname, ext = name:match('^(.+)%.(%a%a-)$')
-            print(modname, ext)
             if modname and (ext == 'lua' or ext == 'so') then
               if modname == 'init' and base then
                 tinsert(res, base)
