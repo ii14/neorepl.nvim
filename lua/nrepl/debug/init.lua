@@ -1,12 +1,12 @@
 ---@class nreplDebuggerThread
 ---@field thread thread
 ---@field func function
----@field currentline number
 ---@field status 'running'|'suspended'|'normal'|'dead'
 ---@field next fun() boolean|number
 ---@field step fun() boolean|number
 ---@field finish fun() boolean|number
 ---@field continue fun() boolean|number
+---@field breakpoint fun(string,number) number
 
 ---@class nreplDebugger
 ---@field create fun(function) nreplDebuggerThread
@@ -77,7 +77,7 @@ end
 
 function Debug:eval(prg)
   assert(type(prg) == 'string')
-  local res, err
+  local res, line, src
 
   if prg == nil or prg == '' then
     prg = self.lastcmd
@@ -87,14 +87,14 @@ function Debug:eval(prg)
 
   _G.print = self.print
   if prg == 'n' then -- next
-    res, err = self.thread:next()
+    res, line, src = self.thread:next()
   elseif prg == 's' then -- step
-    res, err = self.thread:step()
+    res, line, src = self.thread:step()
   elseif prg == 'f' then -- finish
-    res, err = self.thread:finish()
+    res, line, src = self.thread:finish()
   elseif prg == 'c' then -- continue
-    res, err = self.thread:continue()
-  elseif prg == 'b' then -- backtrace
+    res, line, src = self.thread:continue()
+  elseif prg == 'bt' then -- backtrace
     local out = {}
     do local level = 0; while true do
       local i = debug.getinfo(self.thread.thread, level)
@@ -148,9 +148,13 @@ function Debug:eval(prg)
   if res == true then
     self.repl:put({'Thread returned successfully'}, 'nreplInfo')
   elseif res == false then
-    self.repl:put({'Exception: '..err}, 'nreplError')
+    self.repl:put({'Exception: '..line}, 'nreplError')
   elseif res then
-    self.repl:put({'Line '..res}, 'nreplInfo')
+    local str = (src or '??')..':'..(line or '??')
+    if res > 0 then
+      str = str..' breakpoint #'..res
+    end
+    self.repl:put({str}, 'nreplInfo')
   end
 end
 

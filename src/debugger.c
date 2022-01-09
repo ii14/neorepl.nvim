@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include <luajit.h> // luajit required
 #if LUAJIT_VERSION_NUM < 20100
@@ -39,7 +40,9 @@ typedef struct {
   int thread;
   int func;
   // state
+  int currentbp;
   int currentline;
+  char *currentsource;
   int skipline;
   int skiplevel;
   bool continuing;
@@ -53,7 +56,9 @@ typedef struct {
   (debug_userdata){ \
     .thread = LUA_REFNIL, \
     .func = LUA_REFNIL, \
+    .currentbp = 0, \
     .currentline = -1, \
+    .currentsource = NULL, \
     .skipline = -1, \
     .skiplevel = -1, \
     .continuing = false, \
@@ -105,7 +110,7 @@ static void hook(lua_State *L, lua_Debug *ar)
   if (L != thread) return;
   lua_pop(L, 1);
 
-  // save current line
+  // save current line, reset breakpoint and source
   data->currentline = ar->currentline;
 
   // breakpoints
@@ -127,13 +132,21 @@ static void hook(lua_State *L, lua_Debug *ar)
       }
 
       // skip if we don't know the file
-      if (*(ar->source) != '@')
+      if (ar->source == NULL || *(ar->source) != '@')
         continue;
 
       // compare source files after the '@'
       if (strcmp(bp->file, ar->source + 1) == 0) {
         if (ar->currentline != data->skipline) {
           data->skipline = ar->currentline;
+          data->currentbp = bp->id;
+          size_t len = strlen(ar->source);
+          char *source = malloc(len + 1);
+          if (source != NULL) {
+            assert(data->currentsource == NULL);
+            memcpy(source, ar->source, len + 1);
+            data->currentsource = source;
+          }
           lua_yield(L, 0);
         } else {
           data->skipline = -1;
@@ -154,6 +167,17 @@ static void hook(lua_State *L, lua_Debug *ar)
     // number and skip it next time
     // TODO: save source, because it could be a different file
     data->skipline = ar->currentline;
+    data->currentbp = 0;
+    if (lua_getinfo(L, "S", ar) && ar->source != NULL) {
+      // TODO: ignore if doesn't start with '@'?
+      size_t len = strlen(ar->source);
+      char *source = malloc(len + 1);
+      if (source != NULL) {
+        assert(data->currentsource == NULL);
+        memcpy(source, ar->source, len + 1);
+        data->currentsource = source;
+      }
+    }
     if (CAN_YIELD(L))
       lua_yield(L, 0);
   } else {
@@ -184,6 +208,13 @@ static int debugger_hook(lua_State *L, int mode)
     data->skiplevel = -1;
   }
 
+  // reset state
+  data->currentbp = 0;
+  if (data->currentsource != NULL) {
+    free(data->currentsource);
+    data->currentsource = NULL;
+  }
+
   data->continuing = false;
   lua_sethook(thread, hook, LUA_MASKLINE, 0);
   int status = lua_resume(thread, 0);
@@ -201,28 +232,23 @@ static int debugger_hook(lua_State *L, int mode)
     lua_xmove(thread, L, 1); // move error message
     return 2;
   } else if (status == LUA_YIELD) {
+    lua_pushnumber(L, data->currentbp);
+    if (data->currentline < 0)
+      return 1;
     lua_pushnumber(L, data->currentline);
-    return 1;
+    if (data->currentsource == NULL)
+      return 2;
+    lua_pushstring(L, data->currentsource);
+    return 3;
   } else {
     luaL_error(L, "unknown resume status");
   }
   return 0; // unreachable
 }
 
-static int debugger_step(lua_State *L)
-{
-  return debugger_hook(L, MODE_STEP);
-}
-
-static int debugger_next(lua_State *L)
-{
-  return debugger_hook(L, MODE_NEXT);
-}
-
-static int debugger_finish(lua_State *L)
-{
-  return debugger_hook(L, MODE_FINISH);
-}
+static int debugger_step(lua_State *L) { return debugger_hook(L, MODE_STEP); }
+static int debugger_next(lua_State *L) { return debugger_hook(L, MODE_NEXT); }
+static int debugger_finish(lua_State *L) { return debugger_hook(L, MODE_FINISH); }
 
 static int debugger_continue(lua_State *L)
 {
@@ -236,6 +262,13 @@ static int debugger_continue(lua_State *L)
 
   lua_pushvalue(L, -2);
   lua_setfield(L, LUA_REGISTRYINDEX, NREPL_CURRENT);
+
+  // reset state
+  data->currentbp = 0;
+  if (data->currentsource != NULL) {
+    free(data->currentsource);
+    data->currentsource = NULL;
+  }
 
   data->continuing = true;
   int status;
@@ -259,8 +292,14 @@ static int debugger_continue(lua_State *L)
     lua_xmove(thread, L, 1); // move error message
     return 2;
   } else if (status == LUA_YIELD) {
+    lua_pushnumber(L, data->currentbp);
+    if (data->currentline < 0)
+      return 1;
     lua_pushnumber(L, data->currentline);
-    return 1;
+    if (data->currentsource == NULL)
+      return 2;
+    lua_pushstring(L, data->currentsource);
+    return 3;
   } else {
     luaL_error(L, "unknown resume status");
   }
@@ -332,8 +371,6 @@ static int debugger_index(lua_State *L)
     lua_getref(L, data->thread);
   } else if (strcmp(index, "func") == 0) {
     lua_getref(L, data->func);
-  } else if (strcmp(index, "currentline") == 0) {
-    lua_pushinteger(L, data->currentline);
   } else if (strcmp(index, "status") == 0) {
     lua_getref(L, data->thread);
     lua_State *thread = lua_tothread(L, -1);
@@ -377,6 +414,7 @@ static int debugger_gc(lua_State *L)
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
   luaL_unref(L, LUA_REGISTRYINDEX, data->thread);
   luaL_unref(L, LUA_REGISTRYINDEX, data->func);
+  free(data->currentsource);
   if (data->bps != NULL) {
     for (size_t i = 0; i < data->bplen; ++i)
       free(data->bps[i].file);
