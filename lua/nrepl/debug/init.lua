@@ -13,13 +13,21 @@
 local debugger = nil
 local prev_print = _G.print
 
+---@class nreplDebug
+---@field repl nreplRepl      parent
+---@field dbg nreplDebugger   debugged thread
+---@field lastcmd string      last command
+---@field print fun(...)      print function
+local Debug = {}
+Debug.__index = Debug
+
 local function nested(i)
   i = (i or 0) + 1
   print('nested: '..i)
   return i
 end
 
-local function example()
+function Debug.example()
   print('example A')
 
   for i = 1, 3 do
@@ -40,14 +48,6 @@ local function example()
   return x
 end
 -- "./lua/nrepl/debug/init.lua"
-
----@class nreplDebug
----@field repl nreplRepl      parent
----@field dbg nreplDebugger   debugged thread
----@field lastcmd string      last command
----@field print fun(...)      print function
-local Debug = {}
-Debug.__index = Debug
 
 --- Create a new debugger
 ---@param repl nreplRepl
@@ -70,7 +70,7 @@ function Debug.new(repl, _)
   end
 
   debugger = require('nrepl.debug.debugger')
-  this.dbg = debugger.create(example)
+  this.dbg = debugger.create(Debug.example)
   return this
 end
 
@@ -122,9 +122,12 @@ function Debug:eval(prg)
       i = i + 1
       -- TODO: invalid level throws exception
       local key, value = debug.getlocal(self.dbg.thread, 0, i)
-      if not key then break end
-      value = tostring(value):gsub('\n', '\\n')
-      table.insert(out, string.format('#%d %s = %s', i, key, value))
+      if not key then
+        break
+      elseif key ~= '(*temporary)' then
+        value = tostring(value):gsub('\n', '\\n')
+        table.insert(out, string.format('#%d %s = %s', i, key, value))
+      end
     end end
 
     if #out > 0 then

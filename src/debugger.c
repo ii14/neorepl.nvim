@@ -97,7 +97,6 @@ static bool canresume(lua_State *L)
 static void hook(lua_State *L, lua_Debug *ar)
 {
   if (ar->event != LUA_HOOKLINE) return;
-
   lua_getfield(L, LUA_REGISTRYINDEX, NREPL_CURRENT);
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, -1, NREPL_THREAD);
 
@@ -107,27 +106,30 @@ static void hook(lua_State *L, lua_Debug *ar)
   // TODO: handle coroutines, somehow?
   lua_getref(L, data->thread);
   lua_State *thread = lua_tothread(L, -1);
-  if (L != thread) return;
+  if (thread != L) {
+    lua_pop(L, 2);
+    return;
+  }
   lua_pop(L, 1);
 
-  // save current line, reset breakpoint and source
+  // save current line
   data->currentline = ar->currentline;
 
   // breakpoints
   if (data->continuing) { // TODO: move to a separate hook function
     if (data->bplen == 0 || !CAN_YIELD(L))
-      return;
+      goto end;
     bool gotinfo = false;
     for (size_t i = 0; i < data->bplen; ++i) {
       debug_breakpoint *bp = &data->bps[i];
       // check line first, since it's cheap
       if (ar->currentline < 1 || ar->currentline != bp->line)
-        return;
+        goto end;
 
       // get source info if necessary, once
       if (!gotinfo) {
         if (!lua_getinfo(L, "S", ar))
-          return;
+          goto end;
         gotinfo = true;
       }
 
@@ -147,19 +149,19 @@ static void hook(lua_State *L, lua_Debug *ar)
             memcpy(source, ar->source, len + 1);
             data->currentsource = source;
           }
+          lua_pop(L, 1);
           lua_yield(L, 0);
         } else {
           data->skipline = -1;
         }
       }
     }
-    return;
   }
 
   // get call stack level
   int level = getlevel(L);
   if (data->skiplevel != -1 && level > data->skiplevel)
-    return;
+    goto end;
 
   if (ar->currentline != data->skipline) {
     // hook is called before the line is executed,
@@ -178,18 +180,22 @@ static void hook(lua_State *L, lua_Debug *ar)
         data->currentsource = source;
       }
     }
-    if (CAN_YIELD(L))
+    if (CAN_YIELD(L)) {
+      lua_pop(L, 1);
       lua_yield(L, 0);
+    }
   } else {
     data->skipline = -1;
   }
+end:
+  lua_pop(L, 1);
 }
 
 static int debugger_hook(lua_State *L, int mode)
 {
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
   lua_getref(L, data->thread);
-  lua_State *thread = lua_tothread(L, -1);
+  lua_State *thread = lua_tothread(L, 2);
   if (L == thread)
     luaL_error(L, "cannot resume main thread");
   if (!canresume(thread))
@@ -254,7 +260,7 @@ static int debugger_continue(lua_State *L)
 {
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
   lua_getref(L, data->thread);
-  lua_State *thread = lua_tothread(L, -1);
+  lua_State *thread = lua_tothread(L, 2);
   if (L == thread)
     luaL_error(L, "cannot resume main thread");
   if (!canresume(thread))
@@ -310,7 +316,8 @@ static int debugger_breakpoint_add(lua_State *L)
 {
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
   const char *file = luaL_checkstring(L, 2);
-  int line = luaL_checkinteger(L, 3);
+  int line = luaL_checkint(L, 3);
+  lua_pop(L, 1);
   if (file == NULL || *file == '\0')
     luaL_error(L, "no file name");
   if (line < 1)
@@ -364,9 +371,7 @@ static int debugger_create(lua_State *L)
 static int debugger_index(lua_State *L)
 {
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
-  luaL_checktype(L, 2, LUA_TSTRING);
-
-  const char *index = lua_tostring(L, 2);
+  const char *index = luaL_checkstring(L, 2);
   if (strcmp(index, "thread") == 0) {
     lua_getref(L, data->thread);
   } else if (strcmp(index, "func") == 0) {
@@ -420,6 +425,7 @@ static int debugger_gc(lua_State *L)
       free(data->bps[i].file);
     free(data->bps);
   }
+  lua_pop(L, 1);
   return 0;
 }
 
