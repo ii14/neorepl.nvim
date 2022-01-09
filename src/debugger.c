@@ -151,6 +151,7 @@ static void hook(lua_State *L, lua_Debug *ar)
           }
           lua_pop(L, 1);
           lua_yield(L, 0);
+          return;
         } else {
           data->skipline = -1;
         }
@@ -183,6 +184,7 @@ static void hook(lua_State *L, lua_Debug *ar)
     if (CAN_YIELD(L)) {
       lua_pop(L, 1);
       lua_yield(L, 0);
+      return;
     }
   } else {
     data->skipline = -1;
@@ -317,7 +319,6 @@ static int debugger_breakpoint_add(lua_State *L)
   debug_userdata *data = (debug_userdata *)luaL_checkudata(L, 1, NREPL_THREAD);
   const char *file = luaL_checkstring(L, 2);
   int line = luaL_checkint(L, 3);
-  lua_pop(L, 1);
   if (file == NULL || *file == '\0')
     luaL_error(L, "no file name");
   if (line < 1)
@@ -346,6 +347,44 @@ static int debugger_breakpoint_add(lua_State *L)
   data->bplen = nlen;
   lua_pushinteger(L, id);
   return 1;
+}
+
+static void hook_breakpoint(lua_State *L, lua_Debug *ar)
+{
+  (void)ar;
+  lua_sethook(L, NULL, 0, 0); // TODO: restore previous hook
+  if (CAN_YIELD(L))
+    lua_yield(L, 0);
+}
+
+static int debugger_breakpoint(lua_State *L)
+{
+  lua_getfield(L, LUA_REGISTRYINDEX, NREPL_CURRENT);
+  debug_userdata *data = lua_touserdata(L, -1);
+  if (data == NULL || !lua_getmetatable(L, 1))
+    return 0;
+  luaL_getmetatable(L, NREPL_THREAD);
+  if (!lua_rawequal(L, -1, -2))
+    return 0;
+  lua_pop(L, 2);
+
+  lua_Debug ar;
+  if (lua_getstack(L, 1, &ar) && lua_getinfo(L, "lS", &ar)) {
+    data->currentline = ar.currentline;
+    size_t len = strlen(ar.source);
+    char *source = malloc(len + 1);
+    if (source != NULL) {
+      assert(data->currentsource == NULL);
+      memcpy(source, ar.source, len + 1);
+      data->currentsource = source;
+    }
+  }
+
+  lua_settop(L, 0);
+  // if we yield from here, the info is gone, can't access
+  // locals etc, so wait one instruction and yield from hook
+  lua_sethook(L, hook_breakpoint, LUA_MASKCOUNT, 1);
+  return 0;
 }
 
 static int debugger_create(lua_State *L)
@@ -450,6 +489,8 @@ int luaopen_nrepl_debug_debugger(lua_State *L)
   lua_createtable(L, 0, 1);
   lua_pushcfunction(L, debugger_create);
   lua_setfield(L, -2, "create");
+  lua_pushcfunction(L, debugger_breakpoint);
+  lua_setfield(L, -2, "breakpoint");
   return 1;
 }
 

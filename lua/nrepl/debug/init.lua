@@ -2,14 +2,15 @@
 ---@field thread thread
 ---@field func function
 ---@field status 'running'|'suspended'|'normal'|'dead'
----@field next fun() boolean|number
----@field step fun() boolean|number
----@field finish fun() boolean|number
----@field continue fun() boolean|number
----@field breakpoint fun(string,number) number
+---@field next fun(): boolean|number, number, string
+---@field step fun(): boolean|number, number, string
+---@field finish fun(): boolean|number, number, string
+---@field continue fun(): boolean|number, number, string
+---@field breakpoint fun(string,number): number
 
 ---@class nreplDebuggerLib
----@field create fun(function) nreplDebugger
+---@field create fun(function): nreplDebugger
+---@field breakpoint fun()
 local debugger = nil
 local prev_print = _G.print
 
@@ -33,6 +34,8 @@ function Debug.example()
   for i = 1, 3 do
     print('loop: '..i)
   end
+
+  debugger.breakpoint()
 
   print('example B')
 
@@ -94,10 +97,10 @@ function Debug:eval(prg)
   elseif prg == 'c' then -- continue
     res, line, src = self.dbg:continue()
   elseif prg:match('^b%s') then
-    local src, line = prg:match('^b%s+([^:]+):(%d+)$')
-    if line then line = tonumber(line) end
-    if src and line > 0 then
-      local bp = self.dbg:breakpoint(src, tonumber(line))
+    local bsrc, bline = prg:match('^b%s+([^:]+):(%d+)$')
+    if line then bline = tonumber(line) end
+    if bsrc and bline > 0 then
+      local bp = self.dbg:breakpoint(bsrc, tonumber(bline))
       self.repl:put({'new breakpoint: #'..bp}, 'nreplError')
     else
       self.repl:put({'invalid breakpoint'}, 'nreplError')
@@ -116,24 +119,26 @@ function Debug:eval(prg)
     else
       self.repl:put({'empty'}, 'nreplWarn')
     end
-  elseif prg == 'l' then -- locals
+  elseif prg == 'l' or prg:match('^l%s*%d+$') then -- locals
+    local lvl = prg:match('^l%s*(%d+)$')
+    lvl = tonumber(lvl) or 0
+    local ok = true
     local out = {}
     do local i = 0; while true do
       i = i + 1
-      -- TODO: invalid level throws exception
-      local key, value = debug.getlocal(self.dbg.thread, 0, i)
-      if not key then
-        break
-      elseif key ~= '(*temporary)' then
-        value = tostring(value):gsub('\n', '\\n')
-        table.insert(out, string.format('#%d %s = %s', i, key, value))
-      end
+      local key, value
+      ok, key, value = pcall(debug.getlocal, self.dbg.thread, lvl, i)
+      if not ok or not key then break end
+      value = tostring(value):gsub('\n', '\\n')
+      table.insert(out, string.format('#%d %s = %s', i, key, value))
     end end
 
     if #out > 0 then
       self.repl:put(out, 'nreplValue')
-    else
+    elseif ok then
       self.repl:put({'empty'}, 'nreplWarn')
+    else
+      self.repl:put({'out of bounds'}, 'nreplError')
     end
   elseif prg == 'u' then -- upvalues
     local func = debug.getinfo(self.dbg.thread, 0, 'f').func
