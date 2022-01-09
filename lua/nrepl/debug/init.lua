@@ -77,6 +77,31 @@ function Debug.new(repl, _)
   return this
 end
 
+local SOURCES = {}
+local function get_source(source)
+  if SOURCES[source] then
+    return SOURCES[source]
+  end
+
+  local src = {}
+
+  local filename = source:match('@(.*)')
+  if filename then
+    pcall(function()
+      for line in io.lines(filename) do
+        table.insert(src, line)
+      end
+    end)
+  else
+    for line in source:gmatch('(.-)\n') do
+      table.insert(src, line)
+    end
+  end
+
+  SOURCES[source] = src
+  return src
+end
+
 function Debug:eval(prg)
   assert(type(prg) == 'string')
   local res, line, src
@@ -129,8 +154,10 @@ function Debug:eval(prg)
       local key, value
       ok, key, value = pcall(debug.getlocal, self.dbg.thread, lvl, i)
       if not ok or not key then break end
-      value = tostring(value):gsub('\n', '\\n')
-      table.insert(out, string.format('#%d %s = %s', i, key, value))
+      if key ~= '(*temporary)' then
+        value = tostring(value):gsub('\n', '\\n')
+        table.insert(out, string.format('#%d %s = %s', i, key, value))
+      end
     end end
 
     if #out > 0 then
@@ -170,7 +197,13 @@ function Debug:eval(prg)
     if res > 0 then
       str = str..' breakpoint #'..res
     end
-    self.repl:put({str}, 'nreplInfo')
+    self.repl:put({str}, 'nreplValue')
+    if src and line then
+      local lines = get_source(src)
+      if lines and lines[line] then
+        self.repl:put({lines[line]}, 'nreplInfo')
+      end
+    end
   end
 end
 
