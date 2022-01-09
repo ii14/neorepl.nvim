@@ -1,4 +1,4 @@
----@class nreplDebuggerThread
+---@class nreplDebugger
 ---@field thread thread
 ---@field func function
 ---@field status 'running'|'suspended'|'normal'|'dead'
@@ -8,8 +8,8 @@
 ---@field continue fun() boolean|number
 ---@field breakpoint fun(string,number) number
 
----@class nreplDebugger
----@field create fun(function) nreplDebuggerThread
+---@class nreplDebuggerLib
+---@field create fun(function) nreplDebugger
 local debugger = nil
 local prev_print = _G.print
 
@@ -42,10 +42,10 @@ end
 -- "./lua/nrepl/debug/init.lua"
 
 ---@class nreplDebug
----@field repl nreplRepl              parent
----@field thread nreplDebuggerThread  debugged thread
----@field lastcmd string              last command
----@field print fun(...)              print function
+---@field repl nreplRepl      parent
+---@field dbg nreplDebugger   debugged thread
+---@field lastcmd string      last command
+---@field print fun(...)      print function
 local Debug = {}
 Debug.__index = Debug
 
@@ -70,8 +70,7 @@ function Debug.new(repl, _)
   end
 
   debugger = require('nrepl.debug.debugger')
-  this.thread = debugger.create(example)
-
+  this.dbg = debugger.create(example)
   return this
 end
 
@@ -87,17 +86,26 @@ function Debug:eval(prg)
 
   _G.print = self.print
   if prg == 'n' then -- next
-    res, line, src = self.thread:next()
+    res, line, src = self.dbg:next()
   elseif prg == 's' then -- step
-    res, line, src = self.thread:step()
+    res, line, src = self.dbg:step()
   elseif prg == 'f' then -- finish
-    res, line, src = self.thread:finish()
+    res, line, src = self.dbg:finish()
   elseif prg == 'c' then -- continue
-    res, line, src = self.thread:continue()
+    res, line, src = self.dbg:continue()
+  elseif prg:match('^b%s') then
+    local src, line = prg:match('^b%s+([^:]+):(%d+)$')
+    if line then line = tonumber(line) end
+    if src and line > 0 then
+      local bp = self.dbg:breakpoint(src, tonumber(line))
+      self.repl:put({'new breakpoint: #'..bp}, 'nreplError')
+    else
+      self.repl:put({'invalid breakpoint'}, 'nreplError')
+    end
   elseif prg == 'bt' then -- backtrace
     local out = {}
     do local level = 0; while true do
-      local i = debug.getinfo(self.thread.thread, level)
+      local i = debug.getinfo(self.dbg.thread, level)
       if not i then break end
       table.insert(out, string.format('#%d %s:%d', level, i.source, i.currentline))
       level = level + 1
@@ -113,7 +121,7 @@ function Debug:eval(prg)
     do local i = 0; while true do
       i = i + 1
       -- TODO: invalid level throws exception
-      local key, value = debug.getlocal(self.thread.thread, 0, i)
+      local key, value = debug.getlocal(self.dbg.thread, 0, i)
       if not key then break end
       value = tostring(value):gsub('\n', '\\n')
       table.insert(out, string.format('#%d %s = %s', i, key, value))
@@ -125,7 +133,7 @@ function Debug:eval(prg)
       self.repl:put({'empty'}, 'nreplWarn')
     end
   elseif prg == 'u' then -- upvalues
-    local func = debug.getinfo(self.thread.thread, 0, 'f').func
+    local func = debug.getinfo(self.dbg.thread, 0, 'f').func
     local out = {}
     do local i = 0; while true do
       i = i + 1
