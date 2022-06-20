@@ -101,8 +101,15 @@ require 'nrepl'.config{
 - [X] Context change
   - [X] Buffer
   - [X] Window
-- [ ] Per instance script context for vim script
 - [ ] Actions
   - [X] `[[`, `]]`, `[]`, `][` key bindings
   - [ ] Key binding or text object for selecting last output
   - [ ] Better backspace handling - remove line breaks with single backspace
+- [X] Evaluation
+  - [ ] Attach REPL to a script
+  - [X] Lua
+    - [ ] Coroutine debugger
+    - [ ] Improve completion even more, make it extensible (will require a full lua parser)
+  - [X] Vim script
+    - [ ] Per instance script context (either wait for sean to implement `nvim_exec2` or use ffi)
+    - [ ] Pretty stack traces
