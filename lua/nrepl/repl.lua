@@ -60,7 +60,7 @@ function Repl.new(config)
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
   if config.no_defaults ~= true then
-    vim.cmd(string.format([=[
+    vim.cmd([=[
       setlocal buftype=nofile
       setlocal noswapfile
 
@@ -100,7 +100,7 @@ function Repl.new(config)
       nmap <silent><buffer> ][ <Plug>(nrepl-][)
 
       syn match nreplLinebreak "^\\"
-    ]=]))
+    ]=])
   end
   api.nvim_buf_set_name(bufnr, 'nrepl://nrepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
