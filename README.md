@@ -33,8 +33,7 @@ like `vim.api.nvim_set_current_line()` or `:s/foo/bar/g` will run on the other
 buffer.
 
 A new REPL instance can be also spawned with `require'nrepl'.new{}`. Example
-function that mimics vim's cmdwin or exmode (this mapping is included, although
-it probably will get removed):
+function that mimics vim's cmdwin or exmode:
 ```vim
 function! s:cmdwin() abort
   " get current buffer and window
