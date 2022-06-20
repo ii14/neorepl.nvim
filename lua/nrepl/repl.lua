@@ -59,10 +59,29 @@ function Repl.new(config)
 
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
-  api.nvim_buf_set_option(bufnr, 'buftype', 'nofile')
-  api.nvim_buf_set_name(bufnr, 'nrepl('..bufnr..')')
   if config.no_defaults ~= true then
     vim.cmd(string.format([=[
+      setlocal buftype=nofile
+      setlocal noswapfile
+
+      noremap  <buffer> <Plug>(nrepl-eval-line)  <cmd>lua require'nrepl'.eval_line()<CR>
+      inoremap <buffer> <Plug>(nrepl-eval-line)  <cmd>lua require'nrepl'.eval_line()<CR>
+      inoremap <buffer> <Plug>(nrepl-break-line) <CR><C-U>\
+      noremap  <buffer> <Plug>(nrepl-hist-prev)  <cmd>lua require'nrepl'.hist_prev()<CR>
+      inoremap <buffer> <Plug>(nrepl-hist-prev)  <cmd>lua require'nrepl'.hist_prev()<CR>
+      noremap  <buffer> <Plug>(nrepl-hist-next)  <cmd>lua require'nrepl'.hist_next()<CR>
+      inoremap <buffer> <Plug>(nrepl-hist-next)  <cmd>lua require'nrepl'.hist_next()<CR>
+      inoremap <buffer> <Plug>(nrepl-complete)   <cmd>lua require'nrepl'.complete()<CR>
+
+      noremap  <buffer> <Plug>(nrepl-[[) <cmd>lua require'nrepl'.goto_prev()<CR>
+      inoremap <buffer> <Plug>(nrepl-[[) <cmd>lua require'nrepl'.goto_prev()<CR>
+      noremap  <buffer> <Plug>(nrepl-[]) <cmd>lua require'nrepl'.goto_prev(true)<CR>
+      inoremap <buffer> <Plug>(nrepl-[]) <cmd>lua require'nrepl'.goto_prev(true)<CR>
+      noremap  <buffer> <Plug>(nrepl-]]) <cmd>lua require'nrepl'.goto_next()<CR>
+      inoremap <buffer> <Plug>(nrepl-]]) <cmd>lua require'nrepl'.goto_next()<CR>
+      noremap  <buffer> <Plug>(nrepl-][) <cmd>lua require'nrepl'.goto_next(true)<CR>
+      inoremap <buffer> <Plug>(nrepl-][) <cmd>lua require'nrepl'.goto_next(true)<CR>
+
       imap <silent><buffer> <CR> <Plug>(nrepl-eval-line)
       imap <silent><buffer> <NL> <Plug>(nrepl-break-line)
 
@@ -79,13 +98,13 @@ function Repl.new(config)
       nmap <silent><buffer> [] <Plug>(nrepl-[])
       nmap <silent><buffer> ]] <Plug>(nrepl-]])
       nmap <silent><buffer> ][ <Plug>(nrepl-][)
+
+      syn match nreplLinebreak "^\\"
     ]=]))
   end
+  api.nvim_buf_set_name(bufnr, 'nrepl://nrepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
-  vim.cmd(string.format([[
-    syn match nreplLinebreak "^\\"
-  ]]))
 
   ---@type nreplRepl
   local this = setmetatable({
