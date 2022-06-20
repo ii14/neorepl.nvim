@@ -89,10 +89,12 @@ require 'nrepl'.config{
   - [X] Vim script (should be the same as on the command line)
   - [X] Lua (best lua completion for neovim in town)
   - [X] REPL commands (works for commands names only, no arguments yet)
+  - [ ] Public function for getting available completions (for 3rd party plugins)
 - [X] History
   - [X] Save and recall single lines
   - [X] Make history work with multiple lines
   - [ ] Save and recall context, was it lua or vimscript
+  - [ ] Persistent history
 - [X] Evaluate multiple lines
   - [X] Break line with `NL` (`CTRL-J`)
   - [ ] Evaluate visual selection
@@ -100,5 +102,7 @@ require 'nrepl'.config{
   - [X] Buffer
   - [X] Window
 - [ ] Per instance script context for vim script
-- [X] `[[`, `]]`, `[]`, `][` key bindings
-- [ ] Key binding or text object for selecting last output
+- [ ] Actions
+  - [X] `[[`, `]]`, `[]`, `][` key bindings
+  - [ ] Key binding or text object for selecting last output
+  - [ ] Better backspace handling - remove line breaks with single backspace
