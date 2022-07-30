@@ -171,7 +171,7 @@ do
     -- TODO: concat with previous lines
     local results, pos = complete(line, env)
     if results and #results > 0 then
-      return results, pos + 1
+      return pos + 1, results
     end
   end
 end

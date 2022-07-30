@@ -169,6 +169,12 @@ function M.complete()
   get():complete()
 end
 
+--- Get available completions at current cursor position
+---@return number column, string[] completions
+function M.get_completion()
+  return get():get_completion()
+end
+
 --- Go to previous output
 ---@param to_end? boolean
 function M.goto_prev(to_end)

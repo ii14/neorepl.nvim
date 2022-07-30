@@ -85,8 +85,8 @@ function Repl.new(config)
       imap <silent><buffer> <CR> <Plug>(nrepl-eval-line)
       imap <silent><buffer> <NL> <Plug>(nrepl-break-line)
 
-      setlocal backspace=indent,start
-      setlocal completeopt=menu
+      " setlocal backspace=indent,start
+      " setlocal completeopt=menu
       imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
       imap <silent><buffer><expr> <C-P> pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)'
       imap <silent><buffer><expr> <C-N> pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)'
@@ -372,8 +372,10 @@ function Repl:hist_move(prev)
   api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
 
---- Complete word under cursor
-function Repl:complete()
+function Repl:get_completion()
+  assert(api.nvim_get_current_buf() == self.bufnr, 'Not in nrepl buffer')
+  assert(api.nvim_win_get_buf(0) == self.bufnr, 'Not in nrepl window')
+
   local line = api.nvim_get_current_line()
   local pos = api.nvim_win_get_cursor(0)[2]
   line = line:sub(1, pos)
@@ -383,15 +385,15 @@ function Repl:complete()
     line = line:sub(2)
     -- TODO: complete command arguments too
     if line:match('^%S*$') then
-      local candidates = {}
+      results = {}
       local size = #line
       for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
         if line == c.command:sub(1, size) then
-          table.insert(candidates, c.command)
+          table.insert(results, c.command)
         end
       end
-      if #candidates > 0 then
-        fn.complete(2, candidates)
+      if #results > 0 then
+        return 2, results
       end
       return
     end
@@ -410,20 +412,28 @@ function Repl:complete()
     end
 
     if results and #results > 0 then
-      fn.complete(start or pos + 1, results)
+      return start or pos + 1, results
     end
     return
   end
 
   if self.vim_mode then
-    results, start = self.vim:complete(line)
+    start, results = self.vim:complete(line)
   else
     -- TODO: complete multiple lines
-    results, start = self.lua:complete(line)
+    start, results = self.lua:complete(line)
   end
 
   if results and #results > 0 then
-    fn.complete(start or pos + 1, results)
+    return start or pos + 1, results
+  end
+end
+
+--- Complete word under cursor
+function Repl:complete()
+  local offset, candidates = self:get_completion()
+  if offset and #candidates > 0 then
+    fn.complete(offset, candidates)
   end
 end
 

@@ -82,7 +82,7 @@ function Vim:complete(line)
   end
 
   if results and #results > 0 then
-    return results, pos
+    return pos, results
   end
 end
 
