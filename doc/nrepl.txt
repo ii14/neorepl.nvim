@@ -162,5 +162,13 @@ window ~
         Type: number | string
         Default: nil
 
+------------------------------------------------------------------------------
+COMMAND LINE COMPLETION
+*nrepl-:lua*
+
+You can use nrepl completion for :lua command with:
+>
+    require('nrepl.cmdline')
+<
 ==============================================================================
 vim: ft=help sw=4 sts=4 et tw=78
