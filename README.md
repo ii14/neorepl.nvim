@@ -89,7 +89,7 @@ require 'nrepl'.config{
   - [X] Vim script (should be the same as on the command line)
   - [X] Lua (best lua completion for neovim in town)
   - [X] REPL commands (works for commands names only, no arguments yet)
-  - [ ] Public function for getting available completions (for 3rd party plugins)
+  - [X] Public function for getting available completions (for 3rd party plugins)
 - [X] History
   - [X] Save and recall single lines
   - [X] Make history work with multiple lines
