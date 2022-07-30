@@ -1,8 +1,10 @@
 local api = vim.api
 
+local buffers = {}
+
 local M = {
   ---@type nrepl.Repl[]
-  buffers = {},
+  _buffers = buffers,
 }
 
 ---@class nrepl.Config
@@ -111,12 +113,18 @@ function M.new(config)
   config = validate(vim.tbl_extend('force', default_config, config or {}))
   local repl = require('nrepl.repl').new(config)
   local bufnr = repl.bufnr
-  M.buffers[bufnr] = repl
-  vim.cmd(string.format([[
-    augroup nrepl
-      autocmd BufDelete <buffer> lua require'nrepl'.buffers[%d] = nil
-    augroup end
-  ]], bufnr))
+
+  buffers[bufnr] = repl
+  api.nvim_create_autocmd('BufDelete', {
+    group = api.nvim_create_augroup('nrepl', { clear = false }),
+    buffer = bufnr,
+    callback = function()
+      buffers[bufnr] = nil
+    end,
+    desc = 'nrepl: teardown repl',
+    once = true,
+  })
+
   if config.on_init then
     config.on_init(bufnr)
   end
@@ -132,11 +140,11 @@ function M.close(bufnr)
   if bufnr == nil or bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   end
-  if M.buffers[bufnr] == nil then
+  if buffers[bufnr] == nil then
     error('invalid buffer: '..bufnr)
   end
   vim.cmd('stopinsert')
-  M.buffers[bufnr] = nil
+  buffers[bufnr] = nil
   api.nvim_buf_delete(bufnr, { force = true })
 end
 
@@ -144,7 +152,7 @@ end
 ---@return nrepl.Repl
 local function get()
   local bufnr = api.nvim_get_current_buf()
-  local repl = M.buffers[bufnr]
+  local repl = buffers[bufnr]
   if repl == nil then error('invalid buffer: '..bufnr) end
   return repl
 end
