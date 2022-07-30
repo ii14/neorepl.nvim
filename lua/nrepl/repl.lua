@@ -34,9 +34,7 @@ end
 ---@field redraw      boolean       redraw after evaluation
 ---@field inspect     boolean       inspect variables
 ---@field indent      number        indent level
----@field history     string[][]    command history
----@field histpos     number        position in history
----@field histcur     string[]|nil  line before moving through history
+---@field hist        nreplHist     command history
 local Repl = {}
 Repl.__index = Repl
 
@@ -116,8 +114,7 @@ function Repl.new(config)
     redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
-    history = {},
-    histpos = 0,
+    hist = require('nrepl.hist').new(),
     mark_id = 1,
   }, Repl)
 
@@ -215,7 +212,7 @@ end
 --- Evaluate current line
 function Repl:eval_line()
   -- reset history position
-  self.histpos = 0
+  self.hist.pos = 0
 
   local lines = self:get_line()
   if lines == nil then
@@ -228,14 +225,8 @@ function Repl:eval_line()
     return self:new_line()
   end
 
-  -- remove duplicate entries in history
-  for i = #self.history, 1, -1 do
-    if util.lines_equal(self.history[i], lines) then
-      table.remove(self.history, i)
-    end
-  end
   -- save lines to history
-  table.insert(self.history, lines)
+  self.hist:append(lines)
 
   -- repl command
   local line = lines[1]
@@ -340,34 +331,10 @@ end
 --- Move between entries in history
 ---@param prev boolean previous entry if true, next entry if false
 function Repl:hist_move(prev)
-  if #self.history == 0 then return end
+  if #self.hist.ents == 0 then return end
   local lines, s, e = self:get_line()
   if lines == nil then return end
-  if self.histpos == 0 then
-    self.histcur = lines
-  end
-
-  local nlines
-  if prev then
-    self.histpos = self.histpos + 1
-    if self.histpos > #self.history then
-      self.histpos = 0
-      nlines = self.histcur
-    else
-      nlines = self.history[#self.history - self.histpos + 1]
-    end
-  else
-    self.histpos = self.histpos - 1
-    if self.histpos == 0 then
-      nlines = self.histcur
-    elseif self.histpos < 0 then
-      self.histpos = #self.history
-      nlines = self.history[1]
-    else
-      nlines = self.history[#self.history - self.histpos + 1]
-    end
-  end
-
+  local nlines = self.hist:move(prev, lines)
   api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
   api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
