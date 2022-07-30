@@ -92,7 +92,7 @@ require 'neorepl'.config{
   - [X] Save and recall single lines
   - [X] Make history work with multiple lines
   - [ ] Save and recall context, was it lua or vimscript
-  - [ ] Persistent history
+  - [X] Persistent history
 - [X] Evaluate multiple lines
   - [X] Break line with `NL` (`CTRL-J`)
   - [ ] Evaluate visual selection
