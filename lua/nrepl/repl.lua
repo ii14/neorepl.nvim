@@ -101,9 +101,7 @@ function Repl.new(config)
   api.nvim_buf_set_name(bufnr, 'nrepl://nrepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
-  vim.cmd([[
-    syn match nreplLinebreak "^\\"
-  ]])
+  vim.cmd([[syn match nreplLinebreak "^\\"]])
 
   ---@type nrepl.Repl
   local this = setmetatable({
@@ -470,12 +468,10 @@ function Repl:goto_output(backward, to_end, count)
   end
 end
 
-vim.cmd([[
-  hi link nreplError      ErrorMsg
-  hi link nreplOutput     String
-  hi link nreplValue      Number
-  hi link nreplInfo       Function
-  hi link nreplLinebreak  Function
-]])
+api.nvim_set_hl(0, 'nreplError',     { link = 'ErrorMsg' })
+api.nvim_set_hl(0, 'nreplOutput',    { link = 'String' })
+api.nvim_set_hl(0, 'nreplValue',     { link = 'Number' })
+api.nvim_set_hl(0, 'nreplInfo',      { link = 'Function' })
+api.nvim_set_hl(0, 'nreplLinebreak', { link = 'Function' })
 
 return Repl
