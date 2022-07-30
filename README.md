@@ -3,8 +3,6 @@
 Neovim REPL for lua and vim script
 
 Although already usable, it's work in progress, things can change at any time.
-The name of the plugin will probably change too, since this name is apparently
-already taken.
 
 ---
 
