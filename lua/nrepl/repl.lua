@@ -23,6 +23,25 @@ local function get_opt(v, default)
   end
 end
 
+---@param modes string|string[]
+---@param lhss string|string[]
+---@param rhs string
+---@param expr boolean
+local function map(modes, lhss, rhs, expr)
+  if type(modes) ~= 'table' then
+    modes = { modes }
+  end
+  if type(lhss) ~= 'table' then
+    lhss = { lhss }
+  end
+  local opts = { noremap = true, expr = expr }
+  for _, mode in ipairs(modes) do
+    for _, lhs in ipairs(lhss) do
+      api.nvim_buf_set_keymap(0, mode, lhs, rhs, opts)
+    end
+  end
+end
+
 ---@class nrepl.Repl
 ---@field bufnr       number        repl buffer
 ---@field lua         nrepl.Lua
@@ -57,47 +76,39 @@ function Repl.new(config)
 
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
+
+  map({'','i'}, '<Plug>(nrepl-eval-line)',  [[<cmd>lua require'nrepl'.eval_line()<CR>]])
+  map('i',      '<Plug>(nrepl-break-line)', [[<CR><C-U>\]])
+  map({'','i'}, '<Plug>(nrepl-hist-prev)',  [[<cmd>lua require'nrepl'.hist_prev()<CR>]])
+  map({'','i'}, '<Plug>(nrepl-hist-next)',  [[<cmd>lua require'nrepl'.hist_next()<CR>]])
+  map('i',      '<Plug>(nrepl-complete)',   [[<cmd>lua require'nrepl'.complete()<CR>]])
+  map({'','i'}, '<Plug>(nrepl-[[)', [[<cmd>lua require'nrepl'.goto_prev()<CR>]])
+  map({'','i'}, '<Plug>(nrepl-[])', [[<cmd>lua require'nrepl'.goto_prev(true)<CR>]])
+  map({'','i'}, '<Plug>(nrepl-]])', [[<cmd>lua require'nrepl'.goto_next()<CR>]])
+  map({'','i'}, '<Plug>(nrepl-][)', [[<cmd>lua require'nrepl'.goto_next(true)<CR>]])
+
   if config.no_defaults ~= true then
-    vim.cmd([=[
-      setlocal buftype=nofile
-      setlocal noswapfile
+    map('i', {'<CR>','<C-M>'}, '<Plug>(nrepl-eval-line)')
+    map('i', {'<NL>','<C-J>'}, '<Plug>(nrepl-break-line)')
 
-      noremap  <buffer> <Plug>(nrepl-eval-line)  <cmd>lua require'nrepl'.eval_line()<CR>
-      inoremap <buffer> <Plug>(nrepl-eval-line)  <cmd>lua require'nrepl'.eval_line()<CR>
-      inoremap <buffer> <Plug>(nrepl-break-line) <CR><C-U>\
-      noremap  <buffer> <Plug>(nrepl-hist-prev)  <cmd>lua require'nrepl'.hist_prev()<CR>
-      inoremap <buffer> <Plug>(nrepl-hist-prev)  <cmd>lua require'nrepl'.hist_prev()<CR>
-      noremap  <buffer> <Plug>(nrepl-hist-next)  <cmd>lua require'nrepl'.hist_next()<CR>
-      inoremap <buffer> <Plug>(nrepl-hist-next)  <cmd>lua require'nrepl'.hist_next()<CR>
-      inoremap <buffer> <Plug>(nrepl-complete)   <cmd>lua require'nrepl'.complete()<CR>
+    map('i', '<Tab>', [[pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)']], true)
+    map('i', '<C-P>', [[pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)']], true)
+    map('i', '<C-N>', [[pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)']], true)
+    map('i', '<C-E>', [[pumvisible() ? '<C-E>' : '<End>']], true)
+    map('i', '<C-Y>', '<C-Y>')
+    map('i', '<C-A>', '<Home>')
 
-      noremap  <buffer> <Plug>(nrepl-[[) <cmd>lua require'nrepl'.goto_prev()<CR>
-      inoremap <buffer> <Plug>(nrepl-[[) <cmd>lua require'nrepl'.goto_prev()<CR>
-      noremap  <buffer> <Plug>(nrepl-[]) <cmd>lua require'nrepl'.goto_prev(true)<CR>
-      inoremap <buffer> <Plug>(nrepl-[]) <cmd>lua require'nrepl'.goto_prev(true)<CR>
-      noremap  <buffer> <Plug>(nrepl-]]) <cmd>lua require'nrepl'.goto_next()<CR>
-      inoremap <buffer> <Plug>(nrepl-]]) <cmd>lua require'nrepl'.goto_next()<CR>
-      noremap  <buffer> <Plug>(nrepl-][) <cmd>lua require'nrepl'.goto_next(true)<CR>
-      inoremap <buffer> <Plug>(nrepl-][) <cmd>lua require'nrepl'.goto_next(true)<CR>
+    map('n', '[[', '<Plug>(nrepl-[[)')
+    map('n', '[]', '<Plug>(nrepl-[])')
+    map('n', ']]', '<Plug>(nrepl-]])')
+    map('n', '][', '<Plug>(nrepl-][)')
 
-      imap <silent><buffer> <CR> <Plug>(nrepl-eval-line)
-      imap <silent><buffer> <NL> <Plug>(nrepl-break-line)
-
-      " setlocal backspace=indent,start
-      " setlocal completeopt=menu
-      imap <silent><buffer><expr> <Tab> pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)'
-      imap <silent><buffer><expr> <C-P> pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)'
-      imap <silent><buffer><expr> <C-N> pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)'
-      inoremap <expr><buffer> <C-E> pumvisible() ? '<C-E>' : '<End>'
-      inoremap       <buffer> <C-Y> <C-Y>
-      inoremap       <buffer> <C-A> <Home>
-
-      nmap <silent><buffer> [[ <Plug>(nrepl-[[)
-      nmap <silent><buffer> [] <Plug>(nrepl-[])
-      nmap <silent><buffer> ]] <Plug>(nrepl-]])
-      nmap <silent><buffer> ][ <Plug>(nrepl-][)
-    ]=])
+    vim.opt_local.buftype = 'nofile'
+    vim.opt_local.swapfile = false
+    -- vim.opt_local.backspace = 'indent,start'
+    -- vim.opt_local.completeopt = 'menu'
   end
+
   api.nvim_buf_set_name(bufnr, 'nrepl://nrepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
