@@ -1,4 +1,4 @@
-*neorepl.txt* eo- Neovim REPL for lua and vimscript
+*neorepl.txt* - Neovim REPL for lua and vimscript
 ==============================================================================
 
 :Repl [{lang}]                                      *:Repl* *neorepl*
@@ -9,39 +9,39 @@
 KEY BINDINGS
 *neorepl-keys*
 
-<Plug>(neorepl-eval-line)                             *<Plug>(neorepl-eval-line)*
+<Plug>(neorepl-eval-line)                           *<Plug>(neorepl-eval-line)*
     Evaluate line(s) under cursor.
     Default mapping: <CR>
 
-<Plug>(neorepl-break-line)                            *<Plug>(neorepl-break-line)*
+<Plug>(neorepl-break-line)                          *<Plug>(neorepl-break-line)*
     Break line at cursor. For insert mode only.
     Default mapping: <NL> (<C-J>)
 
-<Plug>(neorepl-hist-prev)                             *<Plug>(neorepl-hist-prev)*
+<Plug>(neorepl-hist-prev)                           *<Plug>(neorepl-hist-prev)*
     Previous entry in the history.
     Default mapping: <C-P>
 
-<Plug>(neorepl-hist-next)                             *<Plug>(neorepl-hist-next)*
+<Plug>(neorepl-hist-next)                           *<Plug>(neorepl-hist-next)*
     Next entry in the history.
     Default mapping: <C-N>
 
-<Plug>(neorepl-complete)                              *<Plug>(neorepl-complete)*
+<Plug>(neorepl-complete)                            *<Plug>(neorepl-complete)*
     Trigger completion. For insert mode only.
     Default mapping: <Tab>
 
-<Plug>(neorepl-]])                                    *<Plug>(neorepl-]])*
+<Plug>(neorepl-]])                                  *<Plug>(neorepl-]])*
     Go one output section forward, to the first line. |]]|
     Default mapping: ]]
 
-<Plug>(neorepl-][)                                    *<Plug>(neorepl-][)*
+<Plug>(neorepl-][)                                  *<Plug>(neorepl-][)*
     Go one output section forward, to the last line. |][|
     Default mapping: ][
 
-<Plug>(neorepl-[[)                                    *<Plug>(neorepl-[[)*
+<Plug>(neorepl-[[)                                  *<Plug>(neorepl-[[)*
     Go one output section backward, to the first line. |[[|
     Default mapping: [[
 
-<Plug>(neorepl-[])                                    *<Plug>(neorepl-[])*
+<Plug>(neorepl-[])                                  *<Plug>(neorepl-[])*
     Go one output section backward, to the last line. |[]|
     Default mapping: []
 
@@ -89,13 +89,13 @@ COMMANDS
 LUA API
 *neorepl-api*
 
-neorepl.new([{config}])                               *neorepl.new()*
+neorepl.new([{config}])                             *neorepl.new()*
     Starts a new REPL instance.
     See |neorepl-config| for the list of available options.
 >
         require('neorepl').new({...})
 <
-neorepl.config({config})                              *neorepl.config()*
+neorepl.config({config})                            *neorepl.config()*
     Sets the default config.
     See |neorepl-config| for the list of available options.
 >
