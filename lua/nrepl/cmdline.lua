@@ -1,8 +1,8 @@
-assert(vim and vim._expand_pat)
+local prev = assert(vim._expand_pat)
 
 local complete = nil
 
-function vim._expand_pat(pat, env)
+local function expand(pat, env)
   if complete == nil then
     complete = require('nrepl.lua.complete').complete
   end
@@ -28,3 +28,14 @@ function vim._expand_pat(pat, env)
 
   return results, pos
 end
+
+vim._expand_pat = expand
+
+return {
+  install = function()
+    vim._expand_pat = expand
+  end,
+  restore = function()
+    vim._expand_pat = prev
+  end,
+}
