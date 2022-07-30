@@ -2,17 +2,17 @@ local api = vim.api
 ---Reference to global print function
 local prev_print = _G.print
 
----@class nreplLua
----@field repl nreplRepl    parent
+---@class nrepl.Lua
+---@field repl nrepl.Repl   parent
 ---@field env table         repl environment
 ---@field print fun(...)    print function
 local Lua = {}
 Lua.__index = Lua
 
 ---Create a new lua context
----@param repl nreplRepl
----@param config nreplConfig
----@return nreplLua
+---@param repl nrepl.Repl
+---@param config nrepl.Config
+---@return nrepl.Lua
 function Lua.new(repl, config)
   local this = setmetatable({
     repl = repl,

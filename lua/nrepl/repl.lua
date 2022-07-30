@@ -8,7 +8,7 @@ local COMMAND_PREFIX = '/'
 local MSG_INVALID_COMMAND = {'invalid command'}
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
----@type nreplCommand[]
+---@type nrepl.Command[]
 local COMMANDS = nil
 
 ---@generic T
@@ -23,10 +23,10 @@ local function get_opt(v, default)
   end
 end
 
----@class nreplRepl
+---@class nrepl.Repl
 ---@field bufnr       number        repl buffer
----@field lua         nreplLua
----@field vim         nreplVim
+---@field lua         nrepl.Lua
+---@field vim         nrepl.Vim
 ---@field buffer      number        buffer context
 ---@field window      number        window context
 ---@field vim_mode    boolean       vim mode
@@ -34,13 +34,13 @@ end
 ---@field redraw      boolean       redraw after evaluation
 ---@field inspect     boolean       inspect variables
 ---@field indent      number        indent level
----@field hist        nreplHist     command history
+---@field hist        nrepl.Hist    command history
 local Repl = {}
 Repl.__index = Repl
 
 ---Create a new REPL instance
----@param config? nreplConfig
----@return nreplRepl
+---@param config? nrepl.Config
+---@return nrepl.Repl
 function Repl.new(config)
   if config.buffer then
     config.buffer = util.parse_buffer(config.buffer, true)
@@ -105,7 +105,7 @@ function Repl.new(config)
     syn match nreplLinebreak "^\\"
   ]])
 
-  ---@type nreplRepl
+  ---@type nrepl.Repl
   local this = setmetatable({
     bufnr = bufnr,
     buffer = config.buffer or 0,

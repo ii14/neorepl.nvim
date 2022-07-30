@@ -54,7 +54,7 @@ local function isindexable(v)
   return mt and mt.__index
 end
 
----@param es nreplLuaExp[]
+---@param es nrepl.Lua.Exp[]
 ---@param env table
 ---@return any
 local function resolve(es, env)
@@ -121,7 +121,7 @@ local function mpairs(t)
 end
 
 ---@param var any
----@param e nreplLuaExp
+---@param e nrepl.Lua.Exp
 ---@return number, string[]
 local function complete(var, e)
   -- TODO: refactor
@@ -340,7 +340,7 @@ function M.complete(src, env)
   local es = parser.parse(ts)
 
   -- don't complete identifiers if there is a space after them
-  local le = tremove(es) ---@type nreplLuaExp
+  local le = tremove(es) ---@type nrepl.Lua.Exp
   if le and le[#le].type ~= 'ident' or not src:sub(-1,-1):match('%s') then
     local var = resolve(es, env)
     if not var then return end

@@ -1,11 +1,11 @@
 local api = vim.api
 
 local M = {
-  ---@type nreplRepl[]
+  ---@type nrepl.Repl[]
   buffers = {},
 }
 
----@class nreplConfig
+---@class nrepl.Config
 ---@field lang? 'lua'|'vim'
 ---@field startinsert? boolean
 ---@field indent? number
@@ -17,7 +17,7 @@ local M = {
 ---@field env_lua? table|fun():table
 
 ---Normalize configuration
----@type fun(config: any): nreplConfig
+---@type fun(config: any): nrepl.Config
 local validate do
   local function enum(values)
     return function(v)
@@ -80,7 +80,7 @@ local validate do
   end
 end
 
----@type nreplConfig Default configuration
+---@type nrepl.Config Default configuration
 local default_config = {
   lang = 'lua',
   startinsert = false,
@@ -93,7 +93,7 @@ local default_config = {
 }
 
 ---Set default configuration
----@param config? nreplConfig
+---@param config? nrepl.Config
 function M.config(config)
   -- TODO: merge with the old one.
   -- to do so, we need a way of resetting values back to default,
@@ -106,7 +106,7 @@ function M.config(config)
 end
 
 ---Create a new REPL instance
----@param config? nreplConfig
+---@param config? nrepl.Config
 function M.new(config)
   config = validate(vim.tbl_extend('force', default_config, config or {}))
   local repl = require('nrepl.repl').new(config)
@@ -141,7 +141,7 @@ function M.close(bufnr)
 end
 
 ---Get current REPL
----@return nreplRepl
+---@return nrepl.Repl
 local function get()
   local bufnr = api.nvim_get_current_buf()
   local repl = M.buffers[bufnr]

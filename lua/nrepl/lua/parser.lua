@@ -2,7 +2,7 @@ local tinsert, srep = table.insert, string.rep
 
 local M = {}
 
----@alias nreplLuaTokenType
+---@alias nrepl.Lua.TokenType
 ---| 'comment'    comment
 ---| 'ident'      identifier
 ---| 'keyword'    keyword
@@ -11,15 +11,15 @@ local M = {}
 ---| 'string'     string literal
 ---| 'unknown'    unknown token
 
----@class nreplLuaToken
----@field type nreplLuaTokenType  token type
----@field value string            raw value
----@field line number             0-indexed line number
----@field col number              0-indexed column number
----@field long? boolean           string/comment style
----@field incomplete? boolean     is string/comment unclosed
+---@class nrepl.Lua.Token
+---@field type nrepl.Lua.TokenType  token type
+---@field value string              raw value
+---@field line number               0-indexed line number
+---@field col number                0-indexed column number
+---@field long? boolean             string/comment style
+---@field incomplete? boolean       is string/comment unclosed
 
----@alias nreplLuaExpType
+---@alias nrepl.Lua.ExpType
 ---| 'root'     first variable to look up       = ident
 ---| 'prop'     property accessed through .     = . ident
 ---| 'index'    property accessed through []    = [ number|string ]
@@ -29,9 +29,9 @@ local M = {}
 
 -- can't inherit from tables, so a union type instead
 
----@class nreplLuaExpBase
----@field type nreplLuaExpType
----@alias nreplLuaExp nreplLuaExpBase|nreplLuaToken[]
+---@class nrepl.Lua.ExpBase
+---@field type nrepl.Lua.ExpType
+---@alias nrepl.Lua.Exp nrepl.Lua.ExpBase|nrepl.Lua.Token[]
 
 local WHITESPACE = ' \t\v\f\r'
 local RE_WHITESPACE = '['..WHITESPACE..']*([^'..WHITESPACE..'])'
@@ -44,7 +44,7 @@ local KEYWORDS = require('nrepl.util').make_lookup {
 
 ---Tokenize lua source code
 ---@param input string
----@return nreplLuaToken[] tokens, number line, number col
+---@return nrepl.Lua.Token[] tokens, number line, number col
 function M.lex(input)
   local line = 0
   local col = 0
@@ -57,7 +57,7 @@ function M.lex(input)
     return value
   end
 
-  ---@return nreplLuaToken
+  ---@return nrepl.Lua.Token
   local function next()
     if rest == nil or rest == '' then
       return
@@ -310,14 +310,14 @@ function M.lex(input)
 end
 
 ---Get last expression
----@param ts nreplLuaToken[]
----@return nreplLuaExp[]
+---@param ts nrepl.Lua.Token[]
+---@return nrepl.Lua.Exp[]
 function M.parse(ts)
   local r = {}
-  local t = nil ---@type nreplLuaToken
+  local t = nil ---@type nrepl.Lua.Token
   local i = 0
 
-  local function next() ---@return nreplLuaToken
+  local function next() ---@return nrepl.Lua.Token
     i = i + 1
     t = ts[i]
     return t

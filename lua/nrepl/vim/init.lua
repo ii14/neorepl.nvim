@@ -1,14 +1,14 @@
 local fn = vim.fn
 
----@class nreplVim
----@field repl nreplRepl    parent
+---@class nrepl.Vim
+---@field repl nrepl.Repl parent
 local Vim = {}
 Vim.__index = Vim
 
 ---Create a new vim context
----@param repl nreplRepl
----@param _ nreplConfig
----@return nreplVim
+---@param repl nrepl.Repl
+---@param _ nrepl.Config
+---@return nrepl.Vim
 function Vim.new(repl, _)
   local this = setmetatable({
     repl = repl,

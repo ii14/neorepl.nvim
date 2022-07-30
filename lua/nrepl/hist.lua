@@ -1,6 +1,6 @@
 local util = require('nrepl.util')
 
----@class nreplHist
+---@class nrepl.Hist
 ---@field ents string[][]   command history
 ---@field pos number        position in history
 ---@field cur string[]|nil  line before moving through history

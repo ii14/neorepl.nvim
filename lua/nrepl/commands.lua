@@ -14,17 +14,17 @@ local MSG_INVALID_WIN = {'invalid window'}
 
 local BUF_EMPTY = '[No Name]'
 
----@class nreplCommand
+---@class nrepl.Command
 ---@field command string
 ---@field description? string
----@field run function(args: string, repl: nreplRepl)
+---@field run function(args: string, repl: nrepl.Repl)
 
----@type nreplCommand[]
+---@type nrepl.Command[]
 local COMMANDS = {}
 
 ---Command for boolean options
 ---@param args string[]
----@param repl nreplRepl
+---@param repl nrepl.Repl
 local function command_boolean(args, repl)
   if args then
     if #args > 1 then
@@ -51,7 +51,7 @@ table.insert(COMMANDS, {
   command = 'lua',
   description = 'switch to lua or evaluate expression',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       repl.lua:eval(args)
@@ -66,7 +66,7 @@ table.insert(COMMANDS, {
   command = 'vim',
   description = 'switch to vimscript or evaluate expression',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       repl.vim:eval(args)
@@ -81,7 +81,7 @@ table.insert(COMMANDS, {
   command = 'buffer',
   description = 'option: buffer context (number or string, 0 to disable)',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       if #args > 1 then
@@ -129,7 +129,7 @@ table.insert(COMMANDS, {
   command = 'window',
   description = 'option: window context (number, 0 to disable)',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       if #args > 1 then
@@ -164,7 +164,7 @@ table.insert(COMMANDS, {
   command = 'inspect',
   description = 'option: inspect returned lua values (boolean)',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     local ok, res = command_boolean(args, repl)
     if ok then
@@ -180,7 +180,7 @@ table.insert(COMMANDS, {
   command = 'indent',
   description = 'option: output indentation (number)',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       if #args > 1 then
@@ -212,7 +212,7 @@ table.insert(COMMANDS, {
   command = 'redraw',
   description = 'option: redraw after evaluation (boolean)',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     local ok, res = command_boolean(args, repl)
     if ok then
@@ -228,7 +228,7 @@ table.insert(COMMANDS, {
   command = 'clear',
   description = 'clear buffer',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       repl:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
@@ -243,7 +243,7 @@ table.insert(COMMANDS, {
   command = 'quit',
   description = 'close repl instance',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       repl:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
@@ -257,7 +257,7 @@ table.insert(COMMANDS, {
 table.insert(COMMANDS, {
   command = 'help',
   ---@param args string
-  ---@param repl nreplRepl
+  ---@param repl nrepl.Repl
   run = function(args, repl)
     if args then
       repl:put(MSG_ARGS_NOT_ALLOWED, 'nreplError')
