@@ -17,6 +17,8 @@ local M = {
 ---@field window? number|string
 ---@field on_init? fun(bufnr: number)
 ---@field env_lua? table|fun():table
+---@field histfile? string
+---@field histmax? number
 
 ---Normalize configuration
 ---@type fun(config: any): nrepl.Config
@@ -76,6 +78,8 @@ local validate do
       buffer      = { c.buffer,       union{'number', 'string'}, 'number or string' },
       window      = { c.window,       union{'number', 'string'}, 'number or string' },
       env_lua     = { c.env_lua,      union{'table', 'function'}, 'table or function' },
+      histfile    = { c.histfile,     'string', true },
+      histmax     = { c.histmax,      between(1, 1000), 'number between 1 and 1000' },
     }
 
     return c
@@ -92,6 +96,12 @@ local default_config = {
   no_defaults = false,
   on_init = nil,
   env_lua = nil,
+  histfile = (function()
+    local ok, path = pcall(vim.fn.stdpath, 'state')
+    if not ok then path = vim.fn.stdpath('cache') end
+    return path .. '/nrepl_history'
+  end)(),
+  histmax = 100,
 }
 
 ---Set default configuration

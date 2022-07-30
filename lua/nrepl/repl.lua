@@ -123,7 +123,7 @@ function Repl.new(config)
     redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
-    hist = require('nrepl.hist').new(),
+    hist = require('nrepl.hist').new(config),
     mark_id = 1,
   }, Repl)
 
@@ -221,7 +221,7 @@ end
 ---Evaluate current line
 function Repl:eval_line()
   -- reset history position
-  self.hist.pos = 0
+  self.hist:reset_pos()
 
   local lines = self:get_line()
   if lines == nil then
@@ -340,7 +340,7 @@ end
 ---Move between entries in history
 ---@param prev boolean previous entry if true, next entry if false
 function Repl:hist_move(prev)
-  if #self.hist.ents == 0 then return end
+  if self.hist:len() == 0 then return end
   local lines, s, e = self:get_line()
   if lines == nil then return end
   local nlines = self.hist:move(prev, lines)

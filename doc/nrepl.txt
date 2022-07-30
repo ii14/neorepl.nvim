@@ -162,6 +162,16 @@ window ~
         Type: number | string
         Default: nil
 
+histfile ~
+    Absolute path to history file.
+        Type: string
+        Default: $XDG_STATE_HOME/nrepl_history or $XDG_CACHE_HOME/nrepl_history
+
+histmax ~
+    Max entries in the history.
+        Type: number
+        Default: 100
+
 ------------------------------------------------------------------------------
 COMMAND LINE COMPLETION
 *nrepl-:lua*
