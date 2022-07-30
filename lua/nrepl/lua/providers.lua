@@ -1,4 +1,4 @@
---- Completion providers
+-- Completion providers
 
 local tinsert, tsort, tremove, tconcat = table.insert, table.sort, table.remove, table.concat
 local slower = string.lower

@@ -38,7 +38,7 @@ end
 local Repl = {}
 Repl.__index = Repl
 
---- Create a new REPL instance
+---Create a new REPL instance
 ---@param config? nreplConfig
 ---@return nreplRepl
 function Repl.new(config)
@@ -124,7 +124,7 @@ function Repl.new(config)
   return this
 end
 
---- Append lines to the buffer
+---Append lines to the buffer
 ---@param lines string[]  lines
 ---@param hlgroup string  highlight group
 function Repl:put(lines, hlgroup)
@@ -160,7 +160,7 @@ function Repl:clear()
   api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
 end
 
---- Append empty line
+---Append empty line
 function Repl:new_line()
   api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {''})
   vim.cmd('$') -- TODO: don't use things like this, buffer can change during evaluation
@@ -172,8 +172,8 @@ function Repl:new_line()
   end
 end
 
---- Get lines under cursor
---- Returns nil on illegal line break
+---Get lines under cursor
+---Returns nil on illegal line break
 ---@return string[]|nil
 function Repl:get_line()
   local line = api.nvim_get_current_line()
@@ -209,7 +209,7 @@ function Repl:get_line()
   return lines, s, e
 end
 
---- Evaluate current line
+---Evaluate current line
 function Repl:eval_line()
   -- reset history position
   self.hist.pos = 0
@@ -288,7 +288,7 @@ function Repl:eval_line()
   end
 end
 
---- Execute function in current buffer/window context
+---Execute function in current buffer/window context
 function Repl:exec_context(f)
   local buf = self.buffer
   local win = self.window
@@ -328,7 +328,7 @@ function Repl:exec_context(f)
   return true
 end
 
---- Move between entries in history
+---Move between entries in history
 ---@param prev boolean previous entry if true, next entry if false
 function Repl:hist_move(prev)
   if #self.hist.ents == 0 then return end
@@ -396,7 +396,7 @@ function Repl:get_completion()
   end
 end
 
---- Complete word under cursor
+---Complete word under cursor
 function Repl:complete()
   local offset, candidates = self:get_completion()
   if offset and #candidates > 0 then
@@ -404,7 +404,7 @@ function Repl:complete()
   end
 end
 
---- Go to previous/next output implementation
+---Go to previous/next output implementation
 ---@param backward boolean
 ---@param to_end? boolean
 function Repl:goto_output(backward, to_end, count)

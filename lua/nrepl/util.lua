@@ -3,7 +3,7 @@ local fn = vim.fn
 
 local M = {}
 
---- Create a lookup table
+---Create a lookup table
 ---@param t string[]
 ---@return table<string,boolean>
 function M.make_lookup(t)
@@ -14,7 +14,7 @@ function M.make_lookup(t)
   return r
 end
 
---- Parse buffer
+---Parse buffer
 ---@param buf string|number
 ---@param zero_is_current? boolean
 ---@return number|nil
@@ -53,7 +53,7 @@ function M.parse_buffer(buf, zero_is_current)
   end
 end
 
---- Parse window
+---Parse window
 ---@param win string|number
 ---@param zero_is_current? boolean
 ---@return number|nil
@@ -98,7 +98,7 @@ function M.parse_window(win, zero_is_current)
   end
 end
 
---- Check if lines are empty
+---Check if lines are empty
 ---@param lines string[]
 ---@return boolean
 function M.lines_empty(lines)
@@ -110,7 +110,7 @@ function M.lines_empty(lines)
   return true
 end
 
---- Check if lines are equal
+---Check if lines are equal
 ---@param a string[]
 ---@param b string[]
 ---@return boolean

@@ -22,7 +22,7 @@ local BUF_EMPTY = '[No Name]'
 ---@type nreplCommand[]
 local COMMANDS = {}
 
---- Command for boolean options
+---Command for boolean options
 ---@param args string[]
 ---@param repl nreplRepl
 local function command_boolean(args, repl)

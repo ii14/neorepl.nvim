@@ -42,7 +42,7 @@ local KEYWORDS = require('nrepl.util').make_lookup {
   'return', 'then', 'true', 'until', 'while',
 }
 
---- Tokenize lua source code
+---Tokenize lua source code
 ---@param input string
 ---@return nreplLuaToken[] tokens, number line, number col
 function M.lex(input)
@@ -309,7 +309,7 @@ function M.lex(input)
   return tokens, line, col
 end
 
---- Get last expression
+---Get last expression
 ---@param ts nreplLuaToken[]
 ---@return nreplLuaExp[]
 function M.parse(ts)

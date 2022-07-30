@@ -96,7 +96,7 @@ local function resolve(es, env)
   return var
 end
 
---- Table and metatable iterator
+---Table and metatable iterator
 local function mpairs(t)
   local t1 = type(t) == 'table' and t or nil
   local t2 = getmetatable(t)
@@ -365,7 +365,7 @@ function M.complete(src, env)
     then return end
   end
 
-  --- complete from env, with a fake empty exp
+  -- complete from env, with a fake empty exp
   return complete(env, {
     type = 'root', {
       type = 'ident',

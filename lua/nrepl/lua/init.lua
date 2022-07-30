@@ -1,5 +1,5 @@
 local api = vim.api
---- Reference to global print function
+---Reference to global print function
 local prev_print = _G.print
 
 ---@class nreplLua
@@ -9,7 +9,7 @@ local prev_print = _G.print
 local Lua = {}
 Lua.__index = Lua
 
---- Create a new lua context
+---Create a new lua context
 ---@param repl nreplRepl
 ---@param config nreplConfig
 ---@return nreplLua
@@ -29,9 +29,9 @@ function Lua.new(repl, config)
   end
 
   this.env = setmetatable({
-    --- access to global environment
+    ---access to global environment
     global = _G,
-    --- print function override
+    ---print function override
     print = this.print,
   }, {
     __index = function(t, key)
@@ -73,7 +73,7 @@ end
 ---@param f function
 ---@return boolean ok, table results, number result count
 local exec do
-  --- Gather results from pcall
+  ---Gather results from pcall
   local function pcall_res(ok, ...)
     if ok then
       -- return returned values as a table and its size,
@@ -96,7 +96,7 @@ local exec do
   end
 end
 
---- Evaluate lua and append output to the buffer
+---Evaluate lua and append output to the buffer
 ---@param prg string
 ---@return nil|boolean
 function Lua:eval(prg)
@@ -150,7 +150,7 @@ end
 
 do
   local complete = nil
-  --- Complete line
+  ---Complete line
   ---@param line string
   ---@return string[] results, number position
   function Lua:complete(line)

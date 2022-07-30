@@ -1,6 +1,6 @@
 local M = {}
 
---- Parses number from token
+---Parses number from token
 ---@param t nreplLuaToken
 ---@return number
 function M.parse_number(t)
@@ -21,7 +21,7 @@ do
     ['"']  = '"',
   }
 
-  --- Parses string from token
+  ---Parses string from token
   ---@param t nreplLuaToken
   ---@return string
   function M.parse_string(t)
@@ -77,7 +77,7 @@ do
     end
   end
 
-  --- Escapes a string
+  ---Escapes a string
   ---@param s string
   ---@return string
   function M.escape_string(s)

@@ -5,7 +5,7 @@ local fn = vim.fn
 local Vim = {}
 Vim.__index = Vim
 
---- Create a new vim context
+---Create a new vim context
 ---@param repl nreplRepl
 ---@param _ nreplConfig
 ---@return nreplVim
@@ -17,7 +17,7 @@ function Vim.new(repl, _)
   return this
 end
 
---- Evaluate vim script and append output to the buffer
+---Evaluate vim script and append output to the buffer
 ---@param prg string
 ---@return nil|boolean
 function Vim:eval(prg)
@@ -65,7 +65,7 @@ function Vim:eval(prg)
   end
 end
 
---- Complete line
+---Complete line
 ---@param line string
 ---@return string[] results, number position
 function Vim:complete(line)

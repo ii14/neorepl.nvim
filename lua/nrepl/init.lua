@@ -16,7 +16,7 @@ local M = {
 ---@field on_init? fun(bufnr: number)
 ---@field env_lua? table|fun():table
 
---- Normalize configuration
+---Normalize configuration
 ---@type fun(config: any): nreplConfig
 local validate do
   local function enum(values)
@@ -92,7 +92,7 @@ local default_config = {
   env_lua = nil,
 }
 
---- Set default configuration
+---Set default configuration
 ---@param config? nreplConfig
 function M.config(config)
   -- TODO: merge with the old one.
@@ -105,7 +105,7 @@ function M.config(config)
   default_config = config
 end
 
---- Create a new REPL instance
+---Create a new REPL instance
 ---@param config? nreplConfig
 function M.new(config)
   config = validate(vim.tbl_extend('force', default_config, config or {}))
@@ -125,7 +125,7 @@ function M.new(config)
   end
 end
 
---- Close REPL instance
+---Close REPL instance
 ---@param bufnr? string
 function M.close(bufnr)
   vim.validate { bufnr = { bufnr, 'number', true } }
@@ -140,7 +140,7 @@ function M.close(bufnr)
   api.nvim_buf_delete(bufnr, { force = true })
 end
 
---- Get current REPL
+---Get current REPL
 ---@return nreplRepl
 local function get()
   local bufnr = api.nvim_get_current_buf()
@@ -149,39 +149,39 @@ local function get()
   return repl
 end
 
---- Evaluate current line
+---Evaluate current line
 function M.eval_line()
   get():eval_line()
 end
 
---- Get previous line from the history
+---Get previous line from the history
 function M.hist_prev()
   get():hist_move(true)
 end
 
---- Get next line from the history
+---Get next line from the history
 function M.hist_next()
   get():hist_move(false)
 end
 
---- Complete current line
+---Complete current line
 function M.complete()
   get():complete()
 end
 
---- Get available completions at current cursor position
+---Get available completions at current cursor position
 ---@return number column, string[] completions
 function M.get_completion()
   return get():get_completion()
 end
 
---- Go to previous output
+---Go to previous output
 ---@param to_end? boolean
 function M.goto_prev(to_end)
   get():goto_output(true, to_end, vim.v.count1)
 end
 
---- Go to next output
+---Go to next output
 ---@param to_end? boolean
 function M.goto_next(to_end)
   get():goto_output(false, to_end, vim.v.count1)
