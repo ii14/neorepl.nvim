@@ -10,11 +10,8 @@ Vim.__index = Vim
 ---@param _ nrepl.Config
 ---@return nrepl.Vim
 function Vim.new(repl, _)
-  local this = setmetatable({
-    repl = repl,
-  }, Vim)
-
-  return this
+  local self = setmetatable({ repl = repl }, Vim)
+  return self
 end
 
 ---Evaluate vim script and append output to the buffer

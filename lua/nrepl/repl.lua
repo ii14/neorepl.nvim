@@ -115,7 +115,7 @@ function Repl.new(config)
   vim.cmd([[syn match nreplLinebreak "^\\"]])
 
   ---@type nrepl.Repl
-  local this = setmetatable({
+  local self = setmetatable({
     bufnr = bufnr,
     buffer = config.buffer or 0,
     window = config.window or 0,
@@ -127,10 +127,10 @@ function Repl.new(config)
     mark_id = 1,
   }, Repl)
 
-  this.lua = require('nrepl.lua').new(this, config)
-  this.vim = require('nrepl.vim').new(this, config)
+  self.lua = require('nrepl.lua').new(self, config)
+  self.vim = require('nrepl.vim').new(self, config)
 
-  return this
+  return self
 end
 
 ---Append lines to the buffer

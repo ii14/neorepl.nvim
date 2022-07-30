@@ -14,12 +14,10 @@ Lua.__index = Lua
 ---@param config nrepl.Config
 ---@return nrepl.Lua
 function Lua.new(repl, config)
-  local this = setmetatable({
-    repl = repl,
-  }, Lua)
+  local self = setmetatable({ repl = repl }, Lua)
 
   -- print override
-  this.print = function(...)
+  self.print = function(...)
     local args = {...}
     for i, v in ipairs(args) do
       args[i] = tostring(v)
@@ -28,11 +26,11 @@ function Lua.new(repl, config)
     repl:put(lines, 'nreplOutput')
   end
 
-  this.env = setmetatable({
+  self.env = setmetatable({
     ---access to global environment
     global = _G,
     ---print function override
-    print = this.print,
+    print = self.print,
   }, {
     __index = function(t, key)
       return rawget(t, key) or rawget(_G, key)
@@ -49,24 +47,24 @@ function Lua.new(repl, config)
           local err = vim.split(res, '\n', { plain = true })
           table.insert(err, 1, 'Error from user env:')
           repl:put(err, 'nreplError')
-          return this.repl:new_line()
+          return self.repl:new_line()
         elseif type(res) == nil then
           return
         elseif type(res) ~= 'table' then
           repl:put({'Result of user env is not a table'}, 'nreplError')
-          return this.repl:new_line()
+          return self.repl:new_line()
         else
           userenv = res
         end
       end
 
       for k, v in pairs(userenv) do
-        this.env[k] = v
+        self.env[k] = v
       end
     end)()
   end
 
-  return this
+  return self
 end
 
 ---@type function
