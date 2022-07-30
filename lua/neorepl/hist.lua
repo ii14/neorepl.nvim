@@ -2,7 +2,7 @@ local api, uv, mpack = vim.api, vim.loop, vim.mpack
 
 local PID = assert(uv.getpid())
 
----@class nrepl.Hist
+---@class neorepl.Hist
 ---@field pos number      position in history
 ---@field cur string|nil  line before moving through history
 local Hist = {}
@@ -73,7 +73,7 @@ local function flush()
   uv.fs_rename(TMPFILE, HISTFILE)
 end
 
----@param config nrepl.Config
+---@param config neorepl.Config
 function Hist.new(config)
   HISTMAX = assert(config.histmax)
   HISTFILE = assert(config.histfile)
@@ -85,8 +85,8 @@ function Hist.new(config)
 
   api.nvim_create_autocmd('VimLeavePre', {
     callback = flush,
-    desc = 'nrepl: flush history',
-    group = api.nvim_create_augroup('nrepl_history', { clear = true }),
+    desc = 'neorepl: flush history',
+    group = api.nvim_create_augroup('neorepl_history', { clear = true }),
   })
 
   return setmetatable({

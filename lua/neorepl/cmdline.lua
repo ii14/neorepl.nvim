@@ -4,7 +4,7 @@ local complete = nil
 
 local function expand(pat, env)
   if complete == nil then
-    complete = require('nrepl.lua.complete').complete
+    complete = require('neorepl.lua.complete').complete
   end
 
   pat = pat or ''

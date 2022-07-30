@@ -3,11 +3,11 @@ local api = vim.api
 local buffers = {}
 
 local M = {
-  ---@type nrepl.Repl[]
+  ---@type neorepl.Repl[]
   _buffers = buffers,
 }
 
----@class nrepl.Config
+---@class neorepl.Config
 ---@field lang? 'lua'|'vim'
 ---@field startinsert? boolean
 ---@field indent? number
@@ -21,7 +21,7 @@ local M = {
 ---@field histmax? number
 
 ---Normalize configuration
----@type fun(config: any): nrepl.Config
+---@type fun(config: any): neorepl.Config
 local validate do
   local function enum(values)
     return function(v)
@@ -86,7 +86,7 @@ local validate do
   end
 end
 
----@type nrepl.Config Default configuration
+---@type neorepl.Config Default configuration
 local default_config = {
   lang = 'lua',
   startinsert = false,
@@ -99,17 +99,17 @@ local default_config = {
   histfile = (function()
     local ok, path = pcall(vim.fn.stdpath, 'state')
     if not ok then path = vim.fn.stdpath('cache') end
-    return path .. '/nrepl_history'
+    return path .. '/neorepl_history'
   end)(),
   histmax = 100,
 }
 
 ---Set default configuration
----@param config? nrepl.Config
+---@param config? neorepl.Config
 function M.config(config)
   -- TODO: merge with the old one.
   -- to do so, we need a way of resetting values back to default,
-  -- in particular on_init, env_lua, lang. either false or have nrepl.DEFAULT constant
+  -- in particular on_init, env_lua, lang. either false or have neorepl.DEFAULT constant
   config = validate(config)
   if config.buffer ~= nil or config.window ~= nil then
     error('buffer and window cannot be set on a default configuration')
@@ -118,20 +118,20 @@ function M.config(config)
 end
 
 ---Create a new REPL instance
----@param config? nrepl.Config
+---@param config? neorepl.Config
 function M.new(config)
   config = validate(vim.tbl_extend('force', default_config, config or {}))
-  local repl = require('nrepl.repl').new(config)
+  local repl = require('neorepl.repl').new(config)
   local bufnr = repl.bufnr
 
   buffers[bufnr] = repl
   api.nvim_create_autocmd('BufDelete', {
-    group = api.nvim_create_augroup('nrepl', { clear = false }),
+    group = api.nvim_create_augroup('neorepl', { clear = false }),
     buffer = bufnr,
     callback = function()
       buffers[bufnr] = nil
     end,
-    desc = 'nrepl: teardown repl',
+    desc = 'neorepl: teardown repl',
     once = true,
   })
 
@@ -159,7 +159,7 @@ function M.close(bufnr)
 end
 
 ---Get current REPL
----@return nrepl.Repl
+---@return neorepl.Repl
 local function get()
   local bufnr = api.nvim_get_current_buf()
   local repl = buffers[bufnr]

@@ -1,53 +1,53 @@
-*nrepl.txt* - Neovim REPL for lua and vimscript
+*neorepl.txt* eo- Neovim REPL for lua and vimscript
 ==============================================================================
 
-:Repl [{lang}]                                      *:Repl* *nrepl*
+:Repl [{lang}]                                      *:Repl* *neorepl*
     Starts a new REPL instance. {lang} can be "lua" or "vim".
-    See |nrepl.new()| for starting a new instance with custom settings.
+    See |neorepl.new()| for starting a new instance with custom settings.
 
 ------------------------------------------------------------------------------
 KEY BINDINGS
-*nrepl-keys*
+*neorepl-keys*
 
-<Plug>(nrepl-eval-line)                             *<Plug>(nrepl-eval-line)*
+<Plug>(neorepl-eval-line)                             *<Plug>(neorepl-eval-line)*
     Evaluate line(s) under cursor.
     Default mapping: <CR>
 
-<Plug>(nrepl-break-line)                            *<Plug>(nrepl-break-line)*
+<Plug>(neorepl-break-line)                            *<Plug>(neorepl-break-line)*
     Break line at cursor. For insert mode only.
     Default mapping: <NL> (<C-J>)
 
-<Plug>(nrepl-hist-prev)                             *<Plug>(nrepl-hist-prev)*
+<Plug>(neorepl-hist-prev)                             *<Plug>(neorepl-hist-prev)*
     Previous entry in the history.
     Default mapping: <C-P>
 
-<Plug>(nrepl-hist-next)                             *<Plug>(nrepl-hist-next)*
+<Plug>(neorepl-hist-next)                             *<Plug>(neorepl-hist-next)*
     Next entry in the history.
     Default mapping: <C-N>
 
-<Plug>(nrepl-complete)                              *<Plug>(nrepl-complete)*
+<Plug>(neorepl-complete)                              *<Plug>(neorepl-complete)*
     Trigger completion. For insert mode only.
     Default mapping: <Tab>
 
-<Plug>(nrepl-]])                                    *<Plug>(nrepl-]])*
+<Plug>(neorepl-]])                                    *<Plug>(neorepl-]])*
     Go one output section forward, to the first line. |]]|
     Default mapping: ]]
 
-<Plug>(nrepl-][)                                    *<Plug>(nrepl-][)*
+<Plug>(neorepl-][)                                    *<Plug>(neorepl-][)*
     Go one output section forward, to the last line. |][|
     Default mapping: ][
 
-<Plug>(nrepl-[[)                                    *<Plug>(nrepl-[[)*
+<Plug>(neorepl-[[)                                    *<Plug>(neorepl-[[)*
     Go one output section backward, to the first line. |[[|
     Default mapping: [[
 
-<Plug>(nrepl-[])                                    *<Plug>(nrepl-[])*
+<Plug>(neorepl-[])                                    *<Plug>(neorepl-[])*
     Go one output section backward, to the last line. |[]|
     Default mapping: []
 
 ------------------------------------------------------------------------------
 COMMANDS
-*nrepl-commands*
+*neorepl-commands*
 
 /v[im] [{line}]
     Switch language to vimscript. With {line} a vimscript expression is
@@ -87,23 +87,23 @@ COMMANDS
 
 ------------------------------------------------------------------------------
 LUA API
-*nrepl-api*
+*neorepl-api*
 
-nrepl.new([{config}])                               *nrepl.new()*
+neorepl.new([{config}])                               *neorepl.new()*
     Starts a new REPL instance.
-    See |nrepl-config| for the list of available options.
+    See |neorepl-config| for the list of available options.
 >
-        require('nrepl').new({...})
+        require('neorepl').new({...})
 <
-nrepl.config({config})                              *nrepl.config()*
+neorepl.config({config})                              *neorepl.config()*
     Sets the default config.
-    See |nrepl-config| for the list of available options.
+    See |neorepl-config| for the list of available options.
 >
-        require('nrepl').config({...})
+        require('neorepl').config({...})
 <
 ------------------------------------------------------------------------------
 CONFIGURATION
-*nrepl-config*
+*neorepl-config*
 
 lang ~
     Start REPL in either lua or vimscript mode.
@@ -151,21 +151,21 @@ no_defaults ~
 buffer ~
     Start REPL attached to the buffer. Accepts values supported by |bufnr()|.
     0 for the current buffer.
-    Available only to |nrepl.new()|.
+    Available only to |neorepl.new()|.
         Type: number | string
         Default: nil
 
 window ~
     Start REPL attached to the window. Accepts |window-ID|s and values
     supported by |winnr()|. 0 for the current window.
-    Available only to |nrepl.new()|.
+    Available only to |neorepl.new()|.
         Type: number | string
         Default: nil
 
 histfile ~
     Absolute path to history file.
         Type: string
-        Default: $XDG_STATE_HOME/nrepl_history or $XDG_CACHE_HOME/nrepl_history
+        Default: $XDG_STATE_HOME/neorepl_history or $XDG_CACHE_HOME/neorepl_history
 
 histmax ~
     Max entries in the history.
@@ -174,11 +174,11 @@ histmax ~
 
 ------------------------------------------------------------------------------
 COMMAND LINE COMPLETION
-*nrepl-:lua*
+*neorepl-:lua*
 
-You can use nrepl completion for :lua command with:
+You can use neorepl completion for :lua command with:
 >
-    require('nrepl.cmdline')
+    require('neorepl.cmdline')
 <
 ==============================================================================
 vim: ft=help sw=4 sts=4 et tw=78

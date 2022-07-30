@@ -1,14 +1,14 @@
 local api = vim.api
 local fn = vim.fn
-local util = require('nrepl.util')
+local util = require('neorepl.util')
 
-local ns = api.nvim_create_namespace('nrepl')
+local ns = api.nvim_create_namespace('neorepl')
 
 local COMMAND_PREFIX = '/'
 local MSG_INVALID_COMMAND = {'invalid command'}
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
----@type nrepl.Command[]
+---@type neorepl.Command[]
 local COMMANDS = nil
 
 ---@generic T
@@ -42,10 +42,10 @@ local function map(modes, lhss, rhs, expr)
   end
 end
 
----@class nrepl.Repl
+---@class neorepl.Repl
 ---@field bufnr       number        repl buffer
----@field lua         nrepl.Lua
----@field vim         nrepl.Vim
+---@field lua         neorepl.Lua
+---@field vim         neorepl.Vim
 ---@field buffer      number        buffer context
 ---@field window      number        window context
 ---@field vim_mode    boolean       vim mode
@@ -53,13 +53,13 @@ end
 ---@field redraw      boolean       redraw after evaluation
 ---@field inspect     boolean       inspect variables
 ---@field indent      number        indent level
----@field hist        nrepl.Hist    command history
+---@field hist        neorepl.Hist    command history
 local Repl = {}
 Repl.__index = Repl
 
 ---Create a new REPL instance
----@param config? nrepl.Config
----@return nrepl.Repl
+---@param config? neorepl.Config
+---@return neorepl.Repl
 function Repl.new(config)
   if config.buffer then
     config.buffer = util.parse_buffer(config.buffer, true)
@@ -77,31 +77,31 @@ function Repl.new(config)
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
 
-  map({'','i'}, '<Plug>(nrepl-eval-line)',  [[<cmd>lua require'nrepl'.eval_line()<CR>]])
-  map('i',      '<Plug>(nrepl-break-line)', [[<CR><C-U>\]])
-  map({'','i'}, '<Plug>(nrepl-hist-prev)',  [[<cmd>lua require'nrepl'.hist_prev()<CR>]])
-  map({'','i'}, '<Plug>(nrepl-hist-next)',  [[<cmd>lua require'nrepl'.hist_next()<CR>]])
-  map('i',      '<Plug>(nrepl-complete)',   [[<cmd>lua require'nrepl'.complete()<CR>]])
-  map({'','i'}, '<Plug>(nrepl-[[)', [[<cmd>lua require'nrepl'.goto_prev()<CR>]])
-  map({'','i'}, '<Plug>(nrepl-[])', [[<cmd>lua require'nrepl'.goto_prev(true)<CR>]])
-  map({'','i'}, '<Plug>(nrepl-]])', [[<cmd>lua require'nrepl'.goto_next()<CR>]])
-  map({'','i'}, '<Plug>(nrepl-][)', [[<cmd>lua require'nrepl'.goto_next(true)<CR>]])
+  map({'','i'}, '<Plug>(neorepl-eval-line)',  [[<cmd>lua require'neorepl'.eval_line()<CR>]])
+  map('i',      '<Plug>(neorepl-break-line)', [[<CR><C-U>\]])
+  map({'','i'}, '<Plug>(neorepl-hist-prev)',  [[<cmd>lua require'neorepl'.hist_prev()<CR>]])
+  map({'','i'}, '<Plug>(neorepl-hist-next)',  [[<cmd>lua require'neorepl'.hist_next()<CR>]])
+  map('i',      '<Plug>(neorepl-complete)',   [[<cmd>lua require'neorepl'.complete()<CR>]])
+  map({'','i'}, '<Plug>(neorepl-[[)', [[<cmd>lua require'neorepl'.goto_prev()<CR>]])
+  map({'','i'}, '<Plug>(neorepl-[])', [[<cmd>lua require'neorepl'.goto_prev(true)<CR>]])
+  map({'','i'}, '<Plug>(neorepl-]])', [[<cmd>lua require'neorepl'.goto_next()<CR>]])
+  map({'','i'}, '<Plug>(neorepl-][)', [[<cmd>lua require'neorepl'.goto_next(true)<CR>]])
 
   if config.no_defaults ~= true then
-    map('i', {'<CR>','<C-M>'}, '<Plug>(nrepl-eval-line)')
-    map('i', {'<NL>','<C-J>'}, '<Plug>(nrepl-break-line)')
+    map('i', {'<CR>','<C-M>'}, '<Plug>(neorepl-eval-line)')
+    map('i', {'<NL>','<C-J>'}, '<Plug>(neorepl-break-line)')
 
-    map('i', '<Tab>', [[pumvisible() ? '<C-N>' : '<Plug>(nrepl-complete)']], true)
-    map('i', '<C-P>', [[pumvisible() ? '<C-P>' : '<Plug>(nrepl-hist-prev)']], true)
-    map('i', '<C-N>', [[pumvisible() ? '<C-N>' : '<Plug>(nrepl-hist-next)']], true)
+    map('i', '<Tab>', [[pumvisible() ? '<C-N>' : '<Plug>(neorepl-complete)']], true)
+    map('i', '<C-P>', [[pumvisible() ? '<C-P>' : '<Plug>(neorepl-hist-prev)']], true)
+    map('i', '<C-N>', [[pumvisible() ? '<C-N>' : '<Plug>(neorepl-hist-next)']], true)
     map('i', '<C-E>', [[pumvisible() ? '<C-E>' : '<End>']], true)
     map('i', '<C-Y>', '<C-Y>')
     map('i', '<C-A>', '<Home>')
 
-    map('n', '[[', '<Plug>(nrepl-[[)')
-    map('n', '[]', '<Plug>(nrepl-[])')
-    map('n', ']]', '<Plug>(nrepl-]])')
-    map('n', '][', '<Plug>(nrepl-][)')
+    map('n', '[[', '<Plug>(neorepl-[[)')
+    map('n', '[]', '<Plug>(neorepl-[])')
+    map('n', ']]', '<Plug>(neorepl-]])')
+    map('n', '][', '<Plug>(neorepl-][)')
 
     vim.opt_local.buftype = 'nofile'
     vim.opt_local.swapfile = false
@@ -109,12 +109,12 @@ function Repl.new(config)
     -- vim.opt_local.completeopt = 'menu'
   end
 
-  api.nvim_buf_set_name(bufnr, 'nrepl://nrepl('..bufnr..')')
+  api.nvim_buf_set_name(bufnr, 'neorepl://neorepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
-  api.nvim_buf_set_option(bufnr, 'filetype', 'nrepl')
-  vim.cmd([[syn match nreplLinebreak "^\\"]])
+  api.nvim_buf_set_option(bufnr, 'filetype', 'neorepl')
+  vim.cmd([[syn match neoreplLinebreak "^\\"]])
 
-  ---@type nrepl.Repl
+  ---@type neorepl.Repl
   local self = setmetatable({
     bufnr = bufnr,
     buffer = config.buffer or 0,
@@ -123,12 +123,12 @@ function Repl.new(config)
     redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
-    hist = require('nrepl.hist').new(config),
+    hist = require('neorepl.hist').new(config),
     mark_id = 1,
   }, Repl)
 
-  self.lua = require('nrepl.lua').new(self, config)
-  self.vim = require('nrepl.vim').new(self, config)
+  self.lua = require('neorepl.lua').new(self, config)
+  self.vim = require('neorepl.vim').new(self, config)
 
   return self
 end
@@ -225,7 +225,7 @@ function Repl:eval_line()
 
   local lines = self:get_line()
   if lines == nil then
-    self:put({'illegal line break'}, 'nreplError')
+    self:put({'illegal line break'}, 'neoreplError')
     return self:new_line()
   end
 
@@ -243,7 +243,7 @@ function Repl:eval_line()
     line = line:sub(2)
     local cmd, rest = line:match('^(%a*)%s*(.*)$')
     if not cmd then
-      self:put(MSG_INVALID_COMMAND, 'nreplError')
+      self:put(MSG_INVALID_COMMAND, 'neoreplError')
       return self:new_line()
     end
 
@@ -260,7 +260,7 @@ function Repl:eval_line()
       args[1] = args[1]:match('^(.-)%s*$')
     end
 
-    for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+    for _, c in ipairs(COMMANDS or require('neorepl.commands')) do
       if c.pattern == nil then
         local name = c.command
         c.pattern = '\\v\\C^'..name:sub(1,1)..'%['..name:sub(2)..']$'
@@ -275,7 +275,7 @@ function Repl:eval_line()
       end
     end
 
-    self:put(MSG_INVALID_COMMAND, 'nreplError')
+    self:put(MSG_INVALID_COMMAND, 'neoreplError')
     return self:new_line()
   end
 
@@ -316,7 +316,7 @@ function Repl:exec_context(f)
       table.insert(lines, 'window no longer valid, setting it back to 0')
     end
     table.insert(lines, 'operation cancelled')
-    self:put(lines, 'nreplError')
+    self:put(lines, 'neoreplError')
     return false
   end
 
@@ -349,8 +349,8 @@ function Repl:hist_move(prev)
 end
 
 function Repl:get_completion()
-  assert(api.nvim_get_current_buf() == self.bufnr, 'Not in nrepl buffer')
-  assert(api.nvim_win_get_buf(0) == self.bufnr, 'Not in nrepl window')
+  assert(api.nvim_get_current_buf() == self.bufnr, 'Not in neorepl buffer')
+  assert(api.nvim_win_get_buf(0) == self.bufnr, 'Not in neorepl window')
 
   local line = api.nvim_get_current_line()
   local pos = api.nvim_win_get_cursor(0)[2]
@@ -363,7 +363,7 @@ function Repl:get_completion()
     if line:match('^%S*$') then
       results = {}
       local size = #line
-      for _, c in ipairs(COMMANDS or require('nrepl.commands')) do
+      for _, c in ipairs(COMMANDS or require('neorepl.commands')) do
         if line == c.command:sub(1, size) then
           table.insert(results, c.command)
         end
@@ -479,10 +479,10 @@ function Repl:goto_output(backward, to_end, count)
   end
 end
 
-api.nvim_set_hl(0, 'nreplError',     { link = 'ErrorMsg' })
-api.nvim_set_hl(0, 'nreplOutput',    { link = 'String' })
-api.nvim_set_hl(0, 'nreplValue',     { link = 'Number' })
-api.nvim_set_hl(0, 'nreplInfo',      { link = 'Function' })
-api.nvim_set_hl(0, 'nreplLinebreak', { link = 'Function' })
+api.nvim_set_hl(0, 'neoreplError',     { link = 'ErrorMsg' })
+api.nvim_set_hl(0, 'neoreplOutput',    { link = 'String' })
+api.nvim_set_hl(0, 'neoreplValue',     { link = 'Number' })
+api.nvim_set_hl(0, 'neoreplInfo',      { link = 'Function' })
+api.nvim_set_hl(0, 'neoreplLinebreak', { link = 'Function' })
 
 return Repl

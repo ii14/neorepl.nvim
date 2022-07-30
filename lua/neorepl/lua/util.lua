@@ -1,7 +1,7 @@
 local M = {}
 
 ---Parses number from token
----@param t nrepl.Lua.Token
+---@param t neorepl.Lua.Token
 ---@return number
 function M.parse_number(t)
   return t.value:match('^%d+$') and tonumber(t.value) or nil
@@ -22,7 +22,7 @@ do
   }
 
   ---Parses string from token
-  ---@param t nrepl.Lua.Token
+  ---@param t neorepl.Lua.Token
   ---@return string
   function M.parse_string(t)
     -- don't handle long strings, for now at least

@@ -1,4 +1,4 @@
-function! nrepl#__evaluate__(line)
+function! neorepl#__evaluate__(line)
   try
     return {'result': execute(a:line, 'silent')}
   catch

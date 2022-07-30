@@ -2,17 +2,17 @@ local api = vim.api
 ---Reference to global print function
 local prev_print = _G.print
 
----@class nrepl.Lua
----@field repl nrepl.Repl   parent
+---@class neorepl.Lua
+---@field repl neorepl.Repl   parent
 ---@field env table         repl environment
 ---@field print fun(...)    print function
 local Lua = {}
 Lua.__index = Lua
 
 ---Create a new lua context
----@param repl nrepl.Repl
----@param config nrepl.Config
----@return nrepl.Lua
+---@param repl neorepl.Repl
+---@param config neorepl.Config
+---@return neorepl.Lua
 function Lua.new(repl, config)
   local self = setmetatable({ repl = repl }, Lua)
 
@@ -23,7 +23,7 @@ function Lua.new(repl, config)
       args[i] = tostring(v)
     end
     local lines = vim.split(table.concat(args, '\t'), '\n', { plain = true })
-    repl:put(lines, 'nreplOutput')
+    repl:put(lines, 'neoreplOutput')
   end
 
   self.env = setmetatable({
@@ -46,12 +46,12 @@ function Lua.new(repl, config)
         if not ok then
           local err = vim.split(res, '\n', { plain = true })
           table.insert(err, 1, 'Error from user env:')
-          repl:put(err, 'nreplError')
+          repl:put(err, 'neoreplError')
           return self.repl:new_line()
         elseif type(res) == nil then
           return
         elseif type(res) ~= 'table' then
-          repl:put({'Result of user env is not a table'}, 'nreplError')
+          repl:put({'Result of user env is not a table'}, 'neoreplError')
           return self.repl:new_line()
         else
           userenv = res
@@ -105,9 +105,9 @@ function Lua:eval(prg)
   end
 
   local ok, res, err, n
-  res = loadstring('return '..prg, 'nrepl')
+  res = loadstring('return '..prg, 'neorepl')
   if not res then
-    res, err = loadstring(prg, 'nrepl')
+    res, err = loadstring(prg, 'neorepl')
   end
 
   if res then
@@ -126,14 +126,14 @@ function Lua:eval(prg)
     end
 
     if not ok then
-      self.repl:put(vim.split(res, '\n', { plain = true }), 'nreplError')
+      self.repl:put(vim.split(res, '\n', { plain = true }), 'neoreplError')
     else
       local stringify = self.repl.inspect and vim.inspect or tostring
       for i = 1, n do
         res[i] = stringify(res[i])
       end
       if #res > 0 then
-        self.repl:put(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'nreplValue')
+        self.repl:put(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'neoreplValue')
       end
     end
   elseif err:match("'<eof>'$") then
@@ -142,7 +142,7 @@ function Lua:eval(prg)
     vim.cmd('$')
     return false
   else
-    self.repl:put({err}, 'nreplError')
+    self.repl:put({err}, 'neoreplError')
   end
 end
 
@@ -153,7 +153,7 @@ do
   ---@return string[] results, number position
   function Lua:complete(line)
     if complete == nil then
-      complete = require('nrepl.lua.complete').complete
+      complete = require('neorepl.lua.complete').complete
     end
 
     -- merge environments on the fly, because

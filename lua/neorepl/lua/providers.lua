@@ -104,7 +104,7 @@ do -- vim.fn completion
     -- get all builtin functions
     if VIM_FNS == nil then
       VIM_FNS = {}
-      for _, func in ipairs(require('nrepl.lua.data.functions')) do
+      for _, func in ipairs(require('neorepl.lua.data.functions')) do
         if VIM_FNS[func[1]] == nil then
           VIM_FNS[func[1]] = func[2]
         end
@@ -138,7 +138,7 @@ do -- lua stdlib function signatures
   local STDLIB_FNS = nil
   function M.stdlib()
     if not STDLIB_FNS then
-      STDLIB_FNS = require('nrepl.lua.data.stdlib')
+      STDLIB_FNS = require('neorepl.lua.data.stdlib')
     end
     return STDLIB_FNS
   end

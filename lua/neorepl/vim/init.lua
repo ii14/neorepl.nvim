@@ -1,14 +1,14 @@
 local fn = vim.fn
 
----@class nrepl.Vim
----@field repl nrepl.Repl parent
+---@class neorepl.Vim
+---@field repl neorepl.Repl parent
 local Vim = {}
 Vim.__index = Vim
 
 ---Create a new vim context
----@param repl nrepl.Repl
----@param _ nrepl.Config
----@return nrepl.Vim
+---@param repl neorepl.Repl
+---@param _ neorepl.Config
+---@return neorepl.Vim
 function Vim.new(repl, _)
   local self = setmetatable({ repl = repl }, Vim)
   return self
@@ -37,7 +37,7 @@ function Vim:eval(prg)
   -- create a temporary script for each instance.
   local ok, res
   if not self.repl:exec_context(function()
-    ok, res = pcall(fn['nrepl#__evaluate__'], prg)
+    ok, res = pcall(fn['neorepl#__evaluate__'], prg)
     if self.repl.redraw then
       vim.cmd('redraw')
     end
@@ -48,17 +48,17 @@ function Vim:eval(prg)
   if ok then
     local hlgroup
     if res.result then
-      hlgroup = 'nreplOutput'
+      hlgroup = 'neoreplOutput'
       res = vim.split(res.result, '\n', { plain = true, trimempty = true })
     else
-      hlgroup = 'nreplError'
+      hlgroup = 'neoreplError'
       local throwpoint = res.throwpoint
       res = vim.split(res.exception, '\n', { plain = true, trimempty = true })
       table.insert(res, 1, 'Error detected while processing '..throwpoint..':')
     end
     self.repl:put(res, hlgroup)
   else
-    self.repl:put(vim.split(tostring(res), '\n', { plain = true, trimempty = true }), 'nreplError')
+    self.repl:put(vim.split(tostring(res), '\n', { plain = true, trimempty = true }), 'neoreplError')
   end
 end
 

@@ -1,6 +1,6 @@
-local parser = require('nrepl.lua.parser')
-local providers = require('nrepl.lua.providers')
-local util = require('nrepl.lua.util')
+local parser = require('neorepl.lua.parser')
+local providers = require('neorepl.lua.providers')
+local util = require('neorepl.lua.util')
 local tinsert, tsort, tremove, tconcat = table.insert, table.sort, table.remove, table.concat
 local dgetinfo, dgetlocal = debug.getinfo, debug.getlocal
 local slower = string.lower
@@ -54,7 +54,7 @@ local function isindexable(v)
   return mt and mt.__index
 end
 
----@param es nrepl.Lua.Exp[]
+---@param es neorepl.Lua.Exp[]
 ---@param env table
 ---@return any
 local function resolve(es, env)
@@ -121,7 +121,7 @@ local function mpairs(t)
 end
 
 ---@param var any
----@param e nrepl.Lua.Exp
+---@param e neorepl.Lua.Exp
 ---@return number, string[]
 local function complete(var, e)
   -- TODO: refactor
@@ -326,7 +326,7 @@ local function complete(var, e)
   end
 end
 
-local KEYWORDS_BEFORE_IDENT = require('nrepl.util').make_lookup {
+local KEYWORDS_BEFORE_IDENT = require('neorepl.util').make_lookup {
   'and', 'do', 'else', 'elseif', 'end',
   'if', 'in', 'not', 'or', 'repeat',
   'return', 'then', 'until', 'while',
@@ -340,7 +340,7 @@ function M.complete(src, env)
   local es = parser.parse(ts)
 
   -- don't complete identifiers if there is a space after them
-  local le = tremove(es) ---@type nrepl.Lua.Exp
+  local le = tremove(es) ---@type neorepl.Lua.Exp
   if le and le[#le].type ~= 'ident' or not src:sub(-1,-1):match('%s') then
     local var = resolve(es, env)
     if not var then return end
