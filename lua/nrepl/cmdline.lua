@@ -7,6 +7,9 @@ function vim._expand_pat(pat, env)
     complete = require('nrepl.lua.complete').complete
   end
 
+  pat = pat or ''
+  env = env or _G
+
   local results, pos = complete(pat, env)
   if not results or #results == 0 then
     return {}, 0
