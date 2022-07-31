@@ -66,7 +66,7 @@ end
 ---@param line string
 ---@return string[] results, number position
 function Vim:complete(line)
-  local pos = line:find('[^%s%(%)=%-%+%*|/~%.,]*$')
+  local pos = line:find('[^%s%(%)=%-%+%*|/~%.,%[%]{}&]*$')
   if line:match('^%s*[bgstvw]:') or line:match('^%s*%(') then
     line = 'echo '..line
   end
