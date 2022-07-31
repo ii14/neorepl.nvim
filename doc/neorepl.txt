@@ -27,11 +27,19 @@ KEY BINDINGS
 
 <Plug>(neorepl-eval-line)                           *<Plug>(neorepl-eval-line)*
     Evaluate line(s) under cursor.
-    Default mapping: <CR> (<C-M>)
+    Default mapping: <CR>, <C-M>
 
 <Plug>(neorepl-break-line)                          *<Plug>(neorepl-break-line)*
     Break line at cursor. For insert mode only.
-    Default mapping: <NL> (<C-J>)
+    Default mapping: <NL>, <C-J>
+
+<Plug>(neorepl-backspace)                           *<Plug>(neorepl-backspace)*
+    Backspace. Also deletes line breaks.
+    Default mapping: <BS>, <C-H>
+
+<Plug>(neorepl-delete-word)                         *<Plug>(neorepl-delete-word)*
+    Delete word. Also deletes line breaks.
+    Default mapping: <C-W>
 
 <Plug>(neorepl-hist-prev)                           *<Plug>(neorepl-hist-prev)*
     Previous entry in the history.

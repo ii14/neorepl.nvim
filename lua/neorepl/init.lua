@@ -205,4 +205,57 @@ function M.goto_next(to_end)
   get():goto_output(false, to_end, vim.v.count1)
 end
 
+do
+  local backspace
+
+  local function T(s)
+    return api.nvim_replace_termcodes(s, true, false, true)
+  end
+
+  function M._restore()
+    if backspace then
+      api.nvim_set_option('backspace', backspace)
+      backspace = nil
+    end
+  end
+
+  function M.backspace()
+    local line = api.nvim_get_current_line()
+    local col = vim.fn.col('.')
+    local res
+    backspace = api.nvim_get_option('backspace')
+    if col == 2 and line:sub(1, 1) == '\\' then
+      api.nvim_set_option('backspace', 'indent,start,eol')
+      res = '<BS><BS>'
+    elseif col == 1 and line:sub(1, 1) == '\\' then
+      api.nvim_set_option('backspace', 'indent,start,eol')
+      res = '<Del><BS>'
+    else
+      api.nvim_set_option('backspace', 'indent,start')
+      res = '<BS>'
+    end
+    return T(res .. [[<cmd>lua require"neorepl"._restore()<CR>]])
+  end
+
+  function M.delete_word()
+    local line = api.nvim_get_current_line()
+    local col = vim.fn.col('.')
+    local res
+    backspace = api.nvim_get_option('backspace')
+    if col == 2 and line:sub(1, 1) == '\\' then
+      api.nvim_set_option('backspace', 'indent,start,eol')
+      res = '<BS><BS>'
+    elseif col == 1 and line:sub(1, 1) == '\\' then
+      api.nvim_set_option('backspace', 'indent,start,eol')
+      res = '<Del><BS>'
+    else
+      api.nvim_set_option('backspace', 'indent,start')
+      res = '<C-W>'
+    end
+    return T(res .. [[<cmd>lua require"neorepl"._restore()<CR>]])
+  end
+
+  -- TODO: delete_line
+end
+
 return M

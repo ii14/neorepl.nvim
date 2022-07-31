@@ -25,7 +25,7 @@ end
 
 ---@param modes string|string[]
 ---@param lhss string|string[]
----@param rhs string
+---@param rhs string|function
 ---@param expr boolean
 local function map(modes, lhss, rhs, expr)
   if type(modes) ~= 'table' then
@@ -35,6 +35,10 @@ local function map(modes, lhss, rhs, expr)
     lhss = { lhss }
   end
   local opts = { noremap = true, expr = expr }
+  if type(rhs) == 'function' then
+    opts.callback = rhs
+    rhs = ''
+  end
   for _, mode in ipairs(modes) do
     for _, lhs in ipairs(lhss) do
       api.nvim_buf_set_keymap(0, mode, lhs, rhs, opts)
@@ -79,6 +83,9 @@ function Repl.new(config)
 
   map({'','i'}, '<Plug>(neorepl-eval-line)',  [[<cmd>lua require'neorepl'.eval_line()<CR>]])
   map('i',      '<Plug>(neorepl-break-line)', [[<CR><C-U>\]])
+  map('i',      '<Plug>(neorepl-backspace)',  [[luaeval("require'neorepl'.backspace()")]], true)
+  map('i',      '<Plug>(neorepl-delete-word)', [[luaeval("require'neorepl'.delete_word()")]], true)
+  -- TODO: neorepl-delete-line
   map({'','i'}, '<Plug>(neorepl-hist-prev)',  [[<cmd>lua require'neorepl'.hist_prev()<CR>]])
   map({'','i'}, '<Plug>(neorepl-hist-next)',  [[<cmd>lua require'neorepl'.hist_next()<CR>]])
   map('i',      '<Plug>(neorepl-complete)',   [[<cmd>lua require'neorepl'.complete()<CR>]])
@@ -90,6 +97,8 @@ function Repl.new(config)
   if config.no_defaults ~= true then
     map('i', {'<CR>','<C-M>'}, '<Plug>(neorepl-eval-line)')
     map('i', {'<NL>','<C-J>'}, '<Plug>(neorepl-break-line)')
+    map('i', {'<BS>','<C-H>'}, '<Plug>(neorepl-backspace)')
+    map('i', '<C-W>', '<Plug>(neorepl-delete-word)')
 
     map('i', '<Tab>', [[pumvisible() ? '<C-N>' : '<Plug>(neorepl-complete)']], true)
     map('i', '<C-P>', [[pumvisible() ? '<C-P>' : '<Plug>(neorepl-hist-prev)']], true)
