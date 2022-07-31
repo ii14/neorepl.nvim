@@ -1,6 +1,4 @@
-local api = vim.api
-local fn = vim.fn
-local neorepl = require('neorepl')
+local api, fn = vim.api, vim.fn
 
 local COMMAND_PREFIX = '/'
 

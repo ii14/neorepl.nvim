@@ -1,6 +1,5 @@
 local api = vim.api
 
-
 ---@class neorepl.Config
 ---@field lang? 'lua'|'vim'
 ---@field startinsert? boolean
