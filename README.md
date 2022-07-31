@@ -30,26 +30,25 @@ buffer.
 
 A new REPL instance can be also spawned with `require'neorepl'.new{}`. Example
 function that mimics vim's cmdwin or exmode:
-```vim
-function! s:cmdwin() abort
-  " get current buffer and window
-  let l:bufnr = bufnr()
-  let l:winid = win_getid()
-  " create a new split
-  split
-  " spawn repl and set the context to our buffer
-  call luaeval('require"neorepl".new{lang="vim",buffer=_A[1],window=_A[2]}',
-    \ [l:bufnr, l:winid])
-  " resize repl window and make it fixed height
-  resize 10
-  setlocal winfixheight
-endfunction
-
-" map it to g:
-nnoremap <silent> g: <cmd>call <SID>cmdwin()<CR>
+```lua
+vim.keymap.set('n', 'g:', function()
+  -- get current buffer and window
+  local buf = vim.api.nvim_get_current_buf()
+  local win = vim.api.nvim_get_current_win()
+  -- create a new split for the repl
+  vim.cmd('split')
+  -- spawn repl and set the context to our buffer
+  require('neorepl').new{
+    lang = 'vim',
+    buffer = buf,
+    window = win,
+  }
+  -- resize repl window and make it fixed height
+  vim.cmd('resize 10 | setl winfixheight')
+end)
 ```
 
-For the list of available options see `:h neorepl-config`.
+For the list of available options see [`:h neorepl-config`](doc/neorepl.txt).
 
 Multiple lines can get evaluated when line continuations start with `\` as the
 very first character in the line. If you need to evaluate a line that starts
@@ -62,10 +61,10 @@ Plugin ships with its own completion, so it's best to disable other completion
 plugins for the `neorepl` filetype. Also highlighting can be kinda buggy with
 indent-blankline.nvim plugin, so it's good to disable that too.
 
-It can be done by creating `ftplugin/neorepl.vim` file, for example:
-```viml
-let b:indent_blankline_enabled = v:false
-lua require('cmp').setup.buffer({ enabled = false })
+It can be done by creating `ftplugin/neorepl.lua` file, for example:
+```lua
+vim.b.indent_blankline_enabled = false
+require('cmp').setup.buffer({ enabled = false })
 ```
 
 Or by setting `on_init` function in a default config:
