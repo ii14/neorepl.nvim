@@ -2,8 +2,6 @@
 
 Neovim REPL for lua and vim script
 
-Although already usable, it's work in progress, things can change at any time.
-
 ---
 
 Start a new instance with:
@@ -67,7 +65,7 @@ indent-blankline.nvim plugin, so it's good to disable that too.
 It can be done by creating `ftplugin/neorepl.vim` file, for example:
 ```viml
 let b:indent_blankline_enabled = v:false
-call compe#setup({'enabled': v:false}, 0)
+lua require('cmp').setup.buffer({ enabled = false })
 ```
 
 Or by setting `on_init` function in a default config:
@@ -78,36 +76,3 @@ require 'neorepl'.config{
   end,
 }
 ```
-
----
-
-### TODO
-
-- [X] Completion
-  - [X] Vim script (should be the same as on the command line)
-  - [X] Lua (best lua completion for neovim in town)
-  - [X] REPL commands (works for commands names only, no arguments yet)
-  - [X] Public function for getting available completions (for 3rd party plugins)
-- [X] History
-  - [X] Save and recall single lines
-  - [X] Make history work with multiple lines
-  - [ ] Save and recall context, was it lua or vimscript
-  - [X] Persistent history
-- [X] Evaluate multiple lines
-  - [X] Break line with `NL` (`CTRL-J`)
-  - [ ] Evaluate visual selection
-- [X] Context change
-  - [X] Buffer
-  - [X] Window
-- [ ] Actions
-  - [X] `[[`, `]]`, `[]`, `][` key bindings
-  - [ ] Key binding or text object for selecting last output
-  - [ ] Better backspace handling - remove line breaks with single backspace
-- [X] Evaluation
-  - [ ] Attach REPL to a script
-  - [X] Lua
-    - [ ] Coroutine debugger
-    - [ ] Improve completion even more, make it extensible (will require a full lua parser)
-  - [X] Vim script
-    - [ ] Per instance script context (either wait for sean to implement `nvim_exec2` or use ffi)
-    - [ ] Pretty stack traces
