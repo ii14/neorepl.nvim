@@ -19,6 +19,33 @@ Starts in lua mode by default. You can switch modes with `/vim` (short version:
 `/v`) for vim script and `/lua` (short version: `/l`) for lua. You can also run
 one-off commands with them, like for example `/v ls` to list buffers.
 
+Multiple lines can get evaluated when line continuations start with `\` as the
+very first character in the line. If you need to evaluate a line that starts
+with `/` or `\`, add a space before. Note that vim script has line escaping that
+works just like this. So to break lines in a single expression with vim script,
+there has to be two backslashes. By default you can break line in insert mode
+with `CTRL-J`.
+
+Plugin ships with its own completion, so it's best to disable other completion
+plugins for the `neorepl` filetype. Also highlighting can be kinda buggy with
+indent-blankline.nvim plugin, so it's good to disable that too.
+
+It can be done by creating `ftplugin/neorepl.lua` file, for example:
+```lua
+vim.b.indent_blankline_enabled = false
+require('cmp').setup.buffer({ enabled = false })
+```
+
+Or by setting `on_init` function in a default config:
+```lua
+require 'neorepl'.config{
+  on_init = function()
+    vim.b.indent_blankline_enabled = false
+    require('cmp').setup.buffer({ enabled = false })
+  end,
+}
+```
+
 Lua has its own environment, variables from the REPL won't leak to the global
 environment. If by any chance you do want to add something to the global
 environment, it's referenced in the `global` variable. In vim script you can use
@@ -49,29 +76,3 @@ end)
 ```
 
 For the list of available options see [`:h neorepl-config`](doc/neorepl.txt).
-
-Multiple lines can get evaluated when line continuations start with `\` as the
-very first character in the line. If you need to evaluate a line that starts
-with `/` or `\`, add a space before. Note that vim script has line escaping that
-works just like this. So to break lines in a single expression with vim script,
-there has to be two backslashes. By default you can break line in insert mode
-with `CTRL-J`.
-
-Plugin ships with its own completion, so it's best to disable other completion
-plugins for the `neorepl` filetype. Also highlighting can be kinda buggy with
-indent-blankline.nvim plugin, so it's good to disable that too.
-
-It can be done by creating `ftplugin/neorepl.lua` file, for example:
-```lua
-vim.b.indent_blankline_enabled = false
-require('cmp').setup.buffer({ enabled = false })
-```
-
-Or by setting `on_init` function in a default config:
-```lua
-require 'neorepl'.config{
-  on_init = function(bufnr)
-    -- ...
-  end,
-}
-```

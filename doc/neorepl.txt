@@ -176,7 +176,7 @@ histmax ~
 COMMAND LINE COMPLETION
 *neorepl-:lua*
 
-You can use neorepl completion for :lua command with:
+You can enable neorepl completion for :lua command with:
 >
     require('neorepl.cmdline')
 <
