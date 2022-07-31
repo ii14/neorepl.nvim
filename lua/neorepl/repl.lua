@@ -479,10 +479,10 @@ function Repl:goto_output(backward, to_end, count)
   end
 end
 
-api.nvim_set_hl(0, 'neoreplError',     { link = 'ErrorMsg' })
-api.nvim_set_hl(0, 'neoreplOutput',    { link = 'String' })
-api.nvim_set_hl(0, 'neoreplValue',     { link = 'Number' })
-api.nvim_set_hl(0, 'neoreplInfo',      { link = 'Function' })
-api.nvim_set_hl(0, 'neoreplLinebreak', { link = 'Function' })
+api.nvim_set_hl(0, 'neoreplError',     { default = true, link = 'ErrorMsg' })
+api.nvim_set_hl(0, 'neoreplOutput',    { default = true, link = 'String' })
+api.nvim_set_hl(0, 'neoreplValue',     { default = true, link = 'Number' })
+api.nvim_set_hl(0, 'neoreplInfo',      { default = true, link = 'Function' })
+api.nvim_set_hl(0, 'neoreplLinebreak', { default = true, link = 'Function' })
 
 return Repl
