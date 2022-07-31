@@ -7,9 +7,6 @@ local COMMAND_PREFIX = '/'
 local MSG_INVALID_COMMAND = {'invalid command'}
 local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
 
----@type neorepl.Command[]
-local COMMANDS = nil
-
 ---@generic T
 ---@param v T|nil
 ---@param default T
@@ -217,7 +214,7 @@ function Repl:eval_line()
       args[1] = args[1]:match('^(.-)%s*$')
     end
 
-    for _, c in ipairs(COMMANDS or require('neorepl.commands')) do
+    for _, c in ipairs(require('neorepl.cmd')) do
       if c.pattern == nil then
         local name = c.command
         c.pattern = '\\v\\C^'..name:sub(1,1)..'%['..name:sub(2)..']$'
@@ -320,7 +317,7 @@ function Repl:get_completion()
     if line:match('^%S*$') then
       results = {}
       local size = #line
-      for _, c in ipairs(COMMANDS or require('neorepl.commands')) do
+      for _, c in ipairs(require('neorepl.cmd')) do
         if line == c.command:sub(1, size) then
           table.insert(results, c.command)
         end
