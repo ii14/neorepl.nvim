@@ -2,16 +2,32 @@
 ==============================================================================
 
 :Repl [{lang}]                                      *:Repl* *neorepl*
-    Starts a new REPL instance. {lang} can be "lua" or "vim".
+    Starts a new REPL instance. Optional {lang} can be "lua" or "vim".
     See |neorepl.new()| for starting a new instance with custom settings.
 
+------------------------------------------------------------------------------
+LUA API
+*neorepl-api*
+
+neorepl.new([{config}])                             *neorepl.new()*
+    Starts a new REPL instance.
+    See |neorepl-config| for the list of available options.
+>
+        require('neorepl').new({...})
+<
+neorepl.config({config})                            *neorepl.config()*
+    Sets the default config.
+    See |neorepl-config| for the list of available options.
+>
+        require('neorepl').config({...})
+<
 ------------------------------------------------------------------------------
 KEY BINDINGS
 *neorepl-keys*
 
 <Plug>(neorepl-eval-line)                           *<Plug>(neorepl-eval-line)*
     Evaluate line(s) under cursor.
-    Default mapping: <CR>
+    Default mapping: <CR> (<C-M>)
 
 <Plug>(neorepl-break-line)                          *<Plug>(neorepl-break-line)*
     Break line at cursor. For insert mode only.
@@ -30,20 +46,11 @@ KEY BINDINGS
     Default mapping: <Tab>
 
 <Plug>(neorepl-]])                                  *<Plug>(neorepl-]])*
-    Go one output section forward, to the first line. |]]|
-    Default mapping: ]]
-
 <Plug>(neorepl-][)                                  *<Plug>(neorepl-][)*
-    Go one output section forward, to the last line. |][|
-    Default mapping: ][
-
 <Plug>(neorepl-[[)                                  *<Plug>(neorepl-[[)*
-    Go one output section backward, to the first line. |[[|
-    Default mapping: [[
-
 <Plug>(neorepl-[])                                  *<Plug>(neorepl-[])*
-    Go one output section backward, to the last line. |[]|
-    Default mapping: []
+    Navigate through the sections. See |]]|, |][|, |[[|, |[]|.
+    Default mappings: ]] ][ [[ []
 
 ------------------------------------------------------------------------------
 COMMANDS
@@ -85,22 +92,6 @@ COMMANDS
 /q[uit]
     Close REPL instance.
 
-------------------------------------------------------------------------------
-LUA API
-*neorepl-api*
-
-neorepl.new([{config}])                             *neorepl.new()*
-    Starts a new REPL instance.
-    See |neorepl-config| for the list of available options.
->
-        require('neorepl').new({...})
-<
-neorepl.config({config})                            *neorepl.config()*
-    Sets the default config.
-    See |neorepl-config| for the list of available options.
->
-        require('neorepl').config({...})
-<
 ------------------------------------------------------------------------------
 CONFIGURATION
 *neorepl-config*
@@ -151,14 +142,14 @@ no_defaults ~
 buffer ~
     Start REPL attached to the buffer. Accepts values supported by |bufnr()|.
     0 for the current buffer.
-    Available only to |neorepl.new()|.
+    Available only in |neorepl.new()|.
         Type: number | string
         Default: nil
 
 window ~
     Start REPL attached to the window. Accepts |window-ID|s and values
     supported by |winnr()|. 0 for the current window.
-    Available only to |neorepl.new()|.
+    Available only in |neorepl.new()|.
         Type: number | string
         Default: nil
 
@@ -171,6 +162,30 @@ histmax ~
     Max entries in the history.
         Type: number
         Default: 100
+
+------------------------------------------------------------------------------
+HIGHLIGHTING GROUPS
+*neorepl-hl*
+
+neoreplOutput ~
+    Output messages
+        Default: links to "String"
+
+neoreplValue ~
+    Pretty printed values
+        Default: links to "Number"
+
+neoreplError ~
+    Error messages
+        Default: links to "ErrorMsg"
+
+neoreplInfo ~
+    REPL messages
+        Default: links to "Function"
+
+neoreplLinebreak ~
+    Line breaks
+        Default: links to "Function"
 
 ------------------------------------------------------------------------------
 COMMAND LINE COMPLETION
