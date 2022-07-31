@@ -1,11 +1,5 @@
 local api = vim.api
 
-local buffers = {}
-
-local M = {
-  ---@type neorepl.Repl[]
-  _buffers = buffers,
-}
 
 ---@class neorepl.Config
 ---@field lang? 'lua'|'vim'
@@ -86,7 +80,8 @@ local validate do
   end
 end
 
----@type neorepl.Config Default configuration
+---Default configuration
+---@type neorepl.Config
 local default_config = {
   lang = 'lua',
   startinsert = false,
@@ -104,9 +99,36 @@ local default_config = {
   histmax = 100,
 }
 
+
+---@class neorepl.Buf
+local buf = {}
+
+---Get current REPL
+---@param bufnr number
+---@return neorepl.Repl
+function buf.get(bufnr)
+  if bufnr == nil or bufnr == 0 then
+    bufnr = api.nvim_get_current_buf()
+  elseif type(bufnr) ~= 'number' then
+    error('expected number')
+  end
+
+  if buf[bufnr] == nil then
+    error('invalid repl: '..bufnr)
+  end
+
+  return buf[bufnr]
+end
+
+-- inject module
+package.loaded['neorepl.buf'] = buf
+
+
+local neorepl = {}
+
 ---Set default configuration
 ---@param config? neorepl.Config
-function M.config(config)
+function neorepl.config(config)
   -- TODO: merge with the old one.
   -- to do so, we need a way of resetting values back to default,
   -- in particular on_init, env_lua, lang. either false or have neorepl.DEFAULT constant
@@ -119,17 +141,17 @@ end
 
 ---Create a new REPL instance
 ---@param config? neorepl.Config
-function M.new(config)
+function neorepl.new(config)
   config = validate(vim.tbl_extend('force', default_config, config or {}))
   local repl = require('neorepl.repl').new(config)
   local bufnr = repl.bufnr
 
-  buffers[bufnr] = repl
+  buf[bufnr] = repl
   api.nvim_create_autocmd('BufDelete', {
     group = api.nvim_create_augroup('neorepl', { clear = false }),
     buffer = bufnr,
     callback = function()
-      buffers[bufnr] = nil
+      buf[bufnr] = nil
     end,
     desc = 'neorepl: teardown repl',
     once = true,
@@ -143,119 +165,10 @@ function M.new(config)
   end
 end
 
----Close REPL instance
----@param bufnr? string
-function M.close(bufnr)
-  vim.validate { bufnr = { bufnr, 'number', true } }
-  if bufnr == nil or bufnr == 0 then
-    bufnr = api.nvim_get_current_buf()
-  end
-  if buffers[bufnr] == nil then
-    error('invalid buffer: '..bufnr)
-  end
-  vim.cmd('stopinsert')
-  buffers[bufnr] = nil
-  api.nvim_buf_delete(bufnr, { force = true })
-end
-
----Get current REPL
----@return neorepl.Repl
-local function get()
-  local bufnr = api.nvim_get_current_buf()
-  local repl = buffers[bufnr]
-  if repl == nil then error('invalid buffer: '..bufnr) end
-  return repl
-end
-
----Evaluate current line
-function M.eval_line()
-  get():eval_line()
-end
-
----Get previous line from the history
-function M.hist_prev()
-  get():hist_move(true)
-end
-
----Get next line from the history
-function M.hist_next()
-  get():hist_move(false)
-end
-
----Complete current line
-function M.complete()
-  get():complete()
-end
-
 ---Get available completions at current cursor position
 ---@return number column, string[] completions
-function M.get_completion()
-  return get():get_completion()
+function neorepl.get_completion()
+  return buf.get():get_completion()
 end
 
----Go to previous output
----@param to_end? boolean
-function M.goto_prev(to_end)
-  get():goto_output(true, to_end, vim.v.count1)
-end
-
----Go to next output
----@param to_end? boolean
-function M.goto_next(to_end)
-  get():goto_output(false, to_end, vim.v.count1)
-end
-
-do
-  local backspace
-
-  local function T(s)
-    return api.nvim_replace_termcodes(s, true, false, true)
-  end
-
-  function M._restore()
-    if backspace then
-      api.nvim_set_option('backspace', backspace)
-      backspace = nil
-    end
-  end
-
-  function M.backspace()
-    local line = api.nvim_get_current_line()
-    local col = vim.fn.col('.')
-    local res
-    backspace = api.nvim_get_option('backspace')
-    if col == 2 and line:sub(1, 1) == '\\' then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<BS><BS>'
-    elseif col == 1 and line:sub(1, 1) == '\\' then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<Del><BS>'
-    else
-      api.nvim_set_option('backspace', 'indent,start')
-      res = '<BS>'
-    end
-    return T(res .. [[<cmd>lua require"neorepl"._restore()<CR>]])
-  end
-
-  function M.delete_word()
-    local line = api.nvim_get_current_line()
-    local col = vim.fn.col('.')
-    local res
-    backspace = api.nvim_get_option('backspace')
-    if col == 2 and line:sub(1, 1) == '\\' then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<BS><BS>'
-    elseif col == 1 and line:sub(1, 1) == '\\' then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<Del><BS>'
-    else
-      api.nvim_set_option('backspace', 'indent,start')
-      res = '<C-W>'
-    end
-    return T(res .. [[<cmd>lua require"neorepl"._restore()<CR>]])
-  end
-
-  -- TODO: delete_line
-end
-
-return M
+return neorepl

@@ -23,29 +23,6 @@ local function get_opt(v, default)
   end
 end
 
----@param modes string|string[]
----@param lhss string|string[]
----@param rhs string|function
----@param expr boolean
-local function map(modes, lhss, rhs, expr)
-  if type(modes) ~= 'table' then
-    modes = { modes }
-  end
-  if type(lhss) ~= 'table' then
-    lhss = { lhss }
-  end
-  local opts = { noremap = true, expr = expr }
-  if type(rhs) == 'function' then
-    opts.callback = rhs
-    rhs = ''
-  end
-  for _, mode in ipairs(modes) do
-    for _, lhs in ipairs(lhss) do
-      api.nvim_buf_set_keymap(0, mode, lhs, rhs, opts)
-    end
-  end
-end
-
 ---@class neorepl.Repl
 ---@field bufnr       number        repl buffer
 ---@field lua         neorepl.Lua
@@ -81,43 +58,15 @@ function Repl.new(config)
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
 
-  map({'','i'}, '<Plug>(neorepl-eval-line)',  [[<cmd>lua require'neorepl'.eval_line()<CR>]])
-  map('i',      '<Plug>(neorepl-break-line)', [[<CR><C-U>\]])
-  map('i',      '<Plug>(neorepl-backspace)',  [[luaeval("require'neorepl'.backspace()")]], true)
-  map('i',      '<Plug>(neorepl-delete-word)', [[luaeval("require'neorepl'.delete_word()")]], true)
-  -- TODO: neorepl-delete-line
-  map({'','i'}, '<Plug>(neorepl-hist-prev)',  [[<cmd>lua require'neorepl'.hist_prev()<CR>]])
-  map({'','i'}, '<Plug>(neorepl-hist-next)',  [[<cmd>lua require'neorepl'.hist_next()<CR>]])
-  map('i',      '<Plug>(neorepl-complete)',   [[<cmd>lua require'neorepl'.complete()<CR>]])
-  map({'','i'}, '<Plug>(neorepl-[[)', [[<cmd>lua require'neorepl'.goto_prev()<CR>]])
-  map({'','i'}, '<Plug>(neorepl-[])', [[<cmd>lua require'neorepl'.goto_prev(true)<CR>]])
-  map({'','i'}, '<Plug>(neorepl-]])', [[<cmd>lua require'neorepl'.goto_next()<CR>]])
-  map({'','i'}, '<Plug>(neorepl-][)', [[<cmd>lua require'neorepl'.goto_next(true)<CR>]])
+  require('neorepl.map').define()
 
   if config.no_defaults ~= true then
-    map('i', {'<CR>','<C-M>'}, '<Plug>(neorepl-eval-line)')
-    map('i', {'<NL>','<C-J>'}, '<Plug>(neorepl-break-line)')
-    map('i', {'<BS>','<C-H>'}, '<Plug>(neorepl-backspace)')
-    map('i', '<C-W>', '<Plug>(neorepl-delete-word)')
-
-    map('i', '<Tab>', [[pumvisible() ? '<C-N>' : '<Plug>(neorepl-complete)']], true)
-    map('i', '<C-P>', [[pumvisible() ? '<C-P>' : '<Plug>(neorepl-hist-prev)']], true)
-    map('i', '<C-N>', [[pumvisible() ? '<C-N>' : '<Plug>(neorepl-hist-next)']], true)
-    map('i', '<C-E>', [[pumvisible() ? '<C-E>' : '<End>']], true)
-    map('i', '<C-Y>', '<C-Y>')
-    map('i', '<C-A>', '<Home>')
-
-    map('n', '[[', '<Plug>(neorepl-[[)')
-    map('n', '[]', '<Plug>(neorepl-[])')
-    map('n', ']]', '<Plug>(neorepl-]])')
-    map('n', '][', '<Plug>(neorepl-][)')
-
-    vim.opt_local.buftype = 'nofile'
-    vim.opt_local.swapfile = false
-    -- vim.opt_local.backspace = 'indent,start'
+    require('neorepl.map').define_defaults()
     -- vim.opt_local.completeopt = 'menu'
   end
 
+  vim.opt_local.buftype = 'nofile'
+  vim.opt_local.swapfile = false
   api.nvim_buf_set_name(bufnr, 'neorepl://neorepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'neorepl')

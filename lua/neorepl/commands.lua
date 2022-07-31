@@ -248,7 +248,9 @@ table.insert(COMMANDS, {
     if args then
       repl:put(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
     else
-      neorepl.close(repl.bufnr)
+      vim.cmd('stopinsert')
+      require('neorepl.buf')[repl.bufnr] = nil
+      api.nvim_buf_delete(repl.bufnr, { force = true })
       return false
     end
   end,
