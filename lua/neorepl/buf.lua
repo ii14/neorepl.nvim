@@ -151,20 +151,6 @@ local function new(bufnr)
   }, Buf)
 end
 
--- vim.cmd('enew')
--- local src = api.nvim_get_current_buf()
--- vim.opt_local.buftype = 'nofile'
--- vim.opt_local.number = false
--- vim.opt_local.relativenumber = false
--- vim.opt_local.signcolumn = 'yes'
-
--- -- Highlight line breaks
--- vim.cmd([[syn match neoreplLinebreak "^\\"]])
--- api.nvim_set_hl(0, 'neoreplLinebreak', { default = true, link = 'Function' })
-
--- -- Create prompt mark for the first line
--- m_set(src, NS_I, 0, 0, EXTMARK_INPUT_OPTS)
-
 ---Append output lines
 ---@param lines string[]
 ---@param group string
