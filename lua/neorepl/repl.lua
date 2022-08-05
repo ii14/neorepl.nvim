@@ -1,11 +1,12 @@
 local api, fn = vim.api, vim.fn
 local util = require('neorepl.util')
-
-local ns = api.nvim_create_namespace('neorepl')
+local Buf = require('neorepl.buf')
 
 local COMMAND_PREFIX = '/'
 local MSG_INVALID_COMMAND = {'invalid command'}
-local BREAK_UNDO = api.nvim_replace_termcodes('<C-G>u', true, false, true)
+
+---Noop command for clearing undo history
+local NOP_CHANGE = api.nvim_replace_termcodes('normal! a <BS><Esc>', true, false, true)
 
 ---@generic T
 ---@param v T|nil
@@ -20,17 +21,18 @@ local function get_opt(v, default)
 end
 
 ---@class neorepl.Repl
----@field bufnr       number        repl buffer
----@field lua         neorepl.Lua
----@field vim         neorepl.Vim
+---@field bufnr       number        buffer number
+---@field buf         neorepl.Buf   repl buffer
+---@field hist        neorepl.Hist  command history
+---@field lua         neorepl.Lua   lua evaluator
+---@field vim         neorepl.Vim   vim evaluator
+---@field vim_mode    boolean       vim/lua mode
+---Options:
 ---@field buffer      number        buffer context
 ---@field window      number        window context
----@field vim_mode    boolean       vim mode
----@field mark_id     number        current mark id counter
 ---@field redraw      boolean       redraw after evaluation
 ---@field inspect     boolean       inspect variables
 ---@field indent      number        indent level
----@field hist        neorepl.Hist    command history
 local Repl = {}
 Repl.__index = Repl
 
@@ -63,6 +65,10 @@ function Repl.new(config)
 
   vim.opt_local.buftype = 'nofile'
   vim.opt_local.swapfile = false
+  vim.opt_local.undofile = false
+  vim.opt_local.number = false
+  vim.opt_local.relativenumber = false
+  vim.opt_local.signcolumn = 'yes'
   api.nvim_buf_set_name(bufnr, 'neorepl://neorepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'neorepl')
@@ -71,6 +77,7 @@ function Repl.new(config)
   ---@type neorepl.Repl
   local self = setmetatable({
     bufnr = bufnr,
+    buf = Buf.new(bufnr), -- TODO: clean up
     buffer = config.buffer or 0,
     window = config.window or 0,
     vim_mode = config.lang == 'vim',
@@ -78,7 +85,6 @@ function Repl.new(config)
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
     hist = require('neorepl.hist').new(config),
-    mark_id = 1,
   }, Repl)
 
   self.lua = require('neorepl.lua').new(self, config)
@@ -91,85 +97,29 @@ end
 ---@param lines string[]  lines
 ---@param hlgroup string  highlight group
 function Repl:put(lines, hlgroup)
-  -- indent lines
-  if self.indent > 0 then
-    local prefix = string.rep(' ', self.indent)
-    local t = {}
-    for i, line in ipairs(lines) do
-      t[i] = prefix..line
-    end
-    lines = t
-  end
-
-  local s = api.nvim_buf_line_count(self.bufnr)
-  api.nvim_buf_set_lines(self.bufnr, -1, -1, false, lines)
-  local e = api.nvim_buf_line_count(self.bufnr)
-
-  -- highlight
-  if s ~= e then
-    self.mark_id = self.mark_id + 1
-    api.nvim_buf_set_extmark(self.bufnr, ns, s, 0, {
-      id = self.mark_id,
-      end_line = e,
-      hl_group = hlgroup,
-      hl_eol = true,
-    })
-  end
+  self.buf:append(lines, hlgroup)
 end
 
 function Repl:clear()
-  self.mark_id = 1
-  api.nvim_buf_clear_namespace(self.bufnr, ns, 0, -1)
-  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
+  Buf.clear(self.bufnr)
 end
 
 ---Append empty line
 function Repl:new_line()
-  api.nvim_buf_set_lines(self.bufnr, -1, -1, false, {''})
-  vim.cmd('$') -- TODO: don't use things like this, buffer can change during evaluation
-
-  -- break undo sequence
-  local mode = api.nvim_get_mode().mode
-  if mode == 'i' or mode == 'ic' or mode == 'ix' then
-    api.nvim_feedkeys(BREAK_UNDO, 'n', true)
-  end
+  Buf.prompt(self.bufnr) -- Append new prompt
+  -- Undoing output messes with extmarks. Clear undo history
+  local save = api.nvim_buf_get_option(self.bufnr, 'undolevels')
+  api.nvim_buf_set_option(self.bufnr, 'undolevels', -1)
+  api.nvim_command(NOP_CHANGE)
+  api.nvim_buf_set_option(self.bufnr, 'undolevels', save)
 end
 
 ---Get lines under cursor
 ---Returns nil on illegal line break
 ---@return string[]|nil
 function Repl:get_line()
-  local line = api.nvim_get_current_line()
-  local lnum = api.nvim_win_get_cursor(0)[1]
-  local s, e = lnum, lnum
-  local lines = {line}
-
-  if line:sub(1,1) == '\\' then
-    for i = lnum - 1, 1, -1 do
-      line = api.nvim_buf_get_lines(self.bufnr, i - 1, i, true)[1]
-      table.insert(lines, 1, line)
-      if line:sub(1,1) ~= '\\' then
-        s = i
-        break
-      end
-    end
-    if lines[1]:sub(1,1) == '\\' then
-      return nil -- illegal line break
-    end
-  end
-
-  local max = api.nvim_buf_line_count(self.bufnr)
-  while e < max do
-    e = e + 1
-    line = api.nvim_buf_get_lines(self.bufnr, e - 1, e, true)[1]
-    if line:sub(1,1) == '\\' then
-      table.insert(lines, line)
-    else
-      break
-    end
-  end
-
-  return lines, s, e
+  assert(api.nvim_win_get_buf(0) == self.bufnr)
+  return Buf.get_line(0)
 end
 
 ---Evaluate current line
@@ -178,13 +128,8 @@ function Repl:eval_line()
   self.hist:reset_pos()
 
   local lines = self:get_line()
-  if lines == nil then
-    self:put({'illegal line break'}, 'neoreplError')
-    return self:new_line()
-  end
-
   -- ignore if it's only whitespace
-  if util.lines_empty(lines) then
+  if not lines or util.lines_empty(lines) then
     return self:new_line()
   end
 
@@ -201,16 +146,16 @@ function Repl:eval_line()
       return self:new_line()
     end
 
-    -- copy lines, trim command and line breaks
-    local args = {rest}
+    -- Copy lines and trim command
+    local args = { rest }
     for i = 2, #lines do
-      args[i] = lines[i]:sub(2)
+      args[i] = lines[i]
     end
 
     if util.lines_empty(args) then
       args = nil
     elseif #args == 1 then
-      -- trim trailing whitespace
+      -- Trim trailing whitespace
       args[1] = args[1]:match('^(.-)%s*$')
     end
 
@@ -221,7 +166,7 @@ function Repl:eval_line()
       end
 
       if fn.match(cmd, c.pattern) >= 0 then
-        -- don't append new line when command returns false
+        -- Don't append new line when command returns false
         if c.run(args, self) ~= false then
           self:new_line()
         end
@@ -233,19 +178,12 @@ function Repl:eval_line()
     return self:new_line()
   end
 
-  -- strip leading backslashes
-  local prg = {}
-  prg[1] = lines[1]
-  for i = 2, #lines do
-    prg[i] = lines[i]:sub(2)
-  end
-
   if self.vim_mode then
-    if self.vim:eval(prg) ~= false then
+    if self.vim:eval(lines) ~= false then
       return self:new_line()
     end
   else
-    if self.lua:eval(prg) ~= false then
+    if self.lua:eval(lines) ~= false then
       return self:new_line()
     end
   end
@@ -298,6 +236,9 @@ function Repl:hist_move(prev)
   local lines, s, e = self:get_line()
   if lines == nil then return end
   local nlines = self.hist:move(prev, lines)
+  for i = 2, #nlines do
+    nlines[i] = '\\' .. nlines[i]
+  end
   api.nvim_buf_set_lines(self.bufnr, s - 1, e, true, nlines)
   api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
@@ -371,66 +312,7 @@ end
 ---@param backward boolean
 ---@param to_end? boolean
 function Repl:goto_output(backward, to_end, count)
-  count = count or 1
-  local ranges = {}
-  do
-    local lnum = 1
-    -- TODO: do I have to sort them?
-    for _, m in ipairs(api.nvim_buf_get_extmarks(self.bufnr, ns, 0, -1, { details = true })) do
-      local s = m[2] + 1
-      local e = m[4].end_row
-      if e >= s then
-        -- insert ranges between extmarks
-        if s > lnum then
-          table.insert(ranges, { lnum, s - 1 })
-        end
-        table.insert(ranges, { s, e })
-        lnum = e + 1
-      end
-    end
-    -- insert last range
-    local last = api.nvim_buf_line_count(self.bufnr)
-    if last >= lnum then
-      table.insert(ranges, { lnum, last })
-    end
-  end
-
-  local lnum = api.nvim_win_get_cursor(0)[1]
-  for i, range in ipairs(ranges) do
-    if lnum >= range[1] and lnum <= range[2] then
-      if backward and not to_end and lnum > range[1] then
-        if count == 1 then
-          api.nvim_win_set_cursor(0, { range[1], 0 })
-          return
-        else
-          count = count - 1
-        end
-      elseif not backward and to_end and lnum < range[2] then
-        if count == 1 then
-          api.nvim_win_set_cursor(0, { range[2], 0 })
-          return
-        else
-          count = count - 1
-        end
-      end
-
-      if backward then
-        count = -count
-      end
-
-      local idx = i + count
-      if idx > #ranges then
-        idx = #ranges
-      elseif idx < 1 then
-        idx = 1
-      end
-      range = ranges[idx]
-      if range then
-        api.nvim_win_set_cursor(0, { (to_end and range[2] or range[1]), 0 })
-      end
-      return
-    end
-  end
+  return Buf.goto_output(backward, to_end, count)
 end
 
 api.nvim_set_hl(0, 'neoreplError',     { default = true, link = 'ErrorMsg' })
