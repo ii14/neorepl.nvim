@@ -94,6 +94,14 @@ end
 ---@param lines string[]  lines
 ---@param hlgroup string  highlight group
 function Repl:put(lines, hlgroup)
+  if self.indent > 0 then
+    local copy = {}
+    local prefix = string.rep(' ', self.indent)
+    for i, line in ipairs(lines) do
+      copy[i] = prefix .. line
+    end
+    lines = copy
+  end
   self.buf:append(lines, hlgroup)
 end
 

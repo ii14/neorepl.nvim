@@ -113,7 +113,7 @@ inspect ~
 indent ~
     Output indentation level.
         Type: number
-        Default: 4
+        Default: 0
 
 startinsert ~
     Start REPL in insert mode.

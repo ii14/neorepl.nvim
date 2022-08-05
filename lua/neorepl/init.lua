@@ -84,7 +84,7 @@ end
 local default_config = {
   lang = 'lua',
   startinsert = false,
-  indent = 4,
+  indent = 0,
   inspect = true,
   redraw = true, -- deprecated
   no_defaults = false,
