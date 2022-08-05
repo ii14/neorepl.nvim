@@ -29,18 +29,14 @@ function Lua.new(repl, config)
   self.env = setmetatable({
     ---print function override
     print = self.print,
-  }, {
-    __index = function(t, key)
-      return rawget(t, key) or rawget(_G, key)
-    end,
-  })
+  }, { __index = _G })
 
   -- add user environment
   local userenv = config.env_lua
   if userenv then
     (function()
       if type(userenv) == 'function' then
-        local ok, res = pcall(userenv)
+        local ok, res = pcall(userenv, self.env)
         if not ok then
           local err = vim.split(res, '\n', { plain = true })
           table.insert(err, 1, 'Error from user env:')

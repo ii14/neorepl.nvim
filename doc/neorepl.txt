@@ -147,7 +147,7 @@ on_init ~
 
 env_lua ~
     User defined lua environment.
-        Type: table | fun():table
+        Type: table | fun(env: table): table
         Default: nil
 
 no_defaults ~
