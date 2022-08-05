@@ -207,22 +207,6 @@ table.insert(COMMANDS, {
 })
 
 table.insert(COMMANDS, {
-  command = 'redraw',
-  description = 'option: redraw after evaluation (boolean)',
-  ---@param args string
-  ---@param repl neorepl.Repl
-  run = function(args, repl)
-    local ok, res = command_boolean(args, repl)
-    if ok then
-      if res ~= nil then
-        repl.redraw = res
-      end
-      repl:put({'redraw: '..tostring(repl.redraw)}, 'neoreplInfo')
-    end
-  end,
-})
-
-table.insert(COMMANDS, {
   command = 'clear',
   description = 'clear buffer',
   ---@param args string

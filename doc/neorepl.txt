@@ -87,10 +87,6 @@ COMMANDS
 /ind[ent] [{num}]
     Change output indentation. Without arguments prints the current value.
 
-/r[edraw] [{bool}]
-    Enable or disable redrawing after evaluation. Without arguments prints
-    the current value.
-
 /h[elp]
     Print help.
 
@@ -122,13 +118,6 @@ indent ~
 startinsert ~
     Start REPL in insert mode.
         Type: boolean
-        Default: true
-
-redraw ~
-    Redraw screen after evaluating lines. Useful when the context is changed
-    to other buffer or window, and changes made from the REPL don't update
-    the other window.
-        Typle: boolean
         Default: true
 
 on_init ~

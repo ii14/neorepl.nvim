@@ -38,9 +38,7 @@ function Vim:eval(prg)
   local ok, res
   if not self.repl:exec_context(function()
     ok, res = pcall(fn['neorepl#__evaluate__'], prg)
-    if self.repl.redraw then
-      vim.cmd('redraw')
-    end
+    vim.cmd('redraw')
   end) then
     return
   end

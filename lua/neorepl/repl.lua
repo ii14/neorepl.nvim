@@ -30,9 +30,9 @@ end
 ---Options:
 ---@field buffer      number        buffer context
 ---@field window      number        window context
----@field redraw      boolean       redraw after evaluation
 ---@field inspect     boolean       inspect variables
 ---@field indent      number        indent level
+---@field redraw      boolean       redraw after evaluation (deprecated)
 local Repl = {}
 Repl.__index = Repl
 

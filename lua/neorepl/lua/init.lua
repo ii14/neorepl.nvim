@@ -118,9 +118,7 @@ function Lua:eval(prg)
       _G.print = self.print
       ok, res, n = exec(res)
       _G.print = prev_print
-      if self.repl.redraw then
-        vim.cmd('redraw')
-      end
+      vim.cmd('redraw')
     end) then
       return
     end
