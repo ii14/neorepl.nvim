@@ -1,4 +1,4 @@
-local api = vim.api
+local api, fn = vim.api, vim.fn
 
 ---@class neorepl.Config
 ---@field lang? 'lua'|'vim'
@@ -89,9 +89,8 @@ local default_config = {
   on_init = nil,
   env_lua = nil,
   histfile = (function()
-    local ok, path = pcall(vim.fn.stdpath, 'state')
-    if not ok then path = vim.fn.stdpath('cache') end
-    return path .. '/neorepl_history'
+    local ok, path = pcall(fn.stdpath, 'state')
+    return (ok and path or fn.stdpath('cache')) .. '/neorepl_history'
   end)(),
   histmax = 100,
 }

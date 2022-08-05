@@ -116,7 +116,7 @@ end
 function Repl:put(lines, hlgroup)
   if self.indent > 0 then
     local copy = {}
-    local prefix = string.rep(' ', self.indent)
+    local prefix = (' '):rep(self.indent)
     for i, line in ipairs(lines) do
       copy[i] = prefix .. line
     end
@@ -145,6 +145,23 @@ end
 function Repl:get_line()
   assert(api.nvim_win_get_buf(0) == self.bufnr)
   return Buf.get_line(0)
+end
+
+---Validate context
+---@return nil|string[] error lines
+function Repl:validate_context()
+  local lines = {}
+  if self.buffer ~= 0 and not api.nvim_buf_is_valid(self.buffer) then
+    self.buffer = 0
+    table.insert(lines, 'buffer deleted, setting it back to 0')
+  end
+  if self.window ~= 0 and not api.nvim_win_is_valid(self.window) then
+    self.window = 0
+    table.insert(lines, 'window deleted, setting it back to 0')
+  end
+  if #lines > 0 then
+    return lines
+  end
 end
 
 ---Evaluate current line
@@ -205,59 +222,38 @@ function Repl:eval_line()
 
   if (self.vim_mode and self.vim or self.lua):eval(lines) ~= false then
     -- validate buffer and window
-    local nlines = {}
-    if self.buffer ~= 0 and not api.nvim_buf_is_valid(self.buffer) then
-      self.buffer = 0
-      table.insert(nlines, 'buffer deleted, setting it back to 0')
+    local elines = self:validate_context()
+    if elines then
+      self:put(elines, 'neoreplInfo')
     end
-    if self.window ~= 0 and not api.nvim_win_is_valid(self.window) then
-      self.window = 0
-      table.insert(nlines, 'window deleted, setting it back to 0')
-    end
-    if #nlines > 0 then
-      self:put(nlines, 'neoreplInfo')
-    end
-
     self:new_line()
   end
 end
 
 ---Execute function in current buffer/window context
 function Repl:exec_context(f)
-  local buf = self.buffer
-  local win = self.window
-
   -- validate buffer and window
-  local buf_valid = buf == 0 or api.nvim_buf_is_valid(buf)
-  local win_valid = win == 0 or api.nvim_win_is_valid(win)
-  if not buf_valid or not win_valid then
-    local lines = {}
-    if not buf_valid then
-      self.buffer = 0
-      table.insert(lines, 'buffer no longer valid, setting it back to 0')
-    end
-    if not win_valid then
-      self.window = 0
-      table.insert(lines, 'window no longer valid, setting it back to 0')
-    end
-    table.insert(lines, 'operation cancelled')
-    self:put(lines, 'neoreplError')
+  local elines = self:validate_context()
+  if elines then
+    table.insert(elines, 'operation cancelled')
+    self:put(elines, 'neoreplError')
     return false
   end
 
-  if win > 0 then
-    if buf > 0 then
-      api.nvim_win_call(win, function()
-        api.nvim_buf_call(buf, f)
+  if self.window > 0 then
+    if self.buffer > 0 then
+      api.nvim_win_call(self.window, function()
+        api.nvim_buf_call(self.buffer, f)
       end)
     else
-      api.nvim_win_call(win, f)
+      api.nvim_win_call(self.window, f)
     end
-  elseif buf > 0 then
-    api.nvim_buf_call(buf, f)
+  elseif self.buffer > 0 then
+    api.nvim_buf_call(self.buffer, f)
   else
     f()
   end
+
   return true
 end
 

@@ -52,7 +52,12 @@ table.insert(COMMANDS, {
   ---@param repl neorepl.Repl
   run = function(args, repl)
     if args then
-      repl.lua:eval(args)
+      if repl.lua:eval(args) ~= false then
+        local elines = repl:validate_context()
+        if elines then
+          repl:put(elines, 'neoreplInfo')
+        end
+      end
     else
       repl.vim_mode = false
       repl:put(MSG_LUA, 'neoreplInfo')
@@ -67,7 +72,12 @@ table.insert(COMMANDS, {
   ---@param repl neorepl.Repl
   run = function(args, repl)
     if args then
-      repl.vim:eval(args)
+      if repl.vim:eval(args) ~= false then
+        local elines = repl:validate_context()
+        if elines then
+          repl:put(elines, 'neoreplInfo')
+        end
+      end
     else
       repl.vim_mode = true
       repl:put(MSG_VIM, 'neoreplInfo')
