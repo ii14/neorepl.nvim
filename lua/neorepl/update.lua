@@ -208,6 +208,10 @@ local function listen(bufnr, callback)
         buf.ranges = { start, new + 1 }
       end
     end,
+    on_reload = function()
+      -- No-op function. If on_reload is not specified,
+      -- callbacks are detached when buffer is reloaded.
+    end,
   }), 'nvim_buf_attach failed')
 
   return buf.listener

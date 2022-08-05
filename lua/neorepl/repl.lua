@@ -5,8 +5,8 @@ local Buf = require('neorepl.buf')
 local COMMAND_PREFIX = '/'
 local MSG_INVALID_COMMAND = {'invalid command'}
 
----Noop command for clearing undo history
-local NOP_CHANGE = api.nvim_replace_termcodes('normal! a <BS><Esc>', true, false, true)
+---No-op command for clearing undo history
+local NOP_CHANGE = api.nvim_replace_termcodes('normal! a <BS><C-G>u<Esc>', true, false, true)
 
 ---@generic T
 ---@param v T|nil
