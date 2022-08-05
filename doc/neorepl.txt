@@ -97,6 +97,25 @@ COMMANDS
     Close REPL instance.
 
 ------------------------------------------------------------------------------
+USING WITH OTHER PLUGINS
+*neorepl-using-with-other-plugins*
+
+Some additional configuration might be needed to make neorepl work nicely with
+other plugins.
+
+Plugin comes with its own completion (not auto-completion! yet), so it's best
+to disable any auto-completion plugins for the "neorepl" filetype. It can be
+done by creating a "~/.config/nvim/ftplugin/neorepl.lua" file, and for example
+disabling nvim-cmp:
+>
+    require('cmp').setup.buffer({ enabled = false })
+<
+indent-blankline.nvim plugin could cause some visual glitches, you can disable
+it in the same file with:
+>
+    vim.b.indent_blankline_enabled = false
+<
+------------------------------------------------------------------------------
 CONFIGURATION
 *neorepl-config*
 
@@ -188,7 +207,7 @@ neoreplLinebreak ~
 COMMAND LINE COMPLETION
 *neorepl-:lua*
 
-You can enable neorepl completion for :lua command with:
+You can enable the experimental neorepl completion for the :lua command with:
 >
     require('neorepl.cmdline')
 <

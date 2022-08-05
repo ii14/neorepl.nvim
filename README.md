@@ -1,19 +1,19 @@
 # neorepl
 
-Neovim REPL for lua and vim script
+## neovim REPL for lua and vim script
 
----
+**Works best with neovim 0.8**
 
-Start a new instance with:
-```
-:Repl
-```
+Start a new instance with `:Repl`.
 
 In insert mode type `/h` and enter to see available commands.
 
 ![demo](media/demo.gif)
 
 ---
+
+**NOTE:** If you're using an auto-completion plugin like `nvim-cmp`, read
+[`:h neorepl-using-with-other-plugins`](doc/neorepl.txt#L101)!
 
 Starts in lua mode by default. You can switch modes with `/vim` (short version:
 `/v`) for vim script and `/lua` (short version: `/l`) for lua. You can also run
@@ -23,33 +23,12 @@ Multiple lines can get evaluated when line continuations start with `\` as the
 very first character in the line. If you need to evaluate a line that starts
 with `/` or `\`, add a space before. Note that vim script has line escaping that
 works just like this. So to break lines in a single expression with vim script,
-there has to be two backslashes. By default you can break line in insert mode
-with `CTRL-J`.
-
-Plugin ships with its own completion, so it's best to disable other completion
-plugins for the `neorepl` filetype. Also highlighting can be kinda buggy with
-indent-blankline.nvim plugin, so it's good to disable that too.
-
-It can be done by creating `ftplugin/neorepl.lua` file, for example:
-```lua
-vim.b.indent_blankline_enabled = false
-require('cmp').setup.buffer({ enabled = false })
-```
-
-Or by setting `on_init` function in a default config:
-```lua
-require 'neorepl'.config{
-  on_init = function()
-    vim.b.indent_blankline_enabled = false
-    require('cmp').setup.buffer({ enabled = false })
-  end,
-}
-```
+there has to be two backslashes. You can break line in insert mode with `CTRL-J`.
 
 Lua has its own environment, variables from the REPL won't leak to the global
 environment. If by any chance you do want to add something to the global
 environment, it's referenced in the `global` variable. In vim script you can use
-the `s:` scope, but it's shared between instances right now.
+the `s:` scope, but it's shared between all REPL instances for now.
 
 You can switch buffer and window context with `/b` and `/w` commands, so things
 like `vim.api.nvim_set_current_line()` or `:s/foo/bar/g` will run on the other
@@ -75,4 +54,4 @@ vim.keymap.set('n', 'g:', function()
 end)
 ```
 
-For the list of available options see [`:h neorepl-config`](doc/neorepl.txt).
+For the list of available options see [`:h neorepl-config`](doc/neorepl.txt#L120).
