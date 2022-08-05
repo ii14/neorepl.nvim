@@ -32,7 +32,6 @@ end
 ---@field window      number        window context
 ---@field inspect     boolean       inspect variables
 ---@field indent      number        indent level
----@field redraw      boolean       redraw after evaluation (deprecated)
 local Repl = {}
 Repl.__index = Repl
 
@@ -81,7 +80,6 @@ function Repl.new(config)
     buffer = config.buffer or 0,
     window = config.window or 0,
     vim_mode = config.lang == 'vim',
-    redraw = get_opt(config.redraw, true),
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
     hist = require('neorepl.hist').new(config),

@@ -5,7 +5,6 @@ local api = vim.api
 ---@field startinsert? boolean
 ---@field indent? number
 ---@field inspect? boolean
----@field redraw? boolean
 ---@field buffer? number|string
 ---@field window? number|string
 ---@field on_init? fun(bufnr: number)
@@ -86,7 +85,6 @@ local default_config = {
   startinsert = true,
   indent = 0,
   inspect = true,
-  redraw = true, -- deprecated
   no_defaults = false,
   on_init = nil,
   env_lua = nil,
