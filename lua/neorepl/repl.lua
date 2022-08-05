@@ -130,12 +130,14 @@ end
 
 ---Append empty line
 function Repl:new_line()
-  Buf.prompt(self.bufnr) -- Append new prompt
-  -- Undoing output messes with extmarks. Clear undo history
-  local save = api.nvim_buf_get_option(self.bufnr, 'undolevels')
-  api.nvim_buf_set_option(self.bufnr, 'undolevels', -1)
-  api.nvim_command(NOP_CHANGE)
-  api.nvim_buf_set_option(self.bufnr, 'undolevels', save)
+  api.nvim_buf_call(self.bufnr, function()
+    Buf.prompt(self.bufnr) -- Append new prompt
+    -- Undoing output messes with extmarks. Clear undo history
+    local save = api.nvim_buf_get_option(self.bufnr, 'undolevels')
+    api.nvim_buf_set_option(self.bufnr, 'undolevels', -1)
+    api.nvim_command(NOP_CHANGE)
+    api.nvim_buf_set_option(self.bufnr, 'undolevels', save)
+  end)
 end
 
 ---Get lines under cursor
