@@ -27,8 +27,6 @@ function Lua.new(repl, config)
   end
 
   self.env = setmetatable({
-    ---access to global environment
-    global = _G,
     ---print function override
     print = self.print,
   }, {

@@ -26,9 +26,8 @@ works just like this. So to break lines in a single expression with vim script,
 there has to be two backslashes. You can break line in insert mode with `CTRL-J`.
 
 Lua has its own environment, variables from the REPL won't leak to the global
-environment. If by any chance you do want to add something to the global
-environment, it's referenced in the `global` variable. In vim script you can use
-the `s:` scope, but it's shared between all REPL instances for now.
+environment. Global environment is referenced in the `_G` variable. In vim script
+you can use the `s:` scope, but it's shared between all REPL instances for now.
 
 You can switch buffer and window context with `/b` and `/w` commands, so things
 like `vim.api.nvim_set_current_line()` or `:s/foo/bar/g` will run on the other
