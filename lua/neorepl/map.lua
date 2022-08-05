@@ -93,39 +93,41 @@ do
     end
   end
 
+  ---Set and restore backspace
+  ---@param keys string
+  ---@param value string
+  ---@return string keys
+  local function with_backspace(keys, value)
+    backspace = api.nvim_get_option('backspace')
+    api.nvim_set_option('backspace', value)
+    return T(keys .. [[<cmd>lua require"neorepl.map"._restore()<CR>]])
+  end
+
   function M.backspace()
     local col = fn.col('.')
-    local res
-    backspace = api.nvim_get_option('backspace')
     if col == 2 and require('neorepl.buf').can_backspace() then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<BS><BS>'
+      return with_backspace('<BS><BS>', 'indent,start,eol')
     elseif col == 1 and require('neorepl.buf').can_backspace() then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<Del><BS>'
+      return with_backspace('<Del><BS>', 'indent,start,eol')
     else
-      api.nvim_set_option('backspace', 'indent,start')
-      res = '<BS>'
+      return with_backspace('<BS>', 'indent,start')
     end
-    return T(res .. [[<cmd>lua require"neorepl.map"._restore()<CR>]])
   end
 
   function M.delete_word()
     -- TODO: doesn't work with two backslashes: "\\"
     local col = fn.col('.')
-    local res
-    backspace = api.nvim_get_option('backspace')
     if col == 2 and require('neorepl.buf').can_backspace() then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<BS><BS>'
+      return with_backspace('<BS><BS>', 'indent,start,eol')
     elseif col == 1 and require('neorepl.buf').can_backspace() then
-      api.nvim_set_option('backspace', 'indent,start,eol')
-      res = '<Del><BS>'
+      return with_backspace('<Del><BS>', 'indent,start,eol')
     else
-      api.nvim_set_option('backspace', 'indent,start')
-      res = '<C-W>'
+      return with_backspace('<C-W>', 'indent,start')
     end
-    return T(res .. [[<cmd>lua require'neorepl.map'._restore()<CR>]])
+  end
+
+  function M.break_line()
+    return with_backspace([[<CR><C-U>\]], 'indent,start')
   end
 
   -- TODO: delete_line
@@ -138,7 +140,7 @@ function M.define()
     local pumclose = fn.pumvisible() ~= 0 and '<C-Y>' or ''
     return T(pumclose .. [[<cmd>lua require'neorepl.map'.eval_line()<CR>]])
   end, true)
-  map('i', '<Plug>(neorepl-break-line)', [[<CR><C-U>\]])
+  map('i', '<Plug>(neorepl-break-line)', M.break_line, true)
   map('i', '<Plug>(neorepl-backspace)', M.backspace, true)
   map('i', '<Plug>(neorepl-delete-word)', M.delete_word, true)
   -- TODO: neorepl-delete-line
