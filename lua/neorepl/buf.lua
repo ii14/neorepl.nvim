@@ -21,6 +21,21 @@ local w_set_cursor = api.nvim_win_set_cursor
 local NS_I = api.nvim_create_namespace('neorepl_input')
 local NS_O = api.nvim_create_namespace('neorepl_output')
 
+---Can backspace
+local function can_backspace(win)
+  win = win or 0
+  local row = w_get_cursor(win)[1]
+  local buf = w_get_buf(win)
+
+  local line = b_get_lines(buf, row - 1, row, false)[1]
+  if not line or not line:find('^\\') then
+    return false
+  end
+
+  local mark = m_get(buf, NS_O, { row - 1, 0 }, 0, { limit = 1, details = true })[1]
+  return row > (mark and (mark[4].end_row + 1) or 1)
+end
+
 ---Get lines under cursor
 ---@param win? integer
 ---@return string[] lines, integer start, integer end
@@ -198,6 +213,7 @@ end
 ---@param backward boolean
 ---@param to_end? boolean
 local function goto_output(backward, to_end, count)
+  -- TODO: move between individual input section as well
   count = count or 1
   local ranges = {}
   do
@@ -271,4 +287,5 @@ return {
   goto_output = goto_output,
   prompt = prompt,
   clear = clear,
+  can_backspace = can_backspace,
 }

@@ -94,14 +94,13 @@ do
   end
 
   function M.backspace()
-    local line = api.nvim_get_current_line()
     local col = fn.col('.')
     local res
     backspace = api.nvim_get_option('backspace')
-    if col == 2 and line:sub(1, 1) == '\\' then
+    if col == 2 and require('neorepl.buf').can_backspace() then
       api.nvim_set_option('backspace', 'indent,start,eol')
       res = '<BS><BS>'
-    elseif col == 1 and line:sub(1, 1) == '\\' then
+    elseif col == 1 and require('neorepl.buf').can_backspace() then
       api.nvim_set_option('backspace', 'indent,start,eol')
       res = '<Del><BS>'
     else
@@ -112,14 +111,14 @@ do
   end
 
   function M.delete_word()
-    local line = api.nvim_get_current_line()
+    -- TODO: doesn't work with two backslashes: "\\"
     local col = fn.col('.')
     local res
     backspace = api.nvim_get_option('backspace')
-    if col == 2 and line:sub(1, 1) == '\\' then
+    if col == 2 and require('neorepl.buf').can_backspace() then
       api.nvim_set_option('backspace', 'indent,start,eol')
       res = '<BS><BS>'
-    elseif col == 1 and line:sub(1, 1) == '\\' then
+    elseif col == 1 and require('neorepl.buf').can_backspace() then
       api.nvim_set_option('backspace', 'indent,start,eol')
       res = '<Del><BS>'
     else
