@@ -65,6 +65,7 @@ function Repl.new(config)
   vim.opt_local.number = false
   vim.opt_local.relativenumber = false
   vim.opt_local.signcolumn = 'yes'
+  vim.opt_local.backspace = 'indent,start'
   api.nvim_buf_set_name(bufnr, 'neorepl://neorepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'neorepl')
