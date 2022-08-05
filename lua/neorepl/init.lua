@@ -99,28 +99,28 @@ local default_config = {
 }
 
 
----@class neorepl.Buf
-local buf = {}
+---@class neorepl.Bufs
+local bufs = {}
 
 ---Get current REPL
 ---@param bufnr number
 ---@return neorepl.Repl
-function buf.get(bufnr)
+function bufs.get(bufnr)
   if bufnr == nil or bufnr == 0 then
     bufnr = api.nvim_get_current_buf()
   elseif type(bufnr) ~= 'number' then
     error('expected number')
   end
 
-  if buf[bufnr] == nil then
+  if bufs[bufnr] == nil then
     error('invalid repl: '..bufnr)
   end
 
-  return buf[bufnr]
+  return bufs[bufnr]
 end
 
 -- inject module
-package.loaded['neorepl.buf'] = buf
+package.loaded['neorepl.bufs'] = bufs
 
 
 local neorepl = {}
@@ -145,12 +145,12 @@ function neorepl.new(config)
   local repl = require('neorepl.repl').new(config)
   local bufnr = repl.bufnr
 
-  buf[bufnr] = repl
+  bufs[bufnr] = repl
   api.nvim_create_autocmd('BufDelete', {
     group = api.nvim_create_augroup('neorepl', { clear = false }),
     buffer = bufnr,
     callback = function()
-      buf[bufnr] = nil
+      bufs[bufnr] = nil
     end,
     desc = 'neorepl: teardown repl',
     once = true,
@@ -167,7 +167,7 @@ end
 ---Get available completions at current cursor position
 ---@return number column, string[] completions
 function neorepl.get_completion()
-  return buf.get():get_completion()
+  return bufs.get():get_completion()
 end
 
 return neorepl

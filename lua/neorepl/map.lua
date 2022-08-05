@@ -1,5 +1,5 @@
 local api, fn = vim.api, vim.fn
-local buf = require('neorepl.buf')
+local bufs = require('neorepl.bufs')
 
 ---Replace keycodes
 ---@type fun(s: string): string
@@ -37,7 +37,7 @@ local function map(modes, lhss, rhs, expr)
 end
 
 ---@type fun(): neorepl.Repl
-local get = buf.get
+local get = bufs.get
 
 
 local M = {}
