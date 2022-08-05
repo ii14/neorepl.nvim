@@ -49,6 +49,8 @@ function Repl.new(config)
     assert(config.window, 'invalid window')
   end
 
+  local bufs = require('neorepl.bufs')
+
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
 
@@ -86,6 +88,25 @@ function Repl.new(config)
 
   self.lua = require('neorepl.lua').new(self, config)
   self.vim = require('neorepl.vim').new(self, config)
+
+  bufs[bufnr] = self
+  api.nvim_create_autocmd('BufDelete', {
+    group = api.nvim_create_augroup('neorepl', { clear = false }),
+    buffer = bufnr,
+    callback = function()
+      self.buf.listener.detach()
+      bufs[bufnr] = nil
+    end,
+    desc = 'neorepl: close repl',
+    once = true,
+  })
+
+  if config.on_init then
+    config.on_init(bufnr)
+  end
+  if config.startinsert then
+    vim.cmd('startinsert')
+  end
 
   return self
 end

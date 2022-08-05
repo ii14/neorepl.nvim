@@ -142,26 +142,7 @@ end
 ---@param config? neorepl.Config
 function neorepl.new(config)
   config = validate(vim.tbl_extend('force', default_config, config or {}))
-  local repl = require('neorepl.repl').new(config)
-  local bufnr = repl.bufnr
-
-  bufs[bufnr] = repl
-  api.nvim_create_autocmd('BufDelete', {
-    group = api.nvim_create_augroup('neorepl', { clear = false }),
-    buffer = bufnr,
-    callback = function()
-      bufs[bufnr] = nil
-    end,
-    desc = 'neorepl: teardown repl',
-    once = true,
-  })
-
-  if config.on_init then
-    config.on_init(bufnr)
-  end
-  if config.startinsert then
-    vim.cmd('startinsert')
-  end
+  require('neorepl.repl').new(config)
 end
 
 ---Get available completions at current cursor position
