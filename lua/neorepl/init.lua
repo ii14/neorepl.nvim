@@ -83,7 +83,7 @@ end
 ---@type neorepl.Config
 local default_config = {
   lang = 'lua',
-  startinsert = false,
+  startinsert = true,
   indent = 0,
   inspect = true,
   redraw = true, -- deprecated

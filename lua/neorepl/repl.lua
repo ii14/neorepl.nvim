@@ -240,7 +240,6 @@ function Repl:exec_context(f)
 
   if win > 0 then
     if buf > 0 then
-      -- can buffer change here? maybe it's going to be easier to pcall all of this
       api.nvim_win_call(win, function()
         api.nvim_buf_call(buf, f)
       end)
