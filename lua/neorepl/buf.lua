@@ -120,7 +120,7 @@ local function on_update(buf, ranges)
   end
 end
 
----@class neopm.Buf
+---@class neorepl.Buf
 ---@field bufnr integer
 ---@field listener table
 local Buf = {}

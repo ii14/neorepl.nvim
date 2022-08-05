@@ -135,7 +135,10 @@ end
 
 ---Define mappings for the current buffer
 function M.define()
-  map({'','i'}, '<Plug>(neorepl-eval-line)', M.eval_line)
+  map({'','i'}, '<Plug>(neorepl-eval-line)', function()
+    local pumclose = fn.pumvisible() ~= 0 and '<C-Y>' or ''
+    return T(pumclose .. [[<cmd>lua require'neorepl.map'.eval_line()<CR>]])
+  end, true)
   map('i', '<Plug>(neorepl-break-line)', [[<CR><C-U>\]])
   map('i', '<Plug>(neorepl-backspace)', M.backspace, true)
   map('i', '<Plug>(neorepl-delete-word)', M.delete_word, true)

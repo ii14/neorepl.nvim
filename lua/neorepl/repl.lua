@@ -42,15 +42,11 @@ Repl.__index = Repl
 function Repl.new(config)
   if config.buffer then
     config.buffer = util.parse_buffer(config.buffer, true)
-    if not config.buffer then
-      error('invalid buffer')
-    end
+    assert(config.buffer, 'invalid window')
   end
   if config.window then
     config.window = util.parse_window(config.window, true)
-    if not config.window then
-      error('invalid window')
-    end
+    assert(config.window, 'invalid window')
   end
 
   vim.cmd('enew')
