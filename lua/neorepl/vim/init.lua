@@ -1,4 +1,4 @@
-local fn = vim.fn
+local api, fn = vim.api, vim.fn
 
 ---@class neorepl.Vim
 ---@field repl neorepl.Repl parent
@@ -40,7 +40,14 @@ function Vim:eval(prg)
     ok, res = pcall(fn['neorepl#__evaluate__'], prg)
     vim.cmd('redraw')
   end) then
+    if not api.nvim_buf_is_valid(self.repl.bufnr) then
+      return false
+    end
     return
+  end
+
+  if not api.nvim_buf_is_valid(self.repl.bufnr) then
+    return false
   end
 
   if ok then

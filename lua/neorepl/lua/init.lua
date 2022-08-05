@@ -114,7 +114,14 @@ function Lua:eval(prg)
       _G.print = prev_print
       vim.cmd('redraw')
     end) then
+      if not api.nvim_buf_is_valid(self.repl.bufnr) then
+        return false
+      end
       return
+    end
+
+    if not api.nvim_buf_is_valid(self.repl.bufnr) then
+      return false
     end
 
     if not ok then
