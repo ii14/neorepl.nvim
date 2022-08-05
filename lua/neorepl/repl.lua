@@ -204,14 +204,22 @@ function Repl:eval_line()
     return self:new_line()
   end
 
-  if self.vim_mode then
-    if self.vim:eval(lines) ~= false then
-      return self:new_line()
+  if (self.vim_mode and self.vim or self.lua):eval(lines) ~= false then
+    -- validate buffer and window
+    local nlines = {}
+    if self.buffer ~= 0 and not api.nvim_buf_is_valid(self.buffer) then
+      self.buffer = 0
+      table.insert(nlines, 'buffer deleted, setting it back to 0')
     end
-  else
-    if self.lua:eval(lines) ~= false then
-      return self:new_line()
+    if self.window ~= 0 and not api.nvim_win_is_valid(self.window) then
+      self.window = 0
+      table.insert(nlines, 'window deleted, setting it back to 0')
     end
+    if #nlines > 0 then
+      self:put(nlines, 'neoreplInfo')
+    end
+
+    self:new_line()
   end
 end
 
