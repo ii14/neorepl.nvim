@@ -32,7 +32,7 @@ end
 ---@field hist        neorepl.Hist  command history
 ---@field lua         neorepl.Lua   lua evaluator
 ---@field vim         neorepl.Vim   vim evaluator
----@field vim_mode    boolean       vim/lua mode
+---@field mode        neorepl.Vim|neorepl.Lua   current evaluator
 ---Options:
 ---@field buffer      number        buffer context
 ---@field window      number        window context
@@ -76,7 +76,6 @@ function Repl.new(config)
     buf = Buf.new(bufnr),
     buffer = config.buffer or 0,
     window = config.window or 0,
-    vim_mode = config.lang == 'vim',
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
     hist = Hist.new(config),
@@ -84,6 +83,7 @@ function Repl.new(config)
 
   self.lua = Lua.new(self, config)
   self.vim = Vim.new(self, config)
+  self.mode = config.lang == 'vim' and self.vim or self.lua
 
   bufs[bufnr] = self
   api.nvim_create_autocmd('BufDelete', {
@@ -222,7 +222,7 @@ function Repl:eval_line()
     return
   end
 
-  if (self.vim_mode and self.vim or self.lua):eval(lines) ~= false then
+  if self.mode:eval(lines) ~= false then
     -- validate buffer and window
     local elines = self:validate_context()
     if elines then
@@ -302,11 +302,11 @@ function Repl:get_completion()
     -- TODO: complete multiple lines
     local begin = fn.match(line, [[\v\C^v%[im]\s+\zs]])
     if begin >= 0 then
-      results, start = self.vim:complete(line:sub(begin + 1))
+      start, results = self.vim:complete(line:sub(begin + 1))
     else
       begin = fn.match(line, [[\v\C^l%[ua]\s+\zs]])
       if begin < 0 then return end
-      results, start = self.lua:complete(line:sub(begin + 1))
+      start, results = self.lua:complete(line:sub(begin + 1))
     end
     if start then
       start = start + begin + 1
@@ -318,13 +318,8 @@ function Repl:get_completion()
     return
   end
 
-  if self.vim_mode then
-    start, results = self.vim:complete(line)
-  else
-    -- TODO: complete multiple lines
-    start, results = self.lua:complete(line)
-  end
-
+  -- TODO: complete multiple lines
+  start, results = self.mode:complete(line)
   if results and #results > 0 then
     return start or pos + 1, results
   end

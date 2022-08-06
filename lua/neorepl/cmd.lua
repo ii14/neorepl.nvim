@@ -59,7 +59,7 @@ table.insert(COMMANDS, {
         end
       end
     else
-      repl.vim_mode = false
+      repl.mode = repl.lua
       repl:put(MSG_LUA, 'neoreplInfo')
     end
   end,
@@ -79,7 +79,7 @@ table.insert(COMMANDS, {
         end
       end
     else
-      repl.vim_mode = true
+      repl.mode = repl.vim
       repl:put(MSG_VIM, 'neoreplInfo')
     end
   end,
