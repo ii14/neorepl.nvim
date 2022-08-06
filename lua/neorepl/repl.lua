@@ -1,4 +1,4 @@
-local api, fn = vim.api, vim.fn
+local api, fn, setl = vim.api, vim.fn, vim.opt_local
 local util = require('neorepl.util')
 local bufs = require('neorepl.bufs')
 local map = require('neorepl.map')
@@ -57,13 +57,13 @@ function Repl.new(config)
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
 
-  vim.opt_local.buftype = 'nofile'
-  vim.opt_local.swapfile = false
-  vim.opt_local.undofile = false
-  vim.opt_local.number = false
-  vim.opt_local.relativenumber = false
-  vim.opt_local.signcolumn = 'yes'
-  vim.opt_local.keywordprg = ':help'
+  setl.buftype = 'nofile'
+  setl.swapfile = false
+  setl.undofile = false
+  setl.number = false
+  setl.relativenumber = false
+  setl.signcolumn = 'yes'
+  setl.keywordprg = ':help'
   map.define()
   api.nvim_buf_set_name(bufnr, 'neorepl://neorepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
@@ -73,7 +73,7 @@ function Repl.new(config)
   ---@type neorepl.Repl
   local self = setmetatable({
     bufnr = bufnr,
-    buf = Buf.new(bufnr), -- TODO: clean up
+    buf = Buf.new(bufnr),
     buffer = config.buffer or 0,
     window = config.window or 0,
     vim_mode = config.lang == 'vim',
@@ -171,7 +171,8 @@ function Repl:eval_line()
   local lines = self:get_line()
   -- ignore if it's only whitespace
   if not lines or util.lines_empty(lines) then
-    return self:new_line()
+    self:new_line()
+    return
   end
 
   -- save lines to history
@@ -184,7 +185,8 @@ function Repl:eval_line()
     local cmd, rest = line:match('^(%a*)%s*(.*)$')
     if not cmd then
       self:put(MSG_INVALID_COMMAND, 'neoreplError')
-      return self:new_line()
+      self:new_line()
+      return
     end
 
     -- Copy lines and trim command
@@ -216,7 +218,8 @@ function Repl:eval_line()
     end
 
     self:put(MSG_INVALID_COMMAND, 'neoreplError')
-    return self:new_line()
+    self:new_line()
+    return
   end
 
   if (self.vim_mode and self.vim or self.lua):eval(lines) ~= false then
