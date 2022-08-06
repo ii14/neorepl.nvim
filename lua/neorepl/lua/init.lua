@@ -42,7 +42,7 @@ function Lua.new(repl, config)
           table.insert(err, 1, 'Error from user env:')
           repl:put(err, 'neoreplError')
           return self.repl:new_line()
-        elseif type(res) == nil then
+        elseif res == nil then
           return
         elseif type(res) ~= 'table' then
           repl:put({'Result of user env is not a table'}, 'neoreplError')
@@ -79,10 +79,8 @@ local exec do
   function exec(f)
     local coro = coroutine.create(f)
     local ok, res, n = pcall_res(coroutine.resume(coro))
-    if not ok then
-      if debug.getinfo(coro, 0, 'f').func ~= f then
-        res = debug.traceback(coro, res, 0)
-      end
+    if not ok and debug.getinfo(coro, 0, 'f').func ~= f then
+      res = debug.traceback(coro, res, 0)
     end
     return ok, res, n
   end
@@ -107,24 +105,19 @@ function Lua:eval(prg)
   if res then
     setfenv(res, self.env)
 
-    if not self.repl:exec_context(function()
+    local ctxres = self.repl:exec_context(function()
       -- temporarily replace print
       _G.print = self.print
       ok, res, n = exec(res)
       _G.print = prev_print
       vim.cmd('redraw')
-    end) then
-      if not api.nvim_buf_is_valid(self.repl.bufnr) then
-        return false
-      end
-      return
-    end
+    end)
 
     if not api.nvim_buf_is_valid(self.repl.bufnr) then
       return false
-    end
-
-    if not ok then
+    elseif not ctxres then
+      return
+    elseif not ok then
       self.repl:put(vim.split(res, '\n', { plain = true }), 'neoreplError')
     else
       local stringify = self.repl.inspect and vim.inspect or tostring

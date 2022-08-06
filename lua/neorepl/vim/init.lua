@@ -10,8 +10,7 @@ Vim.__index = Vim
 ---@param _ neorepl.Config
 ---@return neorepl.Vim
 function Vim.new(repl, _)
-  local self = setmetatable({ repl = repl }, Vim)
-  return self
+  return setmetatable({ repl = repl }, Vim)
 end
 
 ---Evaluate vim script and append output to the buffer
@@ -36,21 +35,16 @@ function Vim:eval(prg)
   -- context is shared between repl instances. a potential solution is to
   -- create a temporary script for each instance.
   local ok, res
-  if not self.repl:exec_context(function()
+  local ctxres = self.repl:exec_context(function()
     ok, res = pcall(fn['neorepl#__evaluate__'], prg)
     vim.cmd('redraw')
-  end) then
-    if not api.nvim_buf_is_valid(self.repl.bufnr) then
-      return false
-    end
-    return
-  end
+  end)
 
   if not api.nvim_buf_is_valid(self.repl.bufnr) then
     return false
-  end
-
-  if ok then
+  elseif not ctxres then
+    return
+  elseif ok then
     local hlgroup
     if res.result then
       hlgroup = 'neoreplOutput'
@@ -77,14 +71,12 @@ function Vim:complete(line)
   end
 
   local results
-  if not self.repl:exec_context(function()
+  if self.repl:exec_context(function()
     results = fn.getcompletion(line, 'cmdline', 1)
   end) then
-    return
-  end
-
-  if results and #results > 0 then
-    return pos, results
+    if results and #results > 0 then
+      return pos, results
+    end
   end
 end
 
