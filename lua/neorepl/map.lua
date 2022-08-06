@@ -83,24 +83,13 @@ function M.goto_prev_end()
 end
 
 do
-  local backspace
-
-  ---Restore 'backspace'
-  function M._restore()
-    if backspace then
-      api.nvim_set_option('backspace', backspace)
-      backspace = nil
-    end
-  end
-
   ---Set and restore backspace
-  ---@param keys string
-  ---@param value string
+  ---@param keys string   mapped keys
+  ---@param value string  new backspace value
   ---@return string keys
   local function with_backspace(keys, value)
-    backspace = api.nvim_get_option('backspace')
-    api.nvim_set_option('backspace', value)
-    return T(keys .. [[<cmd>lua require"neorepl.map"._restore()<CR>]])
+    local prev = api.nvim_get_option('backspace')
+    return T(('<cmd>set bs=%s<CR>%s<cmd>set bs=%s<CR>'):format(value, keys, prev))
   end
 
   function M.backspace()
