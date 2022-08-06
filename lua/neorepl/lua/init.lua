@@ -87,7 +87,7 @@ local exec do
 end
 
 ---Evaluate lua and append output to the buffer
----@param prg string
+---@param prg string|string[]
 ---@return nil|boolean
 function Lua:eval(prg)
   if type(prg) == 'table' then
@@ -142,7 +142,7 @@ do
   local complete = nil
   ---Complete line
   ---@param line string
-  ---@return string[] results, number position
+  ---@return integer offset, string[] completions
   function Lua:complete(line)
     if complete == nil then
       complete = require('neorepl.lua.complete').complete

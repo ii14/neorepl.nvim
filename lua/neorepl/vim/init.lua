@@ -14,7 +14,7 @@ function Vim.new(repl, _)
 end
 
 ---Evaluate vim script and append output to the buffer
----@param prg string
+---@param prg string|string[]
 ---@return nil|boolean
 function Vim:eval(prg)
   if type(prg) == 'table' then
@@ -63,7 +63,7 @@ end
 
 ---Complete line
 ---@param line string
----@return string[] results, number position
+---@return integer offset, string[] completions
 function Vim:complete(line)
   local pos = line:find('[^%s%(%)=%-%+%*|/~%.,%[%]{}&]*$')
   if line:match('^%s*[bgstvw]:') or line:match('^%s*%(') then

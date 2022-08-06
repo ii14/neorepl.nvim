@@ -26,18 +26,20 @@ local function get_opt(v, default)
   end
 end
 
+---@alias neorepl.Mode neorepl.Lua|neorepl.Vim
+
 ---@class neorepl.Repl
----@field bufnr       number        buffer number
----@field buf         neorepl.Buf   repl buffer
----@field hist        neorepl.Hist  command history
----@field lua         neorepl.Lua   lua evaluator
----@field vim         neorepl.Vim   vim evaluator
----@field mode        neorepl.Vim|neorepl.Lua   current evaluator
+---@field bufnr   number        buffer number
+---@field buf     neorepl.Buf   repl buffer
+---@field hist    neorepl.Hist  command history
+---@field lua     neorepl.Lua   lua evaluator
+---@field vim     neorepl.Vim   vim evaluator
+---@field mode    neorepl.Mode  current evaluator
 ---Options:
----@field buffer      number        buffer context
----@field window      number        window context
----@field inspect     boolean       inspect variables
----@field indent      number        indent level
+---@field buffer  number        buffer context
+---@field window  number        window context
+---@field inspect boolean       inspect variables
+---@field indent  number        indent level
 local Repl = {}
 Repl.__index = Repl
 
@@ -107,6 +109,13 @@ function Repl.new(config)
   return self
 end
 
+---Get lines under cursor
+---@return string[] lines, integer start, integer end
+function Repl:get_line()
+  assert(api.nvim_win_get_buf(0) == self.bufnr)
+  return Buf.get_line(0)
+end
+
 ---Append lines to the buffer
 ---@param lines string[]  lines
 ---@param hlgroup string  highlight group
@@ -122,11 +131,7 @@ function Repl:put(lines, hlgroup)
   self.buf:append(lines, hlgroup)
 end
 
-function Repl:clear()
-  Buf.clear(self.bufnr)
-end
-
----Append empty line
+---Append prompt line
 function Repl:new_line()
   api.nvim_buf_call(self.bufnr, function()
     Buf.prompt(self.bufnr) -- Append new prompt
@@ -138,16 +143,13 @@ function Repl:new_line()
   end)
 end
 
----Get lines under cursor
----Returns nil on illegal line break
----@return string[]|nil
-function Repl:get_line()
-  assert(api.nvim_win_get_buf(0) == self.bufnr)
-  return Buf.get_line(0)
+---Clear buffer
+function Repl:clear()
+  Buf.clear(self.bufnr)
 end
 
 ---Validate context
----@return nil|string[] error lines
+---@return nil|string[] error lines, nil if ok
 function Repl:validate_context()
   local lines = {}
   if self.buffer ~= 0 and not api.nvim_buf_is_valid(self.buffer) then
@@ -169,16 +171,16 @@ function Repl:eval_line()
   self.hist:reset_pos()
 
   local lines = self:get_line()
-  -- ignore if it's only whitespace
+  -- Ignore if it's only whitespace
   if not lines or util.lines_empty(lines) then
     self:new_line()
     return
   end
 
-  -- save lines to history
+  -- Save lines to history
   self.hist:append(lines)
 
-  -- repl command
+  -- REPL command
   local line = lines[1]
   if line:sub(1,1) == COMMAND_PREFIX then
     line = line:sub(2)
@@ -222,19 +224,22 @@ function Repl:eval_line()
     return
   end
 
-  if self.mode:eval(lines) ~= false then
-    -- validate buffer and window
-    local elines = self:validate_context()
-    if elines then
-      self:put(elines, 'neoreplInfo')
-    end
-    self:new_line()
+  if self.mode:eval(lines) == false then
+    return
   end
+
+  -- Validate buffer and window after evaluation
+  local elines = self:validate_context()
+  if elines then
+    self:put(elines, 'neoreplInfo')
+  end
+  self:new_line()
 end
 
 ---Execute function in current buffer/window context
+---@param f function
 function Repl:exec_context(f)
-  -- validate buffer and window
+  -- Validate buffer and window
   local elines = self:validate_context()
   if elines then
     table.insert(elines, 'operation cancelled')
@@ -273,6 +278,8 @@ function Repl:hist_move(prev)
   api.nvim_win_set_cursor(0, { s + #nlines - 1, #nlines[#nlines] })
 end
 
+---Get completion
+---@return integer offset, string[] completions
 function Repl:get_completion()
   assert(api.nvim_get_current_buf() == self.bufnr, 'Not in neorepl buffer')
   assert(api.nvim_win_get_buf(0) == self.bufnr, 'Not in neorepl window')
@@ -337,7 +344,7 @@ end
 ---@param backward boolean
 ---@param to_end? boolean
 function Repl:goto_output(backward, to_end, count)
-  return Buf.goto_output(backward, to_end, count)
+  Buf.goto_output(backward, to_end, count)
 end
 
 api.nvim_set_hl(0, 'neoreplError',     { default = true, link = 'ErrorMsg' })
