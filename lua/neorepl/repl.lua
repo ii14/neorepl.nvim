@@ -1,6 +1,12 @@
 local api, fn = vim.api, vim.fn
 local util = require('neorepl.util')
+local bufs = require('neorepl.bufs')
+local map = require('neorepl.map')
 local Buf = require('neorepl.buf')
+local Lua = require('neorepl.lua')
+local Vim = require('neorepl.vim')
+local Hist = require('neorepl.hist')
+local COMMANDS = require('neorepl.cmd')
 
 local COMMAND_PREFIX = '/'
 local MSG_INVALID_COMMAND = {'invalid command'}
@@ -48,17 +54,8 @@ function Repl.new(config)
     assert(config.window, 'invalid window')
   end
 
-  local bufs = require('neorepl.bufs')
-
   vim.cmd('enew')
   local bufnr = api.nvim_get_current_buf()
-
-  require('neorepl.map').define()
-
-  if config.no_defaults ~= true then
-    require('neorepl.map').define_defaults()
-    -- vim.opt_local.completeopt = 'menu'
-  end
 
   vim.opt_local.buftype = 'nofile'
   vim.opt_local.swapfile = false
@@ -67,6 +64,7 @@ function Repl.new(config)
   vim.opt_local.relativenumber = false
   vim.opt_local.signcolumn = 'yes'
   vim.opt_local.keywordprg = ':help'
+  map.define()
   api.nvim_buf_set_name(bufnr, 'neorepl://neorepl('..bufnr..')')
   -- set filetype after mappings and settings to allow overriding in ftplugin
   api.nvim_buf_set_option(bufnr, 'filetype', 'neorepl')
@@ -81,11 +79,11 @@ function Repl.new(config)
     vim_mode = config.lang == 'vim',
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
-    hist = require('neorepl.hist').new(config),
+    hist = Hist.new(config),
   }, Repl)
 
-  self.lua = require('neorepl.lua').new(self, config)
-  self.vim = require('neorepl.vim').new(self, config)
+  self.lua = Lua.new(self, config)
+  self.vim = Vim.new(self, config)
 
   bufs[bufnr] = self
   api.nvim_create_autocmd('BufDelete', {
@@ -202,7 +200,7 @@ function Repl:eval_line()
       args[1] = args[1]:match('^(.-)%s*$')
     end
 
-    for _, c in ipairs(require('neorepl.cmd')) do
+    for _, c in ipairs(COMMANDS) do
       if c.pattern == nil then
         local name = c.command
         c.pattern = '\\v\\C^'..name:sub(1,1)..'%['..name:sub(2)..']$'
@@ -287,7 +285,7 @@ function Repl:get_completion()
     if line:match('^%S*$') then
       results = {}
       local size = #line
-      for _, c in ipairs(require('neorepl.cmd')) do
+      for _, c in ipairs(COMMANDS) do
         if line == c.command:sub(1, size) then
           table.insert(results, c.command)
         end

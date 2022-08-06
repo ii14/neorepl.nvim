@@ -85,7 +85,6 @@ local default_config = {
   startinsert = true,
   indent = 0,
   inspect = true,
-  no_defaults = false,
   on_init = nil,
   env_lua = nil,
   histfile = (function()

@@ -150,11 +150,6 @@ env_lua ~
         Type: table | fun(env: table): table
         Default: nil
 
-no_defaults ~
-    Disables all default settings and key mappings.
-        Type: boolean
-        Default: false
-
 buffer ~
     Start REPL attached to the buffer. Accepts values supported by |bufnr()|.
     0 for the current buffer.

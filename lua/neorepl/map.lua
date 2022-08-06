@@ -1,5 +1,4 @@
 local api, fn = vim.api, vim.fn
-local bufs = require('neorepl.bufs')
 
 ---Replace keycodes
 ---@type fun(s: string): string
@@ -37,7 +36,7 @@ local function map(modes, lhss, rhs, expr)
 end
 
 ---@type fun(): neorepl.Repl
-local get = bufs.get
+local get = require('neorepl.bufs').get
 
 
 local M = {}
@@ -140,10 +139,8 @@ function M.define()
   map({'','i'}, '<Plug>(neorepl-[])', M.goto_prev_end)
   map({'','i'}, '<Plug>(neorepl-]])', M.goto_next)
   map({'','i'}, '<Plug>(neorepl-][)', M.goto_next_end)
-end
 
----Define defaults mappings for the current buffer
-function M.define_defaults()
+  -- Default mappings
   map('i', {'<CR>','<C-M>'}, '<Plug>(neorepl-eval-line)')
   map('i', {'<NL>','<C-J>'}, '<Plug>(neorepl-break-line)')
   map('i', {'<BS>','<C-H>'}, '<Plug>(neorepl-backspace)')
