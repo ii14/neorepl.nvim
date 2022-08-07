@@ -51,7 +51,7 @@ function Lua.new(repl, config)
         elseif res == nil then
           return
         elseif type(res) ~= 'table' then
-          repl:echo({'Result of user env is not a table'}, 'neoreplError')
+          repl:echo('Result of user env is not a table', 'neoreplError')
           return self.repl:prompt()
         else
           userenv = res
@@ -82,11 +82,45 @@ local exec do
     end
   end
 
-  function exec(f)
-    local coro = coroutine.create(f)
-    local ok, res, n = pcall_res(coroutine.resume(coro))
-    if not ok and debug.getinfo(coro, 0, 'f').func ~= f then
+  local ccreate = coroutine.create
+  local cresume = coroutine.resume
+  local dgetinfo = debug.getinfo
+
+  -- ---@param coro thread
+  -- local function stacktrace(coro, msg)
+  --   local s = {}
+  --   if msg then
+  --     s[#s+1] = ('%s\n'):format(msg)
+  --   end
+  --   s[#s+1] = 'stack traceback:'
+
+  --   for i = 0, 999999 do
+  --     local ar = dgetinfo(coro, i, 'Snlf')
+  --     if not ar then break end
+
+  --     s[#s+1] = ('\n\t%s:'):format(ar.short_src)
+  --     if ar.currentline > 0 then
+  --       s[#s+1] = ('%d:'):format(ar.currentline)
+  --     end
+  --     if ar.namewhat ~= '' then
+  --       s[#s+1] = (' in function \'%s\''):format(ar.name)
+  --     elseif ar.what == 'main' then
+  --       s[#s+1] = ' in main chunk'
+  --     elseif ar.what == 'C' then
+  --       s[#s+1] = (' in %s'):format(tostring(ar.func):match('0x.*'))
+  --     else
+  --       s[#s+1] = (' in function <%s:%d>'):format(ar.short_src, ar.linedefined)
+  --     end
+  --   end
+  --   return table.concat(s)
+  -- end
+
+  function exec(func)
+    local coro = ccreate(func)
+    local ok, res, n = pcall_res(cresume(coro))
+    if not ok and dgetinfo(coro, 0, 'f').func ~= func then
       res = debug.traceback(coro, res, 0)
+      -- res = stacktrace(coro, res)
     end
     return ok, res, n
   end
@@ -103,9 +137,9 @@ function Lua:eval(prg, save)
 
   local ok, res, err, n
   if type(prg) == 'string' then
-    res = loadstring('return '..prg, 'neorepl')
+    res = loadstring('return '..prg, '@(neorepl)')
     if not res then
-      res, err = loadstring(prg, 'neorepl')
+      res, err = loadstring(prg, '@(neorepl)')
     end
   elseif type(prg) == 'function' then
     res = prg
@@ -129,7 +163,7 @@ function Lua:eval(prg, save)
     elseif not ctxres then
       return
     elseif not ok then
-      self.repl:echo(vim.split(res, '\n', { plain = true }), 'neoreplError')
+      self.repl:echo(res, 'neoreplError')
     elseif #res > 0 then
       -- Save results
       if save then
@@ -146,7 +180,7 @@ function Lua:eval(prg, save)
       for i = 1, n do
         res[i] = stringify(res[i])
       end
-      self.repl:echo(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'neoreplValue')
+      self.repl:echo(table.concat(res, ', '), 'neoreplValue')
     end
   elseif err:match("'<eof>'$") then
     -- more input expected, add line break
@@ -154,7 +188,7 @@ function Lua:eval(prg, save)
     vim.cmd('$')
     return false
   else
-    self.repl:echo({err}, 'neoreplError')
+    self.repl:echo(err, 'neoreplError')
   end
 end
 
