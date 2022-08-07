@@ -6,7 +6,7 @@ local api, fn, uv = vim.api, vim.fn, vim.loop
 local util = {}
 
 util.split = function()
-  if fn.winwidth(0) > 80 * 2 then
+  if fn.winwidth(0) >= 79 * 2 then
     vim.cmd('vsplit')
   else
     vim.cmd('split')
@@ -77,8 +77,8 @@ function util.run_file(path)
 
   ---@param repl neorepl.Repl
   local function run(repl)
-    local time = os.date('%Y-%m-%d %H:%M:%S')
-    repl:echo(('%s: %s'):format(time, path), 'neoreplInfo')
+    local time = os.date('%H:%M:%S')
+    repl:echo(('(%s)  %s'):format(time, path), 'neoreplInfo')
     local f, err = loadfile(path)
     if not f then
       repl:echo(err, 'neoreplError')

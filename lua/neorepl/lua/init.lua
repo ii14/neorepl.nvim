@@ -1,4 +1,4 @@
-local api = vim.api
+local api, fn, uv = vim.api, vim.fn, vim.loop
 ---Reference to global print function
 local prev_print = _G.print
 
@@ -86,41 +86,91 @@ local exec do
   local cresume = coroutine.resume
   local dgetinfo = debug.getinfo
 
-  -- ---@param coro thread
-  -- local function stacktrace(coro, msg)
-  --   local s = {}
-  --   if msg then
-  --     s[#s+1] = ('%s\n'):format(msg)
-  --   end
-  --   s[#s+1] = 'stack traceback:'
+  ---@param coro thread
+  local function traceback(coro, msg)
+    local s = {}
+    if msg then
+      s[#s+1] = ('%s\n\n'):format(msg)
+    end
+    s[#s+1] = 'stack traceback:'
 
-  --   for i = 0, 999999 do
-  --     local ar = dgetinfo(coro, i, 'Snlf')
-  --     if not ar then break end
+    local lines_cache = {}
 
-  --     s[#s+1] = ('\n\t%s:'):format(ar.short_src)
-  --     if ar.currentline > 0 then
-  --       s[#s+1] = ('%d:'):format(ar.currentline)
-  --     end
-  --     if ar.namewhat ~= '' then
-  --       s[#s+1] = (' in function \'%s\''):format(ar.name)
-  --     elseif ar.what == 'main' then
-  --       s[#s+1] = ' in main chunk'
-  --     elseif ar.what == 'C' then
-  --       s[#s+1] = (' in %s'):format(tostring(ar.func):match('0x.*'))
-  --     else
-  --       s[#s+1] = (' in function <%s:%d>'):format(ar.short_src, ar.linedefined)
-  --     end
-  --   end
-  --   return table.concat(s)
-  -- end
+    local function print_line(line, lnum, current)
+      if line then
+        if current then
+          s[#s+1] = ('\n>%4d | %s'):format(lnum, line)
+        else
+          s[#s+1] = ('\n %4d | %s'):format(lnum, line)
+        end
+      end
+    end
+
+    local function print_lines(ar)
+      local lnum = ar.currentline
+      if not ar.source:find('^@') then return end
+      local fname = ar.source:match('@([^%(%[<].*)')
+      if not fname then return end
+      local bufnr = fn.bufnr(fname)
+      if bufnr > 0 then
+        local line = api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1]
+        if line then
+          local p = api.nvim_buf_get_lines(bufnr, lnum - 2, lnum - 1, false)[1]
+          local n = api.nvim_buf_get_lines(bufnr, lnum, lnum + 1, false)[1]
+          print_line(p, lnum - 1)
+          print_line(line, lnum, true)
+          print_line(n, lnum + 1)
+        end
+      else
+        local path = uv.fs_realpath(fname)
+        if not path then return end
+        if not lines_cache[path] then
+          local lines = {}
+          for line in io.lines(path) do
+            lines[#lines+1] = line
+          end
+          lines_cache[path] = lines
+        end
+        if lines_cache[path][lnum] then
+          print_line(lines_cache[path][lnum - 1], lnum - 1)
+          print_line(lines_cache[path][lnum], lnum, true)
+          print_line(lines_cache[path][lnum + 1], lnum + 1)
+        end
+      end
+    end
+
+    for i = 0, 999999 do
+      local ar = dgetinfo(coro, i, 'Snlf')
+      if not ar then break end
+
+      s[#s+1] = ('\n%s:'):format(ar.short_src)
+      if ar.currentline > 0 then
+        s[#s+1] = ('%d:'):format(ar.currentline)
+      end
+
+      if ar.namewhat ~= '' then
+        s[#s+1] = (' in function \'%s\''):format(ar.name)
+      elseif ar.what == 'main' then
+        s[#s+1] = ' in main chunk'
+      elseif ar.what == 'C' then
+        s[#s+1] = (' in %s'):format(tostring(ar.func):match('0x.*'))
+      else
+        s[#s+1] = (' in function <%s:%d>'):format(ar.short_src, ar.linedefined)
+      end
+
+      if ar.currentline > 0 then
+         print_lines(ar)
+      end
+    end
+    return table.concat(s)
+  end
 
   function exec(func)
     local coro = ccreate(func)
     local ok, res, n = pcall_res(cresume(coro))
     if not ok and dgetinfo(coro, 0, 'f').func ~= func then
-      res = debug.traceback(coro, res, 0)
-      -- res = stacktrace(coro, res)
+      -- res = debug.traceback(coro, res, 0)
+      res = traceback(coro, res)
     end
     return ok, res, n
   end
