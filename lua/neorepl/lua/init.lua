@@ -108,14 +108,22 @@ local exec do
 
     local function print_lines(ar)
       local lnum = ar.currentline
-      if not ar.source:find('^@') then return end
-      local fname = ar.source:match('@([^%(%[<].*)')
-      if not fname then return end
-      local bufnr = fn.bufnr(fname)
-      if bufnr > 0 then
+      local fname
+      local bufnr = ar.source:match('^@%(buffer#(%d+)%)$')
+      if bufnr then
+        bufnr = tonumber(bufnr)
+      else
+        fname = ar.source:match('^@([^%(%[<].*)')
+        if not fname then return end
+        bufnr = fn.bufnr(fname)
+        if bufnr < 1 then bufnr = nil end
+      end
+
+      if bufnr then
         if not api.nvim_buf_is_loaded(bufnr) then
           fn.bufload(bufnr)
         end
+
         local line = api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1]
         if line then
           local p = api.nvim_buf_get_lines(bufnr, lnum - 2, lnum - 1, false)[1]
@@ -124,7 +132,7 @@ local exec do
           print_line(line, lnum, true)
           print_line(n, lnum + 1)
         end
-      else
+      elseif fname then
         local path = uv.fs_realpath(fname)
         if not path then return end
         if not lines_cache[path] then
@@ -134,6 +142,7 @@ local exec do
           end
           lines_cache[path] = lines
         end
+
         if lines_cache[path][lnum] then
           print_line(lines_cache[path][lnum - 1], lnum - 1)
           print_line(lines_cache[path][lnum], lnum, true)
