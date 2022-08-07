@@ -225,9 +225,16 @@ function Repl:eval_line()
     return
   end
 
-  if self.mode:eval(lines) == false then
-    return
+  local quit = self.mode:eval(lines) == false
+  -- stop insert mode if buffer changed
+  if api.nvim_get_current_buf() ~= self.bufnr then
+    -- TODO: would be nice if it wasn't deferred.
+    -- I think it's because it runs from an expr mapping?
+    vim.schedule(function()
+      api.nvim_command('stopinsert')
+    end)
   end
+  if quit then return end
 
   -- Validate buffer and window after evaluation
   local elines = self:validate_context()
