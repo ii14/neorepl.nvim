@@ -93,9 +93,10 @@ local exec do
 end
 
 ---Evaluate lua and append output to the buffer
----@param prg string|string[]
+---@param prg string|string[]|function  Program to run
+---@param save? boolean                 Save results to repl.res
 ---@return nil|boolean
-function Lua:eval(prg)
+function Lua:eval(prg, save)
   if type(prg) == 'table' then
     prg = table.concat(prg, '\n')
   end
@@ -131,11 +132,13 @@ function Lua:eval(prg)
       self.repl:echo(vim.split(res, '\n', { plain = true }), 'neoreplError')
     elseif #res > 0 then
       -- Save results
-      for k in pairs(self.res) do
-        self.res[k] = nil
-      end
-      for i = 1, n do
-        self.res[i] = res[i]
+      if save then
+        for k in pairs(self.res) do
+          self.res[k] = nil
+        end
+        for i = 1, n do
+          self.res[i] = res[i]
+        end
       end
 
       -- Print results

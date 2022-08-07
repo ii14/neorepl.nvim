@@ -75,7 +75,7 @@ function util.run_file(path)
     if not f then
       repl:echo(err, 'neoreplError')
     else
-      repl.lua:eval(f)
+      repl.lua:eval(f, true)
     end
   end
 
@@ -110,7 +110,7 @@ function util.run_buffer(bufnr)
     if not f then
       repl:echo(err, 'neoreplError')
     else
-      repl.lua:eval(f)
+      repl.lua:eval(f, true)
     end
   end
 
