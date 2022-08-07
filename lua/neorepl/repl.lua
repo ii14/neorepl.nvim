@@ -103,6 +103,8 @@ function Repl.new(config)
   if config.on_init then
     config.on_init(bufnr)
   end
+  self:new_line()
+
   if config.startinsert then
     vim.cmd('startinsert')
   end
@@ -135,7 +137,7 @@ end
 ---Append prompt line
 function Repl:new_line()
   api.nvim_buf_call(self.bufnr, function()
-    Buf.prompt(self.bufnr) -- Append new prompt
+    self.buf:prompt() -- Append new prompt
     -- Undoing output messes with extmarks. Clear undo history
     local save = api.nvim_buf_get_option(self.bufnr, 'undolevels')
     api.nvim_buf_set_option(self.bufnr, 'undolevels', -1)

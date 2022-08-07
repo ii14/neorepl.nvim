@@ -136,18 +136,19 @@ local function on_update(buf, ranges)
 end
 
 ---@class neorepl.Buf
----@field bufnr integer
----@field listener table
+---@field bufnr integer       Buffer number
+---@field listener table      Listener handle
+---@field first_line boolean  First line initialized
 local Buf = {}
 Buf.__index = Buf
 
 ---@param bufnr integer
 ---@return neorepl.Buf
 local function new(bufnr)
-  m_set(bufnr, NS_I, 0, 0, EXTMARK_INPUT_OPTS)
   return setmetatable({
     bufnr = bufnr,
     listener = require('neorepl.update').listen(bufnr, on_update),
+    first_line = false,
   }, Buf)
 end
 
@@ -158,7 +159,12 @@ function Buf:append(lines, group)
   local lnum = b_line_count(self.bufnr)
 
   self.listener.pause()
-  b_set_lines(self.bufnr, -1, -1, false, lines)
+  if self.first_line then
+    b_set_lines(self.bufnr, -1, -1, false, lines)
+  else
+    b_set_lines(self.bufnr, 0, -1, false, lines)
+    self.first_line, lnum = true, 0
+  end
   self.listener.resume()
 
   local opts = {
@@ -182,14 +188,17 @@ function Buf:append(lines, group)
 end
 
 ---Append prompt
----@param bufnr integer
-local function prompt(bufnr)
-  bufnr = bufnr or 0
-  b_set_lines(bufnr, -1, -1, false, {''})
+function Buf:prompt()
+  if self.first_line then
+    b_set_lines(self.bufnr, -1, -1, false, {''})
+  else
+    b_set_lines(self.bufnr, 0, -1, false, {''})
+    self.first_line = true
+  end
   -- Move cursor to the bottom
-  local lnum = b_line_count(bufnr)
+  local lnum = b_line_count(self.bufnr)
   for _, win in ipairs(w_list()) do
-    if w_get_buf(win) == bufnr then
+    if w_get_buf(win) == self.bufnr then
       w_set_cursor(win, { lnum, 0 })
     end
   end
@@ -271,7 +280,6 @@ return {
   new = new,
   get_line = get_line,
   goto_output = goto_output,
-  prompt = prompt,
   clear = clear,
   can_backspace = can_backspace,
 }
