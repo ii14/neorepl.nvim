@@ -26,7 +26,7 @@ local COMMANDS = {}
 local function command_boolean(args, repl)
   if args then
     if #args > 1 then
-      repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
+      repl:echo(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
       return false
     else
       args = args[1]
@@ -39,7 +39,7 @@ local function command_boolean(args, repl)
   elseif args == nil then
     return true, nil
   else
-    repl:put({'invalid argument, expected t/f/true/false'}, 'neoreplError')
+    repl:echo({'invalid argument, expected t/f/true/false'}, 'neoreplError')
     return false
   end
 end
@@ -59,13 +59,13 @@ table.insert(COMMANDS, {
         end)
       end
       if quit then return end
-      local elines = repl:validate_context()
+      local elines = repl:_ctx_validate()
       if elines then
-        repl:put(elines, 'neoreplInfo')
+        repl:echo(elines, 'neoreplInfo')
       end
     else
       repl.mode = repl.lua
-      repl:put(MSG_LUA, 'neoreplInfo')
+      repl:echo(MSG_LUA, 'neoreplInfo')
     end
   end,
 })
@@ -84,13 +84,13 @@ table.insert(COMMANDS, {
         end)
       end
       if quit then return end
-      local elines = repl:validate_context()
+      local elines = repl:_ctx_validate()
       if elines then
-        repl:put(elines, 'neoreplInfo')
+        repl:echo(elines, 'neoreplInfo')
       end
     else
       repl.mode = repl.vim
-      repl:put(MSG_VIM, 'neoreplInfo')
+      repl:echo(MSG_VIM, 'neoreplInfo')
     end
   end,
 })
@@ -103,13 +103,13 @@ table.insert(COMMANDS, {
   run = function(args, repl)
     if args then
       if #args > 1 then
-        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
+        repl:echo(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
         return
       end
       local bufnr = require('neorepl.putil').parse_buffer(args[1])
       if bufnr == 0 then
         repl.buffer = 0
-        repl:put({'buffer: none'}, 'neoreplInfo')
+        repl:echo({'buffer: none'}, 'neoreplInfo')
       elseif bufnr then
         repl.buffer = bufnr
         local bufname = fn.bufname(repl.buffer)
@@ -118,9 +118,9 @@ table.insert(COMMANDS, {
         else
           bufname = '('..bufname..')'
         end
-        repl:put({'buffer: '..repl.buffer..' '..bufname}, 'neoreplInfo')
+        repl:echo({'buffer: '..repl.buffer..' '..bufname}, 'neoreplInfo')
       else
-        repl:put(MSG_INVALID_BUF, 'neoreplError')
+        repl:echo(MSG_INVALID_BUF, 'neoreplError')
       end
     else
       if repl.buffer > 0 then
@@ -135,9 +135,9 @@ table.insert(COMMANDS, {
         else
           bufname = '[invalid]'
         end
-        repl:put({'buffer: '..repl.buffer..' '..bufname}, 'neoreplInfo')
+        repl:echo({'buffer: '..repl.buffer..' '..bufname}, 'neoreplInfo')
       else
-        repl:put({'buffer: none'}, 'neoreplInfo')
+        repl:echo({'buffer: none'}, 'neoreplInfo')
       end
     end
   end,
@@ -151,28 +151,28 @@ table.insert(COMMANDS, {
   run = function(args, repl)
     if args then
       if #args > 1 then
-        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
+        repl:echo(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
         return
       end
       local winid = require('neorepl.putil').parse_window(args[1])
       if winid == 0 then
         repl.window = 0
-        repl:put({'window: none'}, 'neoreplInfo')
+        repl:echo({'window: none'}, 'neoreplInfo')
       elseif winid then
         repl.window = winid
-        repl:put({'window: '..repl.window}, 'neoreplInfo')
+        repl:echo({'window: '..repl.window}, 'neoreplInfo')
       else
-        repl:put(MSG_INVALID_WIN, 'neoreplError')
+        repl:echo(MSG_INVALID_WIN, 'neoreplError')
       end
     else
       if repl.window > 0 then
         if api.nvim_win_is_valid(repl.window) then
-          repl:put({'window: '..repl.window}, 'neoreplInfo')
+          repl:echo({'window: '..repl.window}, 'neoreplInfo')
         else
-          repl:put({'window: '..repl.window..' [invalid]'}, 'neoreplInfo')
+          repl:echo({'window: '..repl.window..' [invalid]'}, 'neoreplInfo')
         end
       else
-        repl:put({'window: none'}, 'neoreplInfo')
+        repl:echo({'window: none'}, 'neoreplInfo')
       end
     end
   end,
@@ -189,7 +189,7 @@ table.insert(COMMANDS, {
       if res ~= nil then
         repl.inspect = res
       end
-      repl:put({'inspect: '..tostring(repl.inspect)}, 'neoreplInfo')
+      repl:echo({'inspect: '..tostring(repl.inspect)}, 'neoreplInfo')
     end
   end,
 })
@@ -202,26 +202,26 @@ table.insert(COMMANDS, {
   run = function(args, repl)
     if args then
       if #args > 1 then
-        repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
+        repl:echo(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
         return
       end
       local value = args[1]:match('^%d+$')
       if value then
         value = tonumber(value)
         if value < 0 or value > 32 then
-          repl:put({'invalid argument, expected number in range 0 to 32'}, 'neoreplError')
+          repl:echo({'invalid argument, expected number in range 0 to 32'}, 'neoreplError')
         elseif value == 0 then
           repl.indent = 0
-          repl:put({'indent: '..repl.indent}, 'neoreplInfo')
+          repl:echo({'indent: '..repl.indent}, 'neoreplInfo')
         else
           repl.indent = value
-          repl:put({'indent: '..repl.indent}, 'neoreplInfo')
+          repl:echo({'indent: '..repl.indent}, 'neoreplInfo')
         end
       else
-        repl:put({'invalid argument, expected number in range 0 to 32'}, 'neoreplError')
+        repl:echo({'invalid argument, expected number in range 0 to 32'}, 'neoreplError')
       end
     else
-      repl:put({'indent: '..repl.indent}, 'neoreplInfo')
+      repl:echo({'indent: '..repl.indent}, 'neoreplInfo')
     end
   end,
 })
@@ -233,7 +233,7 @@ table.insert(COMMANDS, {
   ---@param repl neorepl.Repl
   run = function(args, repl)
     if args then
-      repl:put(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
+      repl:echo(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
     else
       repl:clear()
       return false
@@ -248,7 +248,7 @@ table.insert(COMMANDS, {
   ---@param repl neorepl.Repl
   run = function(args, repl)
     if args then
-      repl:put(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
+      repl:echo(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
     else
       vim.cmd('stopinsert')
       require('neorepl.bufs')[repl.bufnr] = nil
@@ -264,7 +264,7 @@ table.insert(COMMANDS, {
   ---@param repl neorepl.Repl
   run = function(args, repl)
     if args then
-      repl:put(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
+      repl:echo(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
     else
       local lines = {}
       for _, c in ipairs(COMMANDS) do
@@ -274,7 +274,7 @@ table.insert(COMMANDS, {
           table.insert(lines, cmd..pad..c.description)
         end
       end
-      repl:put(lines, 'neoreplInfo')
+      repl:echo(lines, 'neoreplInfo')
     end
   end,
 })

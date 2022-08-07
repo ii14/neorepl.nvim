@@ -23,7 +23,7 @@ function Lua.new(repl, config)
       args[i] = tostring(v)
     end
     local lines = vim.split(table.concat(args, '\t'), '\n', { plain = true })
-    repl:put(lines, 'neoreplOutput')
+    repl:echo(lines, 'neoreplOutput')
   end
 
   self.env = setmetatable({
@@ -40,13 +40,13 @@ function Lua.new(repl, config)
         if not ok then
           local err = vim.split(res, '\n', { plain = true })
           table.insert(err, 1, 'Error from user env:')
-          repl:put(err, 'neoreplError')
-          return self.repl:new_line()
+          repl:echo(err, 'neoreplError')
+          return self.repl:prompt()
         elseif res == nil then
           return
         elseif type(res) ~= 'table' then
-          repl:put({'Result of user env is not a table'}, 'neoreplError')
-          return self.repl:new_line()
+          repl:echo({'Result of user env is not a table'}, 'neoreplError')
+          return self.repl:prompt()
         else
           userenv = res
         end
@@ -92,20 +92,24 @@ end
 function Lua:eval(prg)
   if type(prg) == 'table' then
     prg = table.concat(prg, '\n')
-  elseif type(prg) ~= 'string' then
-    error('invalid prg type')
   end
 
   local ok, res, err, n
-  res = loadstring('return '..prg, 'neorepl')
-  if not res then
-    res, err = loadstring(prg, 'neorepl')
+  if type(prg) == 'string' then
+    res = loadstring('return '..prg, 'neorepl')
+    if not res then
+      res, err = loadstring(prg, 'neorepl')
+    end
+  elseif type(prg) == 'function' then
+    res = prg
+  else
+    error('invalid prg type')
   end
 
   if res then
     setfenv(res, self.env)
 
-    local ctxres = self.repl:exec_context(function()
+    local ctxres = self.repl:_ctx_exec(function()
       -- temporarily replace print
       _G.print = self.print
       ok, res, n = exec(res)
@@ -118,14 +122,14 @@ function Lua:eval(prg)
     elseif not ctxres then
       return
     elseif not ok then
-      self.repl:put(vim.split(res, '\n', { plain = true }), 'neoreplError')
+      self.repl:echo(vim.split(res, '\n', { plain = true }), 'neoreplError')
     else
       local stringify = self.repl.inspect and vim.inspect or tostring
       for i = 1, n do
         res[i] = stringify(res[i])
       end
       if #res > 0 then
-        self.repl:put(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'neoreplValue')
+        self.repl:echo(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'neoreplValue')
       end
     end
   elseif err:match("'<eof>'$") then
@@ -134,7 +138,7 @@ function Lua:eval(prg)
     vim.cmd('$')
     return false
   else
-    self.repl:put({err}, 'neoreplError')
+    self.repl:echo({err}, 'neoreplError')
   end
 end
 

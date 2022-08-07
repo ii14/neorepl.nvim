@@ -103,7 +103,7 @@ function Repl.new(config)
   if config.on_init then
     config.on_init(bufnr)
   end
-  self:new_line()
+  self:prompt()
 
   if config.startinsert then
     vim.cmd('startinsert')
@@ -122,7 +122,7 @@ end
 ---Append lines to the buffer
 ---@param lines string[]  lines
 ---@param hlgroup string  highlight group
-function Repl:put(lines, hlgroup)
+function Repl:echo(lines, hlgroup)
   if self.indent > 0 then
     local copy = {}
     local prefix = (' '):rep(self.indent)
@@ -135,7 +135,7 @@ function Repl:put(lines, hlgroup)
 end
 
 ---Append prompt line
-function Repl:new_line()
+function Repl:prompt()
   api.nvim_buf_call(self.bufnr, function()
     self.buf:prompt() -- Append new prompt
     -- Undoing output messes with extmarks. Clear undo history
@@ -148,12 +148,13 @@ end
 
 ---Clear buffer
 function Repl:clear()
-  Buf.clear(self.bufnr)
+  self.buf:clear()
+  self:prompt()
 end
 
 ---Validate context
 ---@return nil|string[] error lines, nil if ok
-function Repl:validate_context()
+function Repl:_ctx_validate()
   local lines = {}
   if self.buffer ~= 0 and not api.nvim_buf_is_valid(self.buffer) then
     self.buffer = 0
@@ -176,7 +177,7 @@ function Repl:eval_line()
   local lines = self:get_line()
   -- Ignore if it's only whitespace
   if not lines or util.lines_empty(lines) then
-    self:new_line()
+    self:prompt()
     return
   end
 
@@ -189,8 +190,8 @@ function Repl:eval_line()
     line = line:sub(2)
     local cmd, rest = line:match('^(%a*)%s*(.*)$')
     if not cmd then
-      self:put(MSG_INVALID_COMMAND, 'neoreplError')
-      self:new_line()
+      self:echo(MSG_INVALID_COMMAND, 'neoreplError')
+      self:prompt()
       return
     end
 
@@ -216,14 +217,14 @@ function Repl:eval_line()
       if fn.match(cmd, c.pattern) >= 0 then
         -- Don't append new line when command returns false
         if c.run(args, self) ~= false then
-          self:new_line()
+          self:prompt()
         end
         return
       end
     end
 
-    self:put(MSG_INVALID_COMMAND, 'neoreplError')
-    self:new_line()
+    self:echo(MSG_INVALID_COMMAND, 'neoreplError')
+    self:prompt()
     return
   end
 
@@ -239,21 +240,21 @@ function Repl:eval_line()
   if quit then return end
 
   -- Validate buffer and window after evaluation
-  local elines = self:validate_context()
+  local elines = self:_ctx_validate()
   if elines then
-    self:put(elines, 'neoreplInfo')
+    self:echo(elines, 'neoreplInfo')
   end
-  self:new_line()
+  self:prompt()
 end
 
 ---Execute function in current buffer/window context
 ---@param f function
-function Repl:exec_context(f)
+function Repl:_ctx_exec(f)
   -- Validate buffer and window
-  local elines = self:validate_context()
+  local elines = self:_ctx_validate()
   if elines then
     table.insert(elines, 'operation cancelled')
-    self:put(elines, 'neoreplError')
+    self:echo(elines, 'neoreplError')
     return false
   end
 

@@ -35,7 +35,7 @@ function Vim:eval(prg)
   -- context is shared between repl instances. a potential solution is to
   -- create a temporary script for each instance.
   local ok, res
-  local ctxres = self.repl:exec_context(function()
+  local ctxres = self.repl:_ctx_exec(function()
     ok, res = pcall(fn['neorepl#__evaluate__'], prg)
     vim.cmd('redraw')
   end)
@@ -55,9 +55,9 @@ function Vim:eval(prg)
       res = vim.split(res.exception, '\n', { plain = true, trimempty = true })
       table.insert(res, 1, 'Error detected while processing '..throwpoint..':')
     end
-    self.repl:put(res, hlgroup)
+    self.repl:echo(res, hlgroup)
   else
-    self.repl:put(vim.split(tostring(res), '\n', { plain = true, trimempty = true }), 'neoreplError')
+    self.repl:echo(vim.split(tostring(res), '\n', { plain = true, trimempty = true }), 'neoreplError')
   end
 end
 
@@ -71,7 +71,7 @@ function Vim:complete(line)
   end
 
   local results
-  if self.repl:exec_context(function()
+  if self.repl:_ctx_exec(function()
     results = fn.getcompletion(line, 'cmdline', 1)
   end) then
     if results and #results > 0 then

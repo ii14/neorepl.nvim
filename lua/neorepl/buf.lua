@@ -270,16 +270,18 @@ local function goto_output(backward, to_end, count)
   end
 end
 
-local function clear(bufnr)
-  api.nvim_buf_clear_namespace(bufnr, NS_I, 0, -1)
-  api.nvim_buf_clear_namespace(bufnr, NS_O, 0, -1)
-  api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+function Buf:clear()
+  api.nvim_buf_clear_namespace(self.bufnr, NS_I, 0, -1)
+  api.nvim_buf_clear_namespace(self.bufnr, NS_O, 0, -1)
+  self.listener.pause()
+  api.nvim_buf_set_lines(self.bufnr, 0, -1, false, {})
+  self.listener.resume()
+  self.first_line = false
 end
 
 return {
   new = new,
   get_line = get_line,
   goto_output = goto_output,
-  clear = clear,
   can_backspace = can_backspace,
 }
