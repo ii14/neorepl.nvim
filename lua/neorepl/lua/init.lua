@@ -113,6 +113,9 @@ local exec do
       if not fname then return end
       local bufnr = fn.bufnr(fname)
       if bufnr > 0 then
+        if not api.nvim_buf_is_loaded(bufnr) then
+          fn.bufload(bufnr)
+        end
         local line = api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1]
         if line then
           local p = api.nvim_buf_get_lines(bufnr, lnum - 2, lnum - 1, false)[1]
