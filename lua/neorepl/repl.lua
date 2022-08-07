@@ -153,7 +153,6 @@ end
 ---Clear buffer
 function Repl:clear()
   self.buf:clear()
-  self:prompt()
 end
 
 ---Validate context

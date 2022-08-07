@@ -232,6 +232,7 @@ table.insert(COMMANDS, {
       repl:echo(MSG_ARGS_NOT_ALLOWED, 'neoreplError')
     else
       repl:clear()
+      repl:prompt()
       return false
     end
   end,

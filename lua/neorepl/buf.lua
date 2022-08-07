@@ -189,13 +189,16 @@ end
 
 ---Append prompt
 function Buf:prompt()
+  -- Append new line
   if self.first_line then
     b_set_lines(self.bufnr, -1, -1, false, {''})
   else
     b_set_lines(self.bufnr, 0, -1, false, {''})
     self.first_line = true
   end
+
   -- Move cursor to the bottom
+  -- TODO: doesn't work when buffer is not visible anywhere. use BufEnter event?
   local lnum = b_line_count(self.bufnr)
   for _, win in ipairs(w_list()) do
     if w_get_buf(win) == self.bufnr then
