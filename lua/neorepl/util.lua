@@ -1,9 +1,17 @@
 -- User utility functions
 -- Experimental, stuff can change or get removed from here
 
-local api, uv = vim.api, vim.loop
+local api, fn, uv = vim.api, vim.fn, vim.loop
 
 local util = {}
+
+util.split = function()
+  if fn.winwidth(0) > 80 * 2 then
+    vim.cmd('vsplit')
+  else
+    vim.cmd('split')
+  end
+end
 
 ---Global instance
 local global = nil
@@ -20,7 +28,9 @@ local function open(config, focus)
     end
 
     local prev = api.nvim_get_current_win()
-    api.nvim_command('split')
+    if util.split then
+      util.split()
+    end
     api.nvim_set_current_buf(global)
     if focus == false then
       api.nvim_set_current_win(prev)
@@ -28,7 +38,9 @@ local function open(config, focus)
     return repl, false
   else
     local prev = api.nvim_get_current_win()
-    api.nvim_command('split')
+    if util.split then
+      util.split()
+    end
     require('neorepl').new(config)
     global = api.nvim_get_current_buf()
     if focus == false then
@@ -41,10 +53,8 @@ end
 
 ---Open a global instance
 function util.open()
-  local repl, new = open()
-  if not new and repl.config.startinsert then
-    api.nvim_command('startinsert')
-  end
+  open()
+  api.nvim_command('startinsert')
 end
 
 
@@ -52,10 +62,8 @@ end
 function util.attach()
   local buf = api.nvim_get_current_buf()
   local win = api.nvim_get_current_win()
-  local repl, new = open()
-  if not new and repl.config.startinsert then
-    api.nvim_command('startinsert')
-  end
+  local repl = open()
+  api.nvim_command('startinsert')
   -- TODO: print notification if context changed
   repl.buffer = buf ~= api.nvim_get_current_buf() and buf or 0
   repl.window = win ~= api.nvim_get_current_win() and win or 0
