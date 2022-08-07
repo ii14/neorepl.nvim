@@ -96,7 +96,7 @@ table.insert(COMMANDS, {
         repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
         return
       end
-      local bufnr = require('neorepl.util').parse_buffer(args[1])
+      local bufnr = require('neorepl.putil').parse_buffer(args[1])
       if bufnr == 0 then
         repl.buffer = 0
         repl:put({'buffer: none'}, 'neoreplInfo')
@@ -144,7 +144,7 @@ table.insert(COMMANDS, {
         repl:put(MSG_MULTI_LINES_NOT_ALLOWED, 'neoreplError')
         return
       end
-      local winid = require('neorepl.util').parse_window(args[1])
+      local winid = require('neorepl.putil').parse_window(args[1])
       if winid == 0 then
         repl.window = 0
         repl:put({'window: none'}, 'neoreplInfo')

@@ -326,7 +326,7 @@ local function complete(var, e)
   end
 end
 
-local KEYWORDS_BEFORE_IDENT = require('neorepl.util').make_lookup {
+local KEYWORDS_BEFORE_IDENT = require('neorepl.putil').make_lookup {
   'and', 'do', 'else', 'elseif', 'end',
   'if', 'in', 'not', 'or', 'repeat',
   'return', 'then', 'until', 'while',

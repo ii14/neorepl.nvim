@@ -1,5 +1,5 @@
 local api, fn, setl = vim.api, vim.fn, vim.opt_local
-local util = require('neorepl.util')
+local util = require('neorepl.putil')
 local bufs = require('neorepl.bufs')
 local map = require('neorepl.map')
 local Buf = require('neorepl.buf')
@@ -81,6 +81,7 @@ function Repl.new(config)
     inspect = get_opt(config.inspect, true),
     indent = get_opt(config.indent, 0),
     hist = Hist.new(config),
+    config = config,
   }, Repl)
 
   self.lua = Lua.new(self, config)

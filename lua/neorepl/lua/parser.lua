@@ -36,7 +36,7 @@ local M = {}
 local WHITESPACE = ' \t\v\f\r'
 local RE_WHITESPACE = '['..WHITESPACE..']*([^'..WHITESPACE..'])'
 
-local KEYWORDS = require('neorepl.util').make_lookup {
+local KEYWORDS = require('neorepl.putil').make_lookup {
   'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
   'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
   'return', 'then', 'true', 'until', 'while',

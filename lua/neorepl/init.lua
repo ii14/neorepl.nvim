@@ -1,4 +1,4 @@
-local api, fn = vim.api, vim.fn
+local fn = vim.fn
 
 ---@class neorepl.Config
 ---@field lang? 'lua'|'vim'
@@ -95,30 +95,6 @@ local default_config = {
 }
 
 
----@class neorepl.Bufs
-local bufs = {}
-
----Get current REPL
----@param bufnr number
----@return neorepl.Repl
-function bufs.get(bufnr)
-  if bufnr == nil or bufnr == 0 then
-    bufnr = api.nvim_get_current_buf()
-  elseif type(bufnr) ~= 'number' then
-    error('expected number')
-  end
-
-  if bufs[bufnr] == nil then
-    error('invalid repl: '..bufnr)
-  end
-
-  return bufs[bufnr]
-end
-
--- inject module
-package.loaded['neorepl.bufs'] = bufs
-
-
 local neorepl = {}
 
 ---Set default configuration
@@ -144,7 +120,7 @@ end
 ---Get available completions at current cursor position
 ---@return number column, string[] completions
 function neorepl.get_completion()
-  return bufs.get():get_completion()
+  return require('neorepl.bufs').get():get_completion()
 end
 
 return neorepl
