@@ -4,8 +4,10 @@ local prev_print = _G.print
 
 ---@class neorepl.Lua
 ---@field repl neorepl.Repl   parent
----@field env table         repl environment
----@field print fun(...)    print function
+---@field env table           repl environment
+---@field print fun(...)      print function
+---@field interface table     user interface
+---@field res table           last results
 local Lua = {}
 Lua.__index = Lua
 
@@ -15,6 +17,9 @@ Lua.__index = Lua
 ---@return neorepl.Lua
 function Lua.new(repl, config)
   local self = setmetatable({ repl = repl }, Lua)
+
+  self.res = {}
+  self.interface = { res = self.res }
 
   -- print override
   self.print = function(...)
@@ -29,6 +34,7 @@ function Lua.new(repl, config)
   self.env = setmetatable({
     ---print function override
     print = self.print,
+    repl = self.interface,
   }, { __index = _G })
 
   -- add user environment
@@ -123,14 +129,21 @@ function Lua:eval(prg)
       return
     elseif not ok then
       self.repl:echo(vim.split(res, '\n', { plain = true }), 'neoreplError')
-    else
+    elseif #res > 0 then
+      -- Save results
+      for k in pairs(self.res) do
+        self.res[k] = nil
+      end
+      for i = 1, n do
+        self.res[i] = res[i]
+      end
+
+      -- Print results
       local stringify = self.repl.inspect and vim.inspect or tostring
       for i = 1, n do
         res[i] = stringify(res[i])
       end
-      if #res > 0 then
-        self.repl:echo(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'neoreplValue')
-      end
+      self.repl:echo(vim.split(table.concat(res, ', '), '\n', { plain = true }), 'neoreplValue')
     end
   elseif err:match("'<eof>'$") then
     -- more input expected, add line break

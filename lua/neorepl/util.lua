@@ -104,7 +104,7 @@ function util.run_buffer(bufnr)
   ---@param repl neorepl.Repl
   local function run(repl)
     local time = os.date('%Y-%m-%d %H:%M:%S')
-    repl:echo(('%s: %d: %s'):format(time, bufnr, api.nvim_buf_get_name(bufnr)), 'neoreplInfo')
+    repl:echo(('%s: vim buffer %d: %s'):format(time, bufnr, api.nvim_buf_get_name(bufnr)), 'neoreplInfo')
     local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
     local f, err = loadstring(table.concat(lines, '\n'), ('vim buffer %d'):format(bufnr))
     if not f then
