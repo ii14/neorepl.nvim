@@ -54,9 +54,7 @@ table.insert(COMMANDS, {
     if args then
       local quit = repl.lua:eval(args) == false
       if api.nvim_get_current_buf() ~= repl.bufnr then
-        vim.schedule(function()
-          api.nvim_command('stopinsert')
-        end)
+        api.nvim_command('stopinsert')
       end
       if quit then return end
       local elines = repl:_ctx_validate()
@@ -79,9 +77,7 @@ table.insert(COMMANDS, {
     if args then
       local quit = repl.vim:eval(args) == false
       if api.nvim_get_current_buf() ~= repl.bufnr then
-        vim.schedule(function()
-          api.nvim_command('stopinsert')
-        end)
+        api.nvim_command('stopinsert')
       end
       if quit then return end
       local elines = repl:_ctx_validate()

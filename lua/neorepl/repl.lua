@@ -9,10 +9,7 @@ local Hist = require('neorepl.hist')
 local COMMANDS = require('neorepl.cmd')
 
 local COMMAND_PREFIX = '/'
-local MSG_INVALID_COMMAND = {'invalid command'}
-
----No-op command for clearing undo history
-local NOP_CHANGE = api.nvim_replace_termcodes('normal! a <BS><C-G>u<Esc>', true, false, true)
+local PUM_CLOSE = api.nvim_replace_termcodes('<C-Y>', true, false, true)
 
 ---@generic T
 ---@param v T|nil
@@ -49,11 +46,11 @@ Repl.__index = Repl
 function Repl.new(config)
   if config.buffer then
     config.buffer = util.parse_buffer(config.buffer, true)
-    assert(config.buffer, 'invalid window')
+    assert(config.buffer, 'Invalid window')
   end
   if config.window then
     config.window = util.parse_window(config.window, true)
-    assert(config.window, 'invalid window')
+    assert(config.window, 'Invalid window')
   end
 
   vim.cmd('enew')
@@ -100,14 +97,14 @@ function Repl.new(config)
     once = true,
   })
 
-  if config.on_init then
-    config.on_init(bufnr)
-  end
-  self:prompt()
-
   if config.startinsert then
     vim.cmd('startinsert')
   end
+
+  if config.on_init then
+    config.on_init(bufnr, self)
+  end
+  self:prompt()
 
   return self
 end
@@ -123,6 +120,12 @@ end
 ---@param lines string[]  lines
 ---@param hlgroup string  highlight group
 function Repl:echo(lines, hlgroup)
+  if type(lines) == 'string' then
+    lines = vim.split(lines, '\n', { plain = true })
+  elseif type(lines) ~= 'table' then
+    error('expected table or string')
+  end
+
   if self.indent > 0 then
     local copy = {}
     local prefix = (' '):rep(self.indent)
@@ -131,6 +134,7 @@ function Repl:echo(lines, hlgroup)
     end
     lines = copy
   end
+
   self.buf:append(lines, hlgroup)
 end
 
@@ -141,7 +145,7 @@ function Repl:prompt()
     -- Undoing output messes with extmarks. Clear undo history
     local save = api.nvim_buf_get_option(self.bufnr, 'undolevels')
     api.nvim_buf_set_option(self.bufnr, 'undolevels', -1)
-    api.nvim_command(NOP_CHANGE)
+    api.nvim_buf_set_text(self.bufnr, 0, 0, 0, 0, {}) -- No-op change
     api.nvim_buf_set_option(self.bufnr, 'undolevels', save)
   end)
 end
@@ -171,6 +175,10 @@ end
 
 ---Evaluate current line
 function Repl:eval_line()
+  if fn.pumvisible() ~= 0 then
+    api.nvim_feedkeys(PUM_CLOSE, 'n', false)
+  end
+
   -- reset history position
   self.hist:reset_pos()
 
@@ -190,7 +198,7 @@ function Repl:eval_line()
     line = line:sub(2)
     local cmd, rest = line:match('^(%a*)%s*(.*)$')
     if not cmd then
-      self:echo(MSG_INVALID_COMMAND, 'neoreplError')
+      self:echo('Invalid command', 'neoreplError')
       self:prompt()
       return
     end
@@ -223,19 +231,15 @@ function Repl:eval_line()
       end
     end
 
-    self:echo(MSG_INVALID_COMMAND, 'neoreplError')
+    self:echo('Invalid command', 'neoreplError')
     self:prompt()
     return
   end
 
   local quit = self.mode:eval(lines) == false
-  -- stop insert mode if buffer changed
+  -- Stop insert mode if buffer changed
   if api.nvim_get_current_buf() ~= self.bufnr then
-    -- TODO: would be nice if it wasn't deferred.
-    -- I think it's because it runs from an expr mapping?
-    vim.schedule(function()
-      api.nvim_command('stopinsert')
-    end)
+    api.nvim_command('stopinsert')
   end
   if quit then return end
 
