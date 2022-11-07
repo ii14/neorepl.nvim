@@ -8,7 +8,7 @@ Start a new instance with `:Repl`.
 
 In insert mode type `/h` and enter to see available commands.
 
-![demo](media/demo.gif)
+![demo](https://user-images.githubusercontent.com/59243201/200236872-97304492-6b4c-4de5-9cad-f530ce5eab3d.gif)
 
 ---
 
