@@ -80,7 +80,7 @@ end
 
 ---Default configuration
 ---@type neorepl.Config
-local default_config = {
+local DEFAULT_CONFIG = {
   lang = 'lua',
   startinsert = true,
   indent = 0,
@@ -121,23 +121,22 @@ package.loaded['neorepl.bufs'] = bufs
 
 local neorepl = {}
 
+local current_config = vim.deepcopy(DEFAULT_CONFIG)
+
 ---Set default configuration
 ---@param config? neorepl.Config
 function neorepl.config(config)
-  -- TODO: merge with the old one.
-  -- to do so, we need a way of resetting values back to default,
-  -- in particular on_init, env_lua, lang. either false or have neorepl.DEFAULT constant
-  config = validate(config)
+  config = validate(config or {})
   if config.buffer ~= nil or config.window ~= nil then
     error('buffer and window cannot be set on a default configuration')
   end
-  default_config = config
+  current_config = vim.tbl_extend("force", DEFAULT_CONFIG, config)
 end
 
 ---Create a new REPL instance
 ---@param config? neorepl.Config
 function neorepl.new(config)
-  config = validate(vim.tbl_extend('force', default_config, config or {}))
+  config = validate(vim.tbl_extend('force', current_config, config or {}))
   require('neorepl.repl').new(config)
 end
 
