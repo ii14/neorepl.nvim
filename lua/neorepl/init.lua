@@ -126,7 +126,7 @@ local current_config = vim.deepcopy(DEFAULT_CONFIG)
 ---Set default configuration
 ---@param config? neorepl.Config
 function neorepl.config(config)
-  config = validate(config or {})
+  config = validate(config)
   if config.buffer ~= nil or config.window ~= nil then
     error('buffer and window cannot be set on a default configuration')
   end
